@@ -12,7 +12,9 @@
 
     <!-- Left Sidebar Wrapper -->
     <aside class="sidebar">
-        
+        <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------   -->
+         
+        <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------   -->
         <!-- 1. Top Left Brand Title -->
         <!-- 1. Top Left Brand Title (Updated to a click link) -->
         <div class="brand">
@@ -57,6 +59,92 @@
         </div>
 
     </aside>
+    <!-- Main Content Area Dashboard Workspace -->
+<main class="dashboard-main">
+
+    <!-- Top Dashboard Stats Overview Section -->
+    <section class="stats-row">
+        
+        <!-- A. Performance Line Graph Card -->
+        <div class="dash-card chart-card">
+            <span class="chart-metric-label">100</span>
+            <!-- Placeholder for your canvas or SVG chart line -->
+            <div class="mock-chart-line"></div>
+        </div>
+
+        <!-- B. Wins and Losses Block Metrics -->
+        <div class="metrics-group">
+            <div class="metric-pill">
+                <span class="lbl-muted">WINS</span>
+                <span class="val-green">0</span>
+                <div class="progress-ring ring-green" data-pct="0%"></div>
+            </div>
+            <div class="metric-pill">
+                <span class="lbl-muted">LOSSES</span>
+                <span class="val-red">0</span>
+                <div class="progress-ring ring-red" data-pct="0%"></div>
+            </div>
+        </div>
+
+        <!-- C. Open and Wash Trade Metrics -->
+        <div class="metrics-group">
+            <div class="metric-pill">
+                <span class="lbl-muted">OPEN</span>
+                <span class="val-muted">0</span>
+                <span class="pct-muted">0%</span>
+            </div>
+            <div class="metric-pill">
+                <span class="lbl-muted">WASH</span>
+                <span class="val-muted">0</span>
+                <span class="pct-muted">0%</span>
+            </div>
+        </div>
+
+        <!-- D. Average Win and Loss Statistics -->
+        <div class="metrics-group">
+            <div class="metric-pill">
+                <span class="lbl-muted">AVG W</span>
+                <span class="val-green">$0</span>
+                <span class="pct-muted">0%</span>
+            </div>
+            <div class="metric-pill">
+                <span class="lbl-muted">AVG L</span>
+                <span class="val-red">-$0</span>
+                <span class="pct-muted">-0%</span>
+            </div>
+        </div>
+
+        <!-- E. Total PnL Standalone Right Container -->
+        <div class="dash-card pnl-card">
+            <span class="lbl-muted title-pnl">PnL</span>
+            <div class="pnl-value">$0</div>
+            <div class="pnl-badge-pct">0.0%</div>
+        </div>
+
+    </section>
+
+    <!-- Bottom Detailed Trade Log Ledger Grid -->
+    <section class="table-container">
+        <div class="table-header-row">
+            <div class="col-head sortable">Date <i class="fa-solid fa-bars-staggered"></i></div>
+            <div class="col-head">Symbol</div>
+            <div class="col-head">Status</div>
+            <div class="col-head">Side</div>
+            <div class="col-head">Qty</div>
+            <div class="col-head">Entry</div>
+            <div class="col-head">Exit</div>
+            <div class="col-head">Ent Tot</div>
+            <div class="col-head">Ext Tot</div>
+            <div class="col-head">Pos</div>
+            <div class="col-head">Hold</div>
+            <div class="col-head">Return</div>
+            <div class="col-head">Return %</div>
+        </div>
+        <!-- Table rows with trade data loop can go here later -->
+    </section>
+
+</main>
+
 
 </body>
 </html>

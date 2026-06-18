@@ -46,6 +46,7 @@ Formats the main application name in bold white text and positions a bright blue
     text-decoration: none; /* Removes any default browser underline */
     width: 100%;
     cursor: pointer;       /* 👆 Ensures the mouse pointer changes to a finger */
+    margin-bottom: 20px;
 }
 
 /* Optional: Slight opacity change on hover to make it feel interactive */
@@ -90,19 +91,6 @@ Formats the main application name in bold white text and positions a bright blue
     align-items: center;
 }
 
-/* 
-.dropdown-arrow {
-    font-size: 0.7rem;
-    cursor: pointer;
-}*/
-/* do not yet know if this is needed for the account balance dropdown menu, so I will comment it out for now.
-.account-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin: 6px 0 12px 0;
-}*/
-/*line between account balance and balance*/
 .transaction-summary {
     border-top: 1px solid var(--border-color);
     padding-top: 10px;
@@ -230,3 +218,175 @@ Formats the main application name in bold white text and positions a bright blue
 /* Smooth Click & Hover Animations */
 .btn-action:hover { filter: brightness(1.15); }
 .btn-action:active { transform: scale(0.98); }
+
+
+/* Core Page Layout Organizer (Ensures layout wraps side-by-side with sidebar) */
+body {
+    display: flex;
+    background-color: #171b26;
+    overflow-x: hidden;
+}
+
+.dashboard-main {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+/* 📐 Top Stats Section Row Layout LINE CHART ON DASHBOARD */
+.stats-row {
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Standard Base Base Cards */
+.dash-card {
+    background-color: #1c2030;
+    border: 1px solid #2a2e39;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    box-sizing: border-box;
+}
+
+/* Performance Graph Container Card Sizing Override */
+.chart-card {
+    flex: 3;
+    position: relative;
+    min-height: 110px;
+    justify-content: flex-start;
+    margin-right: 15px;
+}
+
+.chart-metric-label {
+    font-size: 0.75rem;
+    color: #647080;
+    position: absolute;
+    top: 10px;
+    left: 12px;
+}
+
+.mock-chart-line {
+    width: 100%;
+    height: 60%;
+    align-self: flex-end;
+    border-bottom: 2px solid #2979ff;
+    background: linear-gradient(180deg, rgba(41, 121, 255, 0.15) 0%, rgba(41, 121, 255, 0) 100%);
+    clip-path: ellipse(75% 100% at 50% 100%); /* Simulates smooth mountain wave chart slope contour layout */
+}
+
+/* Metric Pill Double Stacks */
+.metrics-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.metric-pill {
+    background-color: #1c2030;
+    border: 1px solid #2a2e39;
+    border-radius: 30px; /* High value creates oval container tracks */
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 150px;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Typography States Mapping Styles */
+.lbl-muted { color: #848e9c; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
+.val-green { color: #2ebd85; font-size: 1rem; font-weight: 700; }
+.val-red { color: #f6465d; font-size: 1rem; font-weight: 700; }
+.val-muted { color: #d1d4dc; }
+.pct-muted { color: #647080; font-size: 0.75rem; }
+
+/* Mini Progress Percent Indicators */
+.progress-ring {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    border-radius: 50px;
+    border: 2px solid rgba(255,255,255,0.05);
+}
+.progress-ring::after {
+    content: attr(data-pct);
+    position: absolute;
+    font-size: 0.55rem;
+    color: #848e9c;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+.ring-green { border-top-color: #2ebd85; border-right-color: #2ebd85; }
+.ring-red { border-bottom-color: #f6465d; }
+
+/* Right PnL Profile Card Styling */
+.pnl-card {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 130px;
+    margin-left: 15px;
+}
+.title-pnl { transform: translateY(-4px); }
+.pnl-value {
+    color: #2ebd85;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 4px 0;
+}
+.pnl-badge-pct {
+    background-color: rgba(46, 189, 133, 0.1);
+    color: #2ebd85;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+/* 📊 Bottom Trade Log Table Layout Header DATE SYMBOL ETC FOR TABLE INSERT BELOW */
+.table-container {
+    background-color: #1c2030;
+    border: 1px solid #2a2e39;
+    border-radius: 12px;
+    padding: 14px 20px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 25px;
+}
+
+.table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.col-head {
+    color: #848e9c;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: left;
+    flex: 1; /* Distributes headers into perfect equal table columns spacing tracks */
+}
+
+.col-head.sortable {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #d1d4dc;
+    cursor: pointer;
+}
+.col-head.sortable i { font-size: 0.7rem; color: #848e9c; }
+
