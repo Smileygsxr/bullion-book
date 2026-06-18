@@ -5,46 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- TradingView Lightweight Charts CDN -->
-    <script src="https://unpkg.com"></script>
+    <!-- Icon pack link -->
+    <link rel="stylesheet" href="https://cloudflare.com">
 </head>
 <body>
-    <header>
-        <h1>BULLION BOOK</h1>
-    </header>
 
-    <main class="dashboard-container">
-        <!-- Section Row 1 -->
-        <section class="report-card">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>DATE</th>
-                            <th>TIME</th>
-                            <th>ACTUAL</th>
-                            <th>FORECAST</th>
-                            <th>PREVIOUS</th>
-                            <th>EVENT</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>10-April</td>
-                            <td>14:30</td>
-                            <td class="negative">0.20%</td>
-                            <td>0.30%</td>
-                            <td>0.20%</td>
-                            <td class="highlight">Core CPI m/m</td>
-                        </tr>
-                    </tbody>
-                </table>
+    <!-- Left Sidebar Wrapper -->
+    <aside class="sidebar">
+        
+        <!-- 1. Top Left Brand Title -->
+        <div class="brand">
+            <i class="fa-solid fa-coins brand-icon"></i>
+            <h1>Bullion Book</h1>
+        </div>
+        
+        <!-- 2. Account & Transactions Container Box -->
+        <div class="account-box">
+            <div class="account-title">
+                <span>Account Balance</span>
+                    <button class="btn-edit" title="Edit Balance">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
             </div>
-            <!-- Interactive Chart Container -->
-            <div id="chart-cpi-april" class="chart-container"></div>
-        </section>
-    </main>
+            <div class="transaction-summary">
+                <div class="summary-row">
+                    <span>Balance:</span>
+                    <span class="text-white">$0.00</span>
+                </div>
+            </div>
+        </div>
 
-    <script src="app.js"></script>
+        <!-- 3. Vertical Navigation Menu -->
+        <nav class="nav-menu">
+            <a href="#" class="nav-link active"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="#" class="nav-link"><i class="fa-solid fa-chart-simple"></i> Stats</a>
+            <a href="#" class="nav-link"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+            <a href="#" class="nav-link"><i class="fa-solid fa-news"></i> News</a>
+            <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+            <a href="#" class="nav-link"><i class="fa-solid fa-circle-question"></i> Help</a>
+        </nav>
+
+    </aside>
+
 </body>
 </html>
