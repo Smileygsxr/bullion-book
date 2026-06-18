@@ -37,13 +37,22 @@ Adds a subtle right-side border line to separate the sidebar from the main conte
 
 /* 1. Brand Heading - Styles the company logo and app title at the top.
 Formats the main application name in bold white text and positions a bright blue accent icon right next to it.*/
-.brand {
+/* Removes default link styling and enables flex layout inside the anchor */
+.brand-link {
     display: flex;
     align-items: center;
-    gap: 18px;
-    margin-bottom: 20px;
+    justify-content: flex-start;
+    gap: 18px;            /* Keeps the spacing you set up earlier */
+    text-decoration: none; /* Removes any default browser underline */
     width: 100%;
+    cursor: pointer;       /* 👆 Ensures the mouse pointer changes to a finger */
 }
+
+/* Optional: Slight opacity change on hover to make it feel interactive */
+.brand-link:hover {
+    opacity: 0.9;
+}
+
 /* Icon styles for the brand icon Gold icon top left */
 .brand-icon {
     font-size: 1.6rem;
@@ -173,7 +182,6 @@ Formats the main application name in bold white text and positions a bright blue
     color: var(--accent-blue);
     font-weight: 600;
 }
-/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
 
 /* Container that pushes actions to the absolute bottom */
 .sidebar-actions {
@@ -201,7 +209,7 @@ Formats the main application name in bold white text and positions a bright blue
     transition: transform 0.1s ease, filter 0.2s ease;
 }
 
-/* Button Color Themes */
+/* New Trade and New note buttons Button Color Themes */
 .btn-blue{
     background-color: #2c4260;
     margin-top: 8px; /* 🌟 Adds extra physical spacing above this specific button */
