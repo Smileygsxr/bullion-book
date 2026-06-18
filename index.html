@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bullion Book</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- TradingView Lightweight Charts CDN -->
+    <script src="https://unpkg.com"></script>
+</head>
+<body>
+    <header>
+        <h1>BULLION BOOK</h1>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Section Row 1 -->
+        <section class="report-card">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>DATE</th>
+                            <th>TIME</th>
+                            <th>ACTUAL</th>
+                            <th>FORECAST</th>
+                            <th>PREVIOUS</th>
+                            <th>EVENT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>10-April</td>
+                            <td>14:30</td>
+                            <td class="negative">0.20%</td>
+                            <td>0.30%</td>
+                            <td>0.20%</td>
+                            <td class="highlight">Core CPI m/m</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Interactive Chart Container -->
+            <div id="chart-cpi-april" class="chart-container"></div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
