@@ -1,36 +1,191 @@
-/* Update this specific block in your styles.css */
+/* Color Scheme Variables */
+:root {
+    --bg-dark: #131722;
+    --bg-card: #1c2030;
+    --border-color: #2a2e39;
+    --text-muted: #848e9c;
+    --text-light: #d1d4dc;
+    --accent-blue: #2979ff;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #171b26;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text-light);
+}
+
+/* Sidebar Framework Layout */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background-color: var(--bg-dark);
+    border-right: 1px solid var(--border-color);
+    padding: 24px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 25px; /* Creates clean spacing between the elements */
+}
+
+/* 1. Brand Heading */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.brand-icon {
+    font-size: 1.6rem;
+    color: var(--accent-blue);
+    margin-bottom: 60px;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+/* 2. Account & Transaction Box */
+.account-box {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 40px;
+}
+
 .account-title {
     font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: bold;
     text-transform: uppercase;
     display: flex;
-    justify-content: space-between; /* Spreads text to left and button to right */
-    align-items: center; /* Vertically centers the button with text */
-    margin-bottom: 12px; /* Adds space between this header row and the balance line below it */
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Adjust the pencil button styles slightly for the top row placement */
-.btn-edit {
-    background-color: rgba(255, 255, 255, 0.03); /* Blends into current card panel theme colors */
-    border: 1px solid var(--border-color);
+.dropdown-arrow {
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.account-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 6px 0 12px 0;
+}
+
+.transaction-summary {
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    border-radius: 4px;
-    width: 22px;
-    height: 22px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.text-white {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* 3. Vertical Menu Navigation Links */
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nav-link {
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
+    gap: 14px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 500;
     transition: all 0.2s ease;
 }
 
-.btn-edit i {
-    font-size: 0.75rem; /* Keeps icon clean and proportional to title text sizes */
+.nav-link i {
+    font-size: 1.1rem;
+    width: 20px;
 }
 
-.btn-edit:hover {
-    background-color: var(--border-color);
+/* Hover and Focus Item Layout States */
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.03);
     color: #ffffff;
 }
+
+.nav-link.active {
+    background-color: rgba(41, 121, 255, 0.1);
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+/* Container spacing layout below menu items nodes */
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Clean layout vertical margin spacing gap separation between elements */
+    margin-top: auto; /* Forces action buttons block down toward the bottom of screen view */
+    padding-top: 15px;
+}
+
+/* Core Action Base Structural Element Formatting */
+.btn-action {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 50px; /* High value border radius creates the perfect pill shaped capsule oval look */
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Aligns text neatly to the left side */
+    gap: 12px; /* Creates clean inline margin gap spacing space between icon and text string labels */
+    transition: transform 0.1s ease, filter 0.2s ease;
+}
+
+/* Color thematic variant maps matches image assets precisely */
+.btn-blue {
+    background-color: #2c4260; /* Slate dark blue button variant matching layout */
+}
+
+.btn-gold {
+    background-color: #8c734b; /* Antique gold brown button color mapping profile elements */
+}
+
+/* Typography override tweaks inside buttons elements */
+.btn-action i {
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
+    opacity: 0.85;
+}
+
+/* Interactive focus hover animation metrics layout properties */
+.btn-action:hover {
+    filter: brightness(1.15); /* Brightens button skin slightly when cursor sweeps over workspace buttons */
+}
+
+.btn-action:active {
+    transform: scale(0.98); /* Snappy click down movement micro interaction feed asset scale sizing */
+}
+
