@@ -1,4 +1,5 @@
-/* Color Scheme Variables */
+/* Color Scheme Variables - Defines a dark palette (backgrounds, text states, and an accent blue). Changing a color here updates
+ it everywhere across the stylesheet automatically.*/
 :root {
     --bg-dark: #131722;
     --bg-card: #1c2030;
@@ -6,8 +7,11 @@
     --text-muted: #848e9c;
     --text-light: #d1d4dc;
     --accent-blue: #2979ff;
+    --accent-gold: #dfb15b;
 }
 
+/* Global Base Rules - Removes default margins, sets a global dark grey background (#171b26), and enforces a modern, clean system font
+ stack (like San Francisco and Segoe UI).*/
 body {
     margin: 0;
     padding: 0;
@@ -16,7 +20,9 @@ body {
     color: var(--text-light);
 }
 
-/* Sidebar Framework Layout */
+/* Sidebar Framework Layout - Locks the width to 260px and forces it to take up the full height of the screen (100vh). 
+Uses display: flex with a vertical column orientation to stack items neatly.
+Adds a subtle right-side border line to separate the sidebar from the main content.*/
 .sidebar {
     width: 260px;
     height: 100vh;
@@ -29,20 +35,24 @@ body {
     gap: 25px; /* Creates clean spacing between the elements */
 }
 
-/* 1. Brand Heading */
+/* 1. Brand Heading - Styles the company logo and app title at the top.
+Formats the main application name in bold white text and positions a bright blue accent icon right next to it.*/
 .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 18px;
     margin-bottom: 20px;
+    width: 100%;
 }
-
+/* Icon styles for the brand icon Gold icon top left */
 .brand-icon {
     font-size: 1.6rem;
-    color: var(--accent-blue);
-    margin-bottom: 60px;
+    color: var(--accent-gold);
+    margin-bottom: 0px; 
+    gap: 18px;
+    margin-right: 18px;
 }
-
+/* This styles the main application title. Bullion Book */
 .brand h1 {
     margin: 0;
     font-size: 1.4rem;
@@ -52,6 +62,7 @@ body {
 }
 
 /* 2. Account & Transaction Box */
+/* account box */
 .account-box {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -59,7 +70,7 @@ body {
     padding: 15px;
     margin-bottom: 40px;
 }
-
+/* account title */
 .account-title {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -70,18 +81,19 @@ body {
     align-items: center;
 }
 
+/* 
 .dropdown-arrow {
     font-size: 0.7rem;
     cursor: pointer;
-}
-
+}*/
+/* do not yet know if this is needed for the account balance dropdown menu, so I will comment it out for now.
 .account-name {
     font-size: 1rem;
     font-weight: 600;
     color: #ffffff;
     margin: 6px 0 12px 0;
-}
-
+}*/
+/*line between account balance and balance*/
 .transaction-summary {
     border-top: 1px solid var(--border-color);
     padding-top: 10px;
@@ -92,23 +104,46 @@ body {
     color: var(--text-muted);
 }
 
+/*space between balance and $0.00*/ 
 .summary-row {
     display: flex;
     justify-content: space-between;
 }
-
+/*balance $0.00 text formatting*/ 
 .text-white {
     color: #ffffff;
     font-weight: bold;
 }
 
+/*button edit icon next to account balance*/
+.btn-edit {
+    background-color: rgba(255, 255, 255, 0.05); 
+    border: 1px solid var(--border-color); 
+    border-radius: 4px; 
+    color: var(--text-muted); 
+    padding: 4px 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;           /* 👆 Keeps the pointer finger */
+    user-select: none;          /* 🚫 Blocks the text selection "I" cursor */
+    transition: all 0.2s ease;
+}
+
+/* Single hover effect */
+.btn-edit:hover {
+    background-color: rgba(255, 255, 255, 0.1); 
+    color: #ffffff; 
+}
+
 /* 3. Vertical Menu Navigation Links */
+/*Turns the menu container into a vertical column stack using Flexbox, spacing each individual link exactly 6px apart.*/
 .nav-menu {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
-
+/*Styles the clickable link rows.*/
 .nav-link {
     display: flex;
     align-items: center;
@@ -120,7 +155,8 @@ body {
     font-weight: 500;
     transition: all 0.2s ease;
 }
-
+/* Targets the font icon inside the link. It gives all icons a fixed width: 20px to prevent layout shifting, ensuring your
+ text lines up perfectly straight even if one icon is naturally wider than another*/
 .nav-link i {
     font-size: 1.1rem;
     width: 20px;
@@ -131,48 +167,51 @@ body {
     background-color: rgba(255, 255, 255, 0.03);
     color: #ffffff;
 }
-
+/* This styles the link for the page the user is currently looking at. It turns the text blue, bolds the font, and paints a subtle blue background glow tint behind it.*/
 .nav-link.active {
     background-color: rgba(41, 121, 255, 0.1);
     color: var(--accent-blue);
     font-weight: 600;
 }
-/* Container spacing layout below menu items nodes */
+/* ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
+
+/* Container that pushes actions to the absolute bottom */
 .sidebar-actions {
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Clean layout vertical margin spacing gap separation between elements */
-    margin-top: auto; /* Forces action buttons block down toward the bottom of screen view */
+    gap: 12px;
+    margin-top: auto; 
     padding-top: 15px;
 }
 
-/* Core Action Base Structural Element Formatting */
+/* Base Pill Button Styling */
 .btn-action {
     width: 100%;
     padding: 12px 16px;
     border: none;
-    border-radius: 50px; /* High value border radius creates the perfect pill shaped capsule oval look */
+    border-radius: 50px; 
     color: #ffffff;
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Aligns text neatly to the left side */
-    gap: 12px; /* Creates clean inline margin gap spacing space between icon and text string labels */
+    justify-content: flex-start; 
+    gap: 12px; 
     transition: transform 0.1s ease, filter 0.2s ease;
 }
 
-/* Color thematic variant maps matches image assets precisely */
-.btn-blue {
-    background-color: #2c4260; /* Slate dark blue button variant matching layout */
+/* Button Color Themes */
+.btn-blue{
+    background-color: #2c4260;
+    margin-top: 8px; /* 🌟 Adds extra physical spacing above this specific button */
 }
-
 .btn-gold {
-    background-color: #8c734b; /* Antique gold brown button color mapping profile elements */
+    background-color: #8c734b; 
+    margin-top: 8px; /* 🌟 Adds extra physical spacing above this specific button */
 }
 
-/* Typography override tweaks inside buttons elements */
+/* Align and size the icons inside buttons */
 .btn-action i {
     font-size: 1rem;
     width: 18px;
@@ -180,12 +219,6 @@ body {
     opacity: 0.85;
 }
 
-/* Interactive focus hover animation metrics layout properties */
-.btn-action:hover {
-    filter: brightness(1.15); /* Brightens button skin slightly when cursor sweeps over workspace buttons */
-}
-
-.btn-action:active {
-    transform: scale(0.98); /* Snappy click down movement micro interaction feed asset scale sizing */
-}
-
+/* Smooth Click & Hover Animations */
+.btn-action:hover { filter: brightness(1.15); }
+.btn-action:active { transform: scale(0.98); }
