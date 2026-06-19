@@ -311,7 +311,7 @@ body {
 .pct-muted { color: #647080; font-size: 0.75rem; }
 
 /* Mini Progress Percent Indicators */
-.progress-ring {
+/*.progress-ring {
     position: relative;
     width: 24px;
     height: 24px;
@@ -325,7 +325,47 @@ body {
     color: #848e9c;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
+}*/
+
+
+/* Mini Progress Percent Indicators */
+.progress-ring {
+    position: relative;
+    
+    /* FIX: Swaps percentage height for an explicit container variable tracking height */
+    height: 32px;         /* Forces a stable, flat height baseline */
+    width: 32px;          /* Matches height perfectly to guarantee a round shape */
+    
+    border-style: solid;
+    border-width: 3.5px;  /* Clean, proportionate thickness for a flat design */
+    border-color: rgba(255, 255, 255, 0.05); 
+    border-radius: 50%;   
+    
+    flex-shrink: 0;       /* Locks dimensions horizontally so it never skews */
+    box-sizing: border-box; 
 }
+
+.progress-ring::after {
+    content: attr(data-pct);
+    position: absolute;
+    font-size: 0.55rem;
+    color: #848e9c;
+    top: 50%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;  /* Prevents text from wrapping into a broken line stack */
+}
+
+
+
+
+
+
+
+
+
+
+
 .ring-green { border-top-color: #2ebd85; border-right-color: #2ebd85; }
 .ring-red { border-bottom-color: #f6465d; }
 
@@ -363,7 +403,7 @@ body {
     padding: 14px 20px;
     width: 100%;
     box-sizing: border-box;
-    margin-top: 25px;
+    margin-top: 1px;
 }
 
 .table-header-row {
@@ -390,9 +430,9 @@ body {
 }
 .col-head.sortable i { font-size: 0.7rem; color: #848e9c; }
 
-.design-fix {
+/*.design-fix {
     width: 240px;          
-    height: 100px;         
+    height: 10px;         
     align-items: center;
     justify-content: space-between;
 }
@@ -400,5 +440,72 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}*/
+/* Custom utility to size and layout the updated cards */
+.design-fix {
+    width: 240px;          
+    height: 65px;          /* Increased slightly from 55px to give text vertical breathing room */
+    display: flex;         /* Ensures horizontal layout distribution */
+    align-items: center;   /* Perfectly centers text stack and circle vertically */
+    justify-content: space-between; /* Pushes text to the left, ring to the right */
+    padding: 10px 16px;    
+    box-sizing: border-box; 
+}
+
+/* Groups the label and value vertically on the left side */
+.card-text-group {
+    display: flex;
+    flex-direction: column; /* Stacks label over the numeric value cleanly */
+    gap: 2px;               /* Keeps them close together so they don't break out */
+    justify-content: center;
+}
+
+/* Ensure font sizing behaves inside small containers */
+.lbl-muted {
+    line-height: 1.2;
+}
+.val-green, .val-red, .val-muted {
+    line-height: 1.2;
+}
+
+/* Layout row container for the sub-navigation pills */
+.news-header {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #2a2e39;
+    width: 100%;
+}
+
+/* Individual capsule button bases */
+.news-tab {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid #2a2e39;
+    color: #848e9c;
+    padding: 6px 20px;
+    border-radius: 30px; /* High value creates oval pill-shape */
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Hover feedback animation track */
+.news-tab:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #d1d4dc;
+}
+
+/* Bright background state for the active tab */
+.news-tab.active {
+    background-color: #2a2e39;
+    color: #ffffff;
+    border-color: #647080;
+}
+
+/* Padding offset block for inner data lists */
+.news-content-area {
+    margin-top: 15px;
+    width: 100%;
 }
 
