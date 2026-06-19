@@ -184,8 +184,84 @@
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
                 <!-- Sub-Page A: CPI (Visible by Default) -->
                 <div id="tab-cpi" class="news-sub-page" style="display: block;">
-                    <h3 style="color: #2ebd85; font-family: sans-serif; margin: 0;">Consumer Price Index (CPI) Feed</h3>
-                    <p style="color: #848e9c; font-family: sans-serif; font-size: 0.9rem;">Live macroeconomic inflation data metrics will load here.</p>
+                    <section class="cpi-panel">
+                        <div class="cpi-table-wrap">
+                            <table class="cpi-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Actual</th>
+                                        <th>Forecast</th>
+                                        <th>Previous</th>
+                                        <th>Event</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>2026-06-12</td>
+                                        <td>08:30</td>
+                                        <td>3.2%</td>
+                                        <td>3.1%</td>
+                                        <td>3.0%</td>
+                                        <td>CPI m/m</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2026-06-13</td>
+                                        <td>09:15</td>
+                                        <td>3.3%</td>
+                                        <td>3.2%</td>
+                                        <td>3.1%</td>
+                                        <td>Core CPI</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2026-06-14</td>
+                                        <td>10:00</td>
+                                        <td>3.4%</td>
+                                        <td>3.3%</td>
+                                        <td>3.2%</td>
+                                        <td>Inflation Rate</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2026-06-15</td>
+                                        <td>11:30</td>
+                                        <td>3.5%</td>
+                                        <td>3.4%</td>
+                                        <td>3.3%</td>
+                                        <td>Energy Prices</td>
+                                    </tr>
+                                    <tr>
+                                        <td>2026-06-16</td>
+                                        <td>13:00</td>
+                                        <td>3.1%</td>
+                                        <td>3.2%</td>
+                                        <td>3.0%</td>
+                                        <td>Fed Watch</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <section class="xauusd-chart-panel">
+                            <div class="cpi-chart-toolbar">
+                                <div>
+                                    <p class="cpi-chart-title">XAUUSD</p>
+                                    <p class="cpi-chart-subtitle">5 minute chart</p>
+                                </div>
+                                <label class="cpi-date-picker">
+                                    <span>Select date</span>
+                                    <input type="date" id="xauusdDate" value="2026-06-16">
+                                </label>
+                            </div>
+
+                            <div class="cpi-chart-body cpi-chart-widget-body">
+                                <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
+                                    <div id="tradingview_xauusd" style="width: 100%; height: 100%;"></div>
+                                </div>
+                                <div class="cpi-chart-caption" id="xauusdDateCaption">XAUUSD 5m • 2026-06-16</div>
+                            </div>
+                        </section>
+                    </section>
                 </div>
 
                 <!-- Sub-Page B: PPI (Hidden by Default) -->
@@ -250,6 +326,29 @@
                 }
             }
         }
+    </script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.TradingView && window.TradingView.widget) {
+                new TradingView.widget({
+                    autosize: true,
+                    symbol: 'OANDA:XAUUSD',
+                    interval: '5',
+                    timezone: 'Etc/UTC',
+                    theme: 'dark',
+                    style: '1',
+                    locale: 'en',
+                    toolbar_bg: '#131722',
+                    enable_publishing: false,
+                    hide_side_toolbar: false,
+                    allow_symbol_change: true,
+                    details: true,
+                    hotspot: true,
+                    container_id: 'tradingview_xauusd'
+                });
+            }
+        });
     </script>
     <script src="app.js"></script>
 

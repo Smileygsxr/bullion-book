@@ -311,24 +311,6 @@ body {
 .pct-muted { color: #647080; font-size: 0.75rem; }
 
 /* Mini Progress Percent Indicators */
-/*.progress-ring {
-    position: relative;
-    width: 24px;
-    height: 24px;
-    border-radius: 50px;
-    border: 20px solid rgba(255,255,255,0.05);
-}
-.progress-ring::after {
-    content: attr(data-pct);
-    position: absolute;
-    font-size: 0.55rem;
-    color: #848e9c;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-}*/
-
-
-/* Mini Progress Percent Indicators */
 .progress-ring {
     position: relative;
     
@@ -355,16 +337,6 @@ body {
     transform: translate(-50%, -50%);
     white-space: nowrap;  /* Prevents text from wrapping into a broken line stack */
 }
-
-
-
-
-
-
-
-
-
-
 
 .ring-green { border-top-color: #2ebd85; border-right-color: #2ebd85; }
 .ring-red { border-bottom-color: #f6465d; }
@@ -467,7 +439,9 @@ body {
 .val-green, .val-red, .val-muted {
     line-height: 1.2;
 }
-
+/*============*/
+/*NEWS SECTION*/
+/*============*/
 /* Layout row container for the sub-navigation pills */
 .news-header {
     display: flex;
@@ -507,5 +481,143 @@ body {
 .news-content-area {
     margin-top: 15px;
     width: 100%;
+}
+
+/* CPI table and chart styles */
+.cpi-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.cpi-table-wrap {
+    background: #0f1220;
+    border: 1px solid #2a2e39;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.cpi-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cpi-table th,
+.cpi-table td {
+    padding: 10px 12px;
+    text-align: left;
+    color: #d1d4dc;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #2a2e39;
+}
+
+.cpi-table th {
+    background: #1a1e2d;
+    color: #848e9c;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.cpi-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.cpi-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.xauusd-chart-panel {
+    background: #1c2030;
+    border: 1px solid #2a2e39;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.cpi-chart-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.cpi-chart-title {
+    margin: 0;
+    color: #d1d4dc;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.cpi-chart-subtitle {
+    margin: 2px 0 0;
+    color: #848e9c;
+    font-size: 0.8rem;
+}
+
+.cpi-date-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #848e9c;
+    font-size: 0.78rem;
+}
+
+.cpi-date-picker input {
+    background: #0f1220;
+    color: #d1d4dc;
+    border: 1px solid #2a2e39;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+.cpi-chart-body {
+    position: relative;
+    min-height: 300px;
+    background:
+        linear-gradient(180deg, #121725 0%, #0d111d 100%);
+    border: 1px solid #2a2e39;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.cpi-chart-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 100% 20%, 10% 100%;
+}
+
+.cpi-chart-line {
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    bottom: 14%;
+    height: 58%;
+    background: linear-gradient(180deg, rgba(41, 121, 255, 0.18), rgba(41, 121, 255, 0));
+    clip-path: polygon(
+        0% 100%,
+        8% 76%,
+        18% 82%,
+        32% 50%,
+        46% 58%,
+        58% 35%,
+        72% 39%,
+        86% 12%,
+        100% 16%,
+        100% 100%
+    );
+}
+
+.cpi-chart-caption {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    color: #848e9c;
+    font-size: 0.75rem;
 }
 
