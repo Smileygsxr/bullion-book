@@ -6,19 +6,14 @@
     <title>Bullion Book</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="https://cloudflare.com">
 </head>
 <body>
 
-    <!-- Left Sidebar Wrapper -->
+    <!-- Left Sidebar Wrapper (Stays identical across all views) -->
     <aside class="sidebar">
-        <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------   -->
-         
-        <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------   -->
-        <!-- 1. Top Left Brand Title -->
-        <!-- 1. Top Left Brand Title (Updated to a click link) -->
+        <!-- 1. Top Left Brand Title Links to Dashboard -->
         <div class="brand">
-            <a href="#" class="brand-link">
+            <a href="#" class="brand-link" onclick="showPage('page-dashboard', this)">
               <i class="fa-solid fa-coins brand-icon"></i>
               <h1>Bullion Book</h1>
             </a>
@@ -28,7 +23,7 @@
         <div class="account-box">
             <div class="account-title">
                 <span>Account Balance</span>
-                    <button class="btn-edit" title="Edit Balance">
+                <button class="btn-edit" title="Edit Balance">
                     <i class="fa-solid fa-pen"></i>
                 </button>
             </div>
@@ -42,14 +37,15 @@
 
         <!-- 3. Vertical Navigation Menu -->
         <nav class="nav-menu">
-            <a href="#" class="nav-link active"><i class="fa-solid fa-border-all"></i> Dashboard</a>
-            <a href="#" class="nav-link"><i class="fa-solid fa-chart-simple"></i> Stats</a>
-            <a href="#" class="nav-link"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
-            <a href="#" class="nav-link"><i class="fa-solid fa-newspaper"></i> News</a>
-            <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
-            <a href="#" class="nav-link"><i class="fa-solid fa-circle-question"></i> Help</a>
+            <a href="#" class="nav-link active" onclick="showPage('page-dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+            <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
+            <a href="#" class="nav-link" onclick="showPage('page-calendar', this)"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+            <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
+            <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
+            <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
         </nav>
-                <div class="sidebar-actions">
+
+        <div class="sidebar-actions">
             <button class="btn-action btn-blue">
                 <i class="fa-solid fa-square-plus"></i> New Trade
             </button>
@@ -57,94 +53,176 @@
                 <i class="fa-solid fa-bookmark"></i> New Note
             </button>
         </div>
-
     </aside>
-    <!-- Main Content Area Dashboard Workspace -->
-<main class="dashboard-main">
 
-    <!-- Top Dashboard Stats Overview Section -->
-    <section class="stats-row">
-        
-        <!-- A. Performance Line Graph Card -->
-        <div class="dash-card chart-card">
-            <span class="chart-metric-label">100</span>
-            <!-- Placeholder for your canvas or SVG chart line -->
-            <div class="mock-chart-line"></div>
+    <!-- Main Content Area Dashboard Workspace Wrapper -->
+    <main class="dashboard-main">
+
+        <!-- ========================================== -->
+        <!-- 1. DASHBOARD PAGE VIEW (Visible by Default) -->
+        <!-- ========================================== -->
+        <div id="page-dashboard" class="view-section" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+            
+            <!-- Top Dashboard Stats Overview Section -->
+            <section class="stats-row">
+                
+                <!-- A. Performance Line Graph Card -->
+                <div class="dash-card chart-card">
+                    <span class="chart-metric-label">100</span>
+                    <div class="mock-chart-line"></div>
+                </div>
+
+                <!-- B. Wins and Losses Block Metrics -->
+                <div class="metrics-group">
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">WINS</span>
+                            <span class="val-green">0</span>
+                        </div>
+                        <div class="progress-ring ring-green" data-pct="0%"></div>
+                    </div>
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">LOSSES</span>
+                            <span class="val-red">0</span>
+                        </div>
+                        <div class="progress-ring ring-red" data-pct="0%"></div>
+                    </div>
+                </div>
+
+                <!-- C. Open and Wash Trade Metrics -->
+                <div class="metrics-group">
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">OPEN</span>
+                            <span class="val-muted">0</span>
+                        </div>
+                        <div class="progress-ring ring-red" data-pct="0%"></div>
+                    </div>
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">WASH</span>
+                            <span class="val-muted">0</span>
+                        </div>
+                        <div class="progress-ring ring-red" data-pct="0%"></div>
+                    </div>
+                </div>
+
+                <!-- D. Average Win and Loss Statistics -->
+                <div class="metrics-group">
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">AVG W</span>
+                            <span class="val-green">$0</span>
+                        </div>
+                        <div class="progress-ring ring-green" data-pct="0%"></div>
+                    </div>
+                    <div class="dash-card design-fix">
+                        <div class="card-text-group">
+                            <span class="lbl-muted">AVG L</span>
+                            <span class="val-red">-$0</span>
+                        </div>
+                        <div class="progress-ring ring-red" data-pct="-0%"></div>
+                    </div>
+                </div>
+
+                <!-- E. Total PnL Standalone Right Container -->
+                <div class="dash-card pnl-card">
+                    <span class="lbl-muted title-pnl">PnL</span>
+                    <div class="pnl-value">$0</div>
+                    <div class="pnl-badge-pct">0.0%</div>
+                </div>
+
+            </section>
+
+            <!-- Bottom Detailed Trade Log Ledger Grid -->
+            <section class="table-container">
+                <div class="table-header-row">
+                    <div class="col-head sortable">Date <i class="fa-solid fa-bars-staggered"></i></div>
+                    <div class="col-head">Symbol</div>
+                    <div class="col-head">Status</div>
+                    <div class="col-head">Side</div>
+                    <div class="col-head">Qty</div>
+                    <div class="col-head">Entry</div>
+                    <div class="col-head">Exit</div>
+                    <div class="col-head">Ent Tot</div>
+                    <div class="col-head">Ext Tot</div>
+                    <div class="col-head">Pos</div>
+                    <div class="col-head">Hold</div>
+                    <div class="col-head">Return</div>
+                    <div class="col-head">Return %</div>
+                </div>
+            </section>
         </div>
 
-        <!-- B. Wins and Losses Block Metrics -->
-        <div class="metrics-group">
-            <div class="metric-pill">
-                <span class="lbl-muted">WINS</span>
-                <span class="val-green">0</span>
-                <div class="progress-ring ring-green" data-pct="0%"></div>
-            </div>
-            <div class="metric-pill">
-                <span class="lbl-muted">LOSSES</span>
-                <span class="val-red">0</span>
-                <div class="progress-ring ring-red" data-pct="0%"></div>
-            </div>
+        <!-- ========================================== -->
+        <!-- 2. STATS PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-stats" class="view-section" style="display: none;">
+            <h2 style="color: #d1d4dc; font-family: sans-serif;">Performance Stats Analytics Dashboard</h2>
         </div>
 
-        <!-- C. Open and Wash Trade Metrics -->
-        <div class="metrics-group">
-            <div class="metric-pill">
-                <span class="lbl-muted">OPEN</span>
-                <span class="val-muted">0</span>
-                <span class="pct-muted">0%</span>
-            </div>
-            <div class="metric-pill">
-                <span class="lbl-muted">WASH</span>
-                <span class="val-muted">0</span>
-                <span class="pct-muted">0%</span>
-            </div>
+        <!-- ========================================== -->
+        <!-- 3. CALENDAR PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-calendar" class="view-section" style="display: none;">
+            <h2 style="color: #d1d4dc; font-family: sans-serif;">Trading History Calendar View</h2>
         </div>
 
-        <!-- D. Average Win and Loss Statistics -->
-        <div class="metrics-group">
-            <div class="metric-pill">
-                <span class="lbl-muted">AVG W</span>
-                <span class="val-green">$0</span>
-                <span class="pct-muted">0%</span>
-            </div>
-            <div class="metric-pill">
-                <span class="lbl-muted">AVG L</span>
-                <span class="val-red">-$0</span>
-                <span class="pct-muted">-0%</span>
-            </div>
+        <!-- ========================================== -->
+        <!-- 4. NEWS PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-news" class="view-section" style="display: none;">
+            <h2 style="color: #d1d4dc; font-family: sans-serif;">Live Financial & Bullion Market News Feed</h2>
         </div>
 
-        <!-- E. Total PnL Standalone Right Container -->
-        <div class="dash-card pnl-card">
-            <span class="lbl-muted title-pnl">PnL</span>
-            <div class="pnl-value">$0</div>
-            <div class="pnl-badge-pct">0.0%</div>
+        <!-- ========================================== -->
+        <!-- 5. SETTINGS PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-settings" class="view-section" style="display: none;">
+            <h2 style="color: #d1d4dc; font-family: sans-serif;">Profile & System Interface Configurations</h2>
         </div>
 
-    </section>
-
-    <!-- Bottom Detailed Trade Log Ledger Grid -->
-    <section class="table-container">
-        <div class="table-header-row">
-            <div class="col-head sortable">Date <i class="fa-solid fa-bars-staggered"></i></div>
-            <div class="col-head">Symbol</div>
-            <div class="col-head">Status</div>
-            <div class="col-head">Side</div>
-            <div class="col-head">Qty</div>
-            <div class="col-head">Entry</div>
-            <div class="col-head">Exit</div>
-            <div class="col-head">Ent Tot</div>
-            <div class="col-head">Ext Tot</div>
-            <div class="col-head">Pos</div>
-            <div class="col-head">Hold</div>
-            <div class="col-head">Return</div>
-            <div class="col-head">Return %</div>
+        <!-- ========================================== -->
+        <!-- 6. HELP PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-help" class="view-section" style="display: none;">
+            <h2 style="color: #d1d4dc; font-family: sans-serif;">Documentation & Platform Support Helpdesk</h2>
         </div>
-        <!-- Table rows with trade data loop can go here later -->
-    </section>
 
-</main>
+    </main>
 
+    <!-- Page Engine Logic Script -->
+        <!-- Page Engine Logic Script -->
+    <script>
+        function showPage(pageId, clickedElement) {
+            // 1. Hide every page container block out of sight
+            const views = document.querySelectorAll('.view-section');
+            views.forEach(view => {
+                view.style.display = 'none';
+            });
 
-</body>
-</html>
+            // 2. Display the selected targeted view template container area
+            const targetView = document.getElementById(pageId);
+            if (targetView) {
+                targetView.style.display = 'flex';
+            }
+
+            // 3. Update the active visual navigation layout styling class state
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // 4. Highlight the correct sidebar element
+            if (clickedElement && clickedElement.classList.contains('nav-link')) {
+                clickedElement.classList.add('active');
+            } else {
+                // Default the highlight back to the Dashboard tab if the user clicks the logo
+                const dashLink = document.querySelector('.nav-link[onclick*="page-dashboard"]');
+                if (dashLink) {
+                    dashLink.classList.add('active');
+                }
+            }
+        }
+    </script>

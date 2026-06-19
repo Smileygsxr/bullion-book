@@ -218,7 +218,7 @@ Formats the main application name in bold white text and positions a bright blue
 /* Smooth Click & Hover Animations */
 .btn-action:hover { filter: brightness(1.15); }
 .btn-action:active { transform: scale(0.98); }
-
+/*-----------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /* Core Page Layout Organizer (Ensures layout wraps side-by-side with sidebar) */
 body {
@@ -316,7 +316,7 @@ body {
     width: 24px;
     height: 24px;
     border-radius: 50px;
-    border: 2px solid rgba(255,255,255,0.05);
+    border: 20px solid rgba(255,255,255,0.05);
 }
 .progress-ring::after {
     content: attr(data-pct);
@@ -389,4 +389,16 @@ body {
     cursor: pointer;
 }
 .col-head.sortable i { font-size: 0.7rem; color: #848e9c; }
+
+.design-fix {
+    width: 240px;          
+    height: 100px;         
+    align-items: center;
+    justify-content: space-between;
+}
+.card-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 
