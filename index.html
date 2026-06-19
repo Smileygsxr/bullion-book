@@ -199,44 +199,34 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>2026-06-12</td>
-                                        <td>08:30</td>
-                                        <td>3.2%</td>
-                                        <td>3.1%</td>
-                                        <td>3.0%</td>
+                                        <td rowspan="4">
+                                            <input type="date" class="cpi-edit-input cpi-date-input" value="2026-06-12">
+                                        </td>
+                                        <td rowspan="4">
+                                            <input type="time" class="cpi-edit-input cpi-time-input" value="08:30">
+                                        </td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.1%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.0%"></td>
+                                        <td>Core CPI m/m</td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.1%"></td>
+                                        <td>Core CPI y/y</td>
+                                    </tr>
+                                    <tr>
+                                        <td><input type="text" class="cpi-edit-input" value="3.4%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
                                         <td>CPI m/m</td>
                                     </tr>
                                     <tr>
-                                        <td>2026-06-13</td>
-                                        <td>09:15</td>
-                                        <td>3.3%</td>
-                                        <td>3.2%</td>
-                                        <td>3.1%</td>
-                                        <td>Core CPI</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2026-06-14</td>
-                                        <td>10:00</td>
-                                        <td>3.4%</td>
-                                        <td>3.3%</td>
-                                        <td>3.2%</td>
-                                        <td>Inflation Rate</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2026-06-15</td>
-                                        <td>11:30</td>
-                                        <td>3.5%</td>
-                                        <td>3.4%</td>
-                                        <td>3.3%</td>
-                                        <td>Energy Prices</td>
-                                    </tr>
-                                    <tr>
-                                        <td>2026-06-16</td>
-                                        <td>13:00</td>
-                                        <td>3.1%</td>
-                                        <td>3.2%</td>
-                                        <td>3.0%</td>
-                                        <td>Fed Watch</td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.5%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.4%"></td>
+                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
+                                        <td>CPI y/y</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -246,19 +236,13 @@
                             <div class="cpi-chart-toolbar">
                                 <div>
                                     <p class="cpi-chart-title">XAUUSD</p>
-                                    <p class="cpi-chart-subtitle">5 minute chart</p>
+                                    <p class="cpi-chart-subtitle">5m • GMT+2</p>
                                 </div>
-                                <label class="cpi-date-picker">
-                                    <span>Select date</span>
-                                    <input type="date" id="xauusdDate" value="2026-06-16">
-                                </label>
+                                <p class="cpi-chart-caption" id="xauusdDateCaption">2026-06-12</p>
                             </div>
 
                             <div class="cpi-chart-body cpi-chart-widget-body">
-                                <div class="tradingview-widget-container" style="width: 100%; height: 100%;">
-                                    <div id="tradingview_xauusd" style="width: 100%; height: 100%;"></div>
-                                </div>
-                                <div class="cpi-chart-caption" id="xauusdDateCaption">XAUUSD 5m • 2026-06-16</div>
+                                <div id="xauusd-lightweight-chart" class="xauusd-lightweight-chart"></div>
                             </div>
                         </section>
                     </section>
@@ -325,31 +309,17 @@
                     dashLink.classList.add('active');
                 }
             }
+
+            if (pageId === 'page-news') {
+                window.setTimeout(function () {
+                    if (window.resizeCpiChart) {
+                        window.resizeCpiChart();
+                    }
+                }, 80);
+            }
         }
     </script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function () {
-            if (window.TradingView && window.TradingView.widget) {
-                new TradingView.widget({
-                    autosize: true,
-                    symbol: 'OANDA:XAUUSD',
-                    interval: '5',
-                    timezone: 'Etc/UTC',
-                    theme: 'dark',
-                    style: '1',
-                    locale: 'en',
-                    toolbar_bg: '#131722',
-                    enable_publishing: false,
-                    hide_side_toolbar: false,
-                    allow_symbol_change: true,
-                    details: true,
-                    hotspot: true,
-                    container_id: 'tradingview_xauusd'
-                });
-            }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script src="app.js"></script>
 
 </body>
