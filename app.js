@@ -65,7 +65,7 @@ function showPage(pageId, clickedElement) {
             if (window.resizeCpiChart) {
                 window.resizeCpiChart();
             }
-        }, 80);
+        }, 120);
     }
 }
 
@@ -78,10 +78,22 @@ function initCpiChart() {
         return;
     }
 
-    if (chartContainer.dataset.cpiInitialized === 'true') {
+    const chartStyle = window.getComputedStyle(chartContainer);
+    if (chartContainer.clientWidth <= 0 || chartContainer.clientHeight <= 0 || chartStyle.display === 'none') {
+        if (!chartContainer.dataset.cpiRetryScheduled) {
+            chartContainer.dataset.cpiRetryScheduled = 'true';
+            window.setTimeout(function () {
+                chartContainer.dataset.cpiRetryScheduled = 'false';
+                initCpiChart();
+            }, 200);
+        }
         return;
     }
-    chartContainer.dataset.cpiInitialized = 'true';
+
+    if (chartContainer.dataset.cpiInitialized === 'true' && window.resizeCpiChart) {
+        window.resizeCpiChart();
+        return;
+    }
 
     let chartInstance = null;
 
@@ -114,8 +126,9 @@ function initCpiChart() {
             chartInstance = null;
         }
 
-        chartContainer.innerHTML = '';
         chartContainer.style.display = 'block';
+
+        chartContainer.dataset.cpiInitialized = 'true';
 
         chartInstance = window.LightweightCharts.createChart(chartContainer, {
             width: chartContainer.clientWidth || 900,
@@ -132,7 +145,15 @@ function initCpiChart() {
                 borderColor: '#2a2e39'
             },
             timeScale: {
-                borderColor: '#2a2e39'
+                borderColor: '#2a2e39',
+                timeVisible: true,
+                tickMarkFormatter: function (time) {
+                    if (!time || typeof time !== 'number') {
+                        return '';
+                    }
+                    const date = new Date(time * 1000);
+                    return date.toISOString().slice(11, 16);
+                }
             },
             crosshair: {
                 mode: window.LightweightCharts.CrosshairMode.Normal
@@ -172,11 +193,19 @@ function initCpiChart() {
             const close = base + Math.sin(i / 2) * 6;
             const high = Math.max(open, close) + 3;
             const low = Math.min(open, close) - 3;
-            data.push({ time, open, high, low, close });
+            data.push({
+                time: time,
+                open: open,
+                high: high,
+                low: low,
+                close: close
+            });
             current = new Date(current.getTime() + 5 * 60 * 1000);
         }
 
         if (data.length > 0) {
+            window.__lastChartData = data;
+            window.__lastChartInstance = chartInstance;
             series.setData(data);
             window.resizeCpiChart = resizeChart;
             window.setTimeout(function () {
@@ -195,9 +224,8 @@ function initCpiChart() {
     createOneDayChart(dateInput.value || '2026-06-12');
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    initCpiChart();
-});
+// Chart is initialized only when the News tab becomes visible to avoid
+// a brief flash and redraw loop while the panel is still hidden.
 
 
 
