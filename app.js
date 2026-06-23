@@ -1,4 +1,4 @@
-// 1. GLOBAL STATE TRACKERS (Crucial for cross-tab resizing and safe reconstruction)
+// 1. GLOBAL STATE TRACKERS
 let cpiChartInstance = null;
 let cpiSeriesInstance = null;
 
@@ -32,13 +32,11 @@ function showPage(pageId, clickedElement) {
         if (dashLink) { dashLink.classList.add('active'); }
     }
 
-    // Tab visibility delay protection
+    //  FIXED: Trigger chart initialization immediately when the tab is revealed
     if (pageId === 'page-news') {
         window.setTimeout(function () {
-            if (typeof initCpiChart === 'function') {
-                initCpiChart();
-            }
-        }, 120);
+            initCpiChart();
+        }, 150); // Small delay to let the CSS flex/display render complete layout width
     }
 }
 
@@ -50,125 +48,54 @@ function initCpiChart() {
 
     if (!dateInput || !caption || !chartContainer) return;
 
-    // Fast escape if container is hidden in DOM (Prevents zero-width crash loops)
-    const chartStyle = window.getComputedStyle(chartContainer);
-    if (chartContainer.clientWidth <= 0 || chartContainer.clientHeight <= 0 || chartStyle.display === 'none') {
-        return; 
-    }
-
-    // Sync caption string helper
+    //  FIXED: Removed the strict width/height escape blockers that cause silent failures on hidden tabs
     function updateChartCaption() {
         caption.textContent = dateInput.value || '2026-06-12';
     }
 
-    // Separate clean resize execution handler
-    function resizeChart() {
-        if (!cpiChartInstance || !chartContainer) return;
-        requestAnimationFrame(() => {
-            const width = chartContainer.clientWidth || 900;
-            const height = chartContainer.clientHeight || 520;
-            cpiChartInstance.resize(width, height);
-            cpiChartInstance.timeScale().fitContent();
-        });
-    }
-
-    function createOneDayChart(dateString) {
-        if (!chartContainer || !window.LightweightCharts) return;
-
-        // Clean up memory leaks and bindings cleanly before creating a new chart instance
-        if (cpiChartInstance) {
-            cpiChartInstance.remove();
-            cpiChartInstance = null;
-            cpiSeriesInstance = null;
-        }
-
-        // Set dimensions explicitly based on parent flex/grid bounds
-        const targetWidth = chartContainer.clientWidth || 900;
-        const targetHeight = chartContainer.clientHeight || 520;
-
-        cpiChartInstance = window.LightweightCharts.createChart(chartContainer, {
-            width: targetWidth,
-            height: targetHeight,
-            layout: {
-                background: { color: '#0f1220' },
-                textColor: '#d1d4dc'
-            },
-            grid: {
-                vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                horzLines: { color: 'rgba(255, 255, 255, 0.05)' }
-            },
-            rightPriceScale: { borderColor: '#2a2e39' },
-            timeScale: {
-                borderColor: '#2a2e39',
-                timeVisible: true,        // REQUIRED: Shows HH:MM stamps instead of absolute dates
-                secondsVisible: false,
-                fixLeftEdge: true,        // Prevents dragging data past the left limit
-                fixRightEdge: true,       // Prevents dragging data past the right limit
-                tickMarkFormatter: function (time) {
-                    if (!time || typeof time !== 'number') return '';
-                    const date = new Date(time * 1000);
-                    // Formats local hours and minutes cleanly on axis ticks
-                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                }
-            },
-            crosshair: { mode: window.LightweightCharts.CrosshairMode.Normal }
-        });
-
-        // Use CandlestickSeries constructor correctly
-        cpiSeriesInstance = cpiChartInstance.addSeries(window.LightweightCharts.CandlestickSeries, {
-            upColor: '#2ebd85',
-            downColor: '#f6465d',
-            borderDownColor: '#f6465d',
-            borderUpColor: '#2ebd85',
-            wickDownColor: '#f6465d',
-            wickUpColor: '#2ebd85'
-        });
-
-        // Single-day calculation configuration loops
-        const targetDate = dateString ? `${dateString}T00:00:00` : '2026-06-12T00:00:00';
-        const startOfDay = new Date(targetDate);
-        const baseTimestamp = Math.floor(startOfDay.getTime() / 1000);
-
-        const data = [];
-        const pointCount = 288; // 288 segments * 15 minutes = Exact 24 Hour Single Day Display
-        let runningPrice = 2330.00;
-
-        for (let i = 0; i < pointCount; i++) {
-            // Increments explicitly by 5-minute intervals (300 seconds)
-            const timeOffset = baseTimestamp + (i * 5 * 60); 
-            
-            const change = (Math.sin(i / 12) * 2) + ((Math.random() - 0.5) * 2);
-            const open = runningPrice;
-            const close = runningPrice + change;
-            const high = Math.max(open, close) + (Math.random() * 1);
-            const low = Math.min(open, close) - (Math.random() * 1);
-
-            data.push({ time: timeOffset, open, high, low, close });
-            runningPrice = close; // Carry over price for fluid candlesticks
-        }
-
-        if (data.length > 0) {
-            cpiSeriesInstance.setData(data);
-            
-            // Map global resize callback securely
-            window.resizeCpiChart = resizeChart;
-            
-            // Ensure canvas fits inside container bounds completely
-            window.setTimeout(resizeChart, 50);
-        }
-    }
-
-    // Set up clean event listeners without stacking duplicates
-    dateInput.removeEventListener('change', updateChartCaption);
-    dateInput.addEventListener('change', function () {
+    dateInput.onchange = function () {
         updateChartCaption();
         createOneDayChart(dateInput.value);
-    });
+    };
 
-    window.removeEventListener('resize', window.resizeCpiChart);
-    window.addEventListener('resize', () => { if(window.resizeCpiChart) window.resizeCpiChart(); });
-
-    // Initial Execute Sequence
     updateChartCaption();
     createOneDayChart(dateInput.value || '2026-06-12');
+}
+
+// 3. SEPARATED WIDGET GENERATOR
+function createOneDayChart(dateString) {
+    const chartContainer = document.getElementById('xauusd-lightweight-chart');
+    if (!chartContainer) return;
+
+    chartContainer.innerHTML = '';
+
+    const widgetScript = document.createElement('script');
+    widgetScript.type = 'text/javascript';
+    widgetScript.src = 'https://tradingview.com';
+    widgetScript.async = true;
+
+    widgetScript.onload = function() {
+        if (typeof TradingView !== 'undefined') {
+            new TradingView.widget({
+                "width": "100%",
+                "height": 520, // Explicit pixel height value prevents 0px layout collapse
+                "symbol": "FX:XAUUSD",         
+                "interval": "5",               
+                "timezone": "Etc/UTC",         
+                "theme": "dark",               
+                "style": "1",                  
+                "locale": "en",
+                "enable_publishing": false,
+                "hide_side_toolbar": true,     
+                "allow_symbol_change": false,  
+                "container_id": "xauusd-lightweight-chart",
+                "studies": [],                 
+                "show_popup_button": false,
+                "withdateranges": true,        
+                "hide_volume": true
+            });
+        }
+    };
+
+    chartContainer.appendChild(widgetScript);
 }
