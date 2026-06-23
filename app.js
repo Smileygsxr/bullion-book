@@ -1,138 +1,94 @@
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-// MAIN JAVASCRIPT FILE FOR BULLION BOOK
-// This file contains all the core interactive functionality for the Bullion Book application, including:
-/////////////////////////////////////NEWS SUB TABS///////////////////////////////////////////////////////
+// 1. GLOBAL STATE TRACKERS (Crucial for cross-tab resizing and safe reconstruction)
+let cpiChartInstance = null;
+let cpiSeriesInstance = null;
+
 function switchNewsTab(tabId, clickedButton) {
-    // 1. Find and hide all nested news feed subsections
     const subPages = document.querySelectorAll('.news-sub-page');
-    subPages.forEach(page => {
-        page.style.display = 'none';
-    });
+    subPages.forEach(page => { page.style.display = 'none'; });
 
-    // 2. Open up the specifically selected index tab area
     const activeTab = document.getElementById(tabId);
-    if (activeTab) {
-        activeTab.style.display = 'block';
-    }
+    if (activeTab) { activeTab.style.display = 'block'; }
 
-    // 3. Cycle active visual indicator highlights on header pills
     const newsButtons = document.querySelectorAll('.news-tab');
-    newsButtons.forEach(btn => {
-        btn.classList.remove('active');
-    });
+    newsButtons.forEach(btn => { btn.classList.remove('active'); });
     
-    if (clickedButton) {
-        clickedButton.classList.add('active');
-    }
+    if (clickedButton) { clickedButton.classList.add('active'); }
 }
 
-// ADD THIS FUNCTION TO THE BOTTOM OF YOUR FILE
 function showPage(pageId, clickedElement) {
-    // 1. Hide every main view container block out of sight
     const views = document.querySelectorAll('.view-section');
-    views.forEach(view => {
-        view.style.display = 'none';
-    });
+    views.forEach(view => { view.style.display = 'none'; });
 
-    // 2. Display the selected targeted main view panel
     const targetView = document.getElementById(pageId);
-    if (targetView) {
-        targetView.style.display = 'flex';
-    }
+    if (targetView) { targetView.style.display = 'flex'; }
 
-    // 3. Cycle active highlights across the main sidebar links
     const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-    });
+    navLinks.forEach(link => { link.classList.remove('active'); });
 
-    // 4. Highlight the correct active sidebar item
     if (clickedElement && clickedElement.classList.contains('nav-link')) {
         clickedElement.classList.add('active');
     } else {
-        // Fallback default: light up dashboard if logo branding text is chosen
         const dashLink = document.querySelector('.nav-link[onclick*="page-dashboard"]');
-        if (dashLink) {
-            dashLink.classList.add('active');
-        }
+        if (dashLink) { dashLink.classList.add('active'); }
     }
 
+    // Tab visibility delay protection
     if (pageId === 'page-news') {
         window.setTimeout(function () {
             if (typeof initCpiChart === 'function') {
                 initCpiChart();
             }
-            if (window.resizeCpiChart) {
-                window.resizeCpiChart();
-            }
         }, 120);
     }
 }
 
+// 2. THE REFACTORED WORKHORSE METHOD
 function initCpiChart() {
     const dateInput = document.querySelector('.cpi-date-input');
     const caption = document.getElementById('xauusdDateCaption');
     const chartContainer = document.getElementById('xauusd-lightweight-chart');
 
-    if (!dateInput || !caption || !chartContainer) {
-        return;
-    }
+    if (!dateInput || !caption || !chartContainer) return;
 
+    // Fast escape if container is hidden in DOM (Prevents zero-width crash loops)
     const chartStyle = window.getComputedStyle(chartContainer);
     if (chartContainer.clientWidth <= 0 || chartContainer.clientHeight <= 0 || chartStyle.display === 'none') {
-        if (!chartContainer.dataset.cpiRetryScheduled) {
-            chartContainer.dataset.cpiRetryScheduled = 'true';
-            window.setTimeout(function () {
-                chartContainer.dataset.cpiRetryScheduled = 'false';
-                initCpiChart();
-            }, 200);
-        }
-        return;
+        return; 
     }
 
-    if (chartContainer.dataset.cpiInitialized === 'true' && window.resizeCpiChart) {
-        window.resizeCpiChart();
-        return;
-    }
-
-    let chartInstance = null;
-
+    // Sync caption string helper
     function updateChartCaption() {
-        const dateValue = dateInput.value || '2026-06-12';
-        caption.textContent = dateValue;
+        caption.textContent = dateInput.value || '2026-06-12';
     }
 
+    // Separate clean resize execution handler
     function resizeChart() {
-        if (!chartInstance || !chartContainer) {
-            return;
-        }
-        chartContainer.style.display = 'block';
-        requestAnimationFrame(function () {
-            chartInstance.resize();
-            chartInstance.timeScale().fitContent();
+        if (!cpiChartInstance || !chartContainer) return;
+        requestAnimationFrame(() => {
+            const width = chartContainer.clientWidth || 900;
+            const height = chartContainer.clientHeight || 520;
+            cpiChartInstance.resize(width, height);
+            cpiChartInstance.timeScale().fitContent();
         });
     }
 
     function createOneDayChart(dateString) {
-        if (!chartContainer || !window.LightweightCharts) {
-            window.setTimeout(function () {
-                createOneDayChart(dateString);
-            }, 300);
-            return;
+        if (!chartContainer || !window.LightweightCharts) return;
+
+        // Clean up memory leaks and bindings cleanly before creating a new chart instance
+        if (cpiChartInstance) {
+            cpiChartInstance.remove();
+            cpiChartInstance = null;
+            cpiSeriesInstance = null;
         }
 
-        if (chartInstance) {
-            chartInstance.remove();
-            chartInstance = null;
-        }
+        // Set dimensions explicitly based on parent flex/grid bounds
+        const targetWidth = chartContainer.clientWidth || 900;
+        const targetHeight = chartContainer.clientHeight || 520;
 
-        chartContainer.style.display = 'block';
-
-        chartContainer.dataset.cpiInitialized = 'true';
-
-        chartInstance = window.LightweightCharts.createChart(chartContainer, {
-            width: chartContainer.clientWidth || 900,
-            height: chartContainer.clientHeight || 520,
+        cpiChartInstance = window.LightweightCharts.createChart(chartContainer, {
+            width: targetWidth,
+            height: targetHeight,
             layout: {
                 background: { color: '#0f1220' },
                 textColor: '#d1d4dc'
@@ -141,26 +97,25 @@ function initCpiChart() {
                 vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
                 horzLines: { color: 'rgba(255, 255, 255, 0.05)' }
             },
-            rightPriceScale: {
-                borderColor: '#2a2e39'
-            },
+            rightPriceScale: { borderColor: '#2a2e39' },
             timeScale: {
                 borderColor: '#2a2e39',
-                timeVisible: true,
+                timeVisible: true,        // REQUIRED: Shows HH:MM stamps instead of absolute dates
+                secondsVisible: false,
+                fixLeftEdge: true,        // Prevents dragging data past the left limit
+                fixRightEdge: true,       // Prevents dragging data past the right limit
                 tickMarkFormatter: function (time) {
-                    if (!time || typeof time !== 'number') {
-                        return '';
-                    }
+                    if (!time || typeof time !== 'number') return '';
                     const date = new Date(time * 1000);
-                    return date.toISOString().slice(11, 16);
+                    // Formats local hours and minutes cleanly on axis ticks
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
                 }
             },
-            crosshair: {
-                mode: window.LightweightCharts.CrosshairMode.Normal
-            }
+            crosshair: { mode: window.LightweightCharts.CrosshairMode.Normal }
         });
 
-        const series = chartInstance.addSeries(window.LightweightCharts.CandlestickSeries, {
+        // Use CandlestickSeries constructor correctly
+        cpiSeriesInstance = cpiChartInstance.addSeries(window.LightweightCharts.CandlestickSeries, {
             upColor: '#2ebd85',
             downColor: '#f6465d',
             borderDownColor: '#f6465d',
@@ -169,63 +124,51 @@ function initCpiChart() {
             wickUpColor: '#2ebd85'
         });
 
-        const selectedDate = dateString ? new Date(`${dateString}T12:00:00`) : new Date('2026-06-12T12:00:00');
-        const start = new Date(selectedDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(selectedDate);
-        end.setHours(23, 59, 59, 999);
-
-        const offsetMinutes = 120;
-        const startUtc = new Date(start.getTime() - offsetMinutes * 60 * 1000);
-        const endUtc = new Date(end.getTime() - offsetMinutes * 60 * 1000);
+        // Single-day calculation configuration loops
+        const targetDate = dateString ? `${dateString}T00:00:00` : '2026-06-12T00:00:00';
+        const startOfDay = new Date(targetDate);
+        const baseTimestamp = Math.floor(startOfDay.getTime() / 1000);
 
         const data = [];
-        const pointCount = 96;
-        let current = new Date(startUtc);
+        const pointCount = 288; // 288 segments * 15 minutes = Exact 24 Hour Single Day Display
+        let runningPrice = 2330.00;
 
         for (let i = 0; i < pointCount; i++) {
-            if (current > endUtc) {
-                break;
-            }
-            const time = Math.floor(current.getTime() / 1000);
-            const base = 2330 + Math.sin(i / 3) * 9 + (i % 4) * 0.4;
-            const open = base;
-            const close = base + Math.sin(i / 2) * 6;
-            const high = Math.max(open, close) + 3;
-            const low = Math.min(open, close) - 3;
-            data.push({
-                time: time,
-                open: open,
-                high: high,
-                low: low,
-                close: close
-            });
-            current = new Date(current.getTime() + 5 * 60 * 1000);
+            // Increments explicitly by 5-minute intervals (300 seconds)
+            const timeOffset = baseTimestamp + (i * 5 * 60); 
+            
+            const change = (Math.sin(i / 12) * 2) + ((Math.random() - 0.5) * 2);
+            const open = runningPrice;
+            const close = runningPrice + change;
+            const high = Math.max(open, close) + (Math.random() * 1);
+            const low = Math.min(open, close) - (Math.random() * 1);
+
+            data.push({ time: timeOffset, open, high, low, close });
+            runningPrice = close; // Carry over price for fluid candlesticks
         }
 
         if (data.length > 0) {
-            window.__lastChartData = data;
-            window.__lastChartInstance = chartInstance;
-            series.setData(data);
+            cpiSeriesInstance.setData(data);
+            
+            // Map global resize callback securely
             window.resizeCpiChart = resizeChart;
-            window.setTimeout(function () {
-                resizeChart();
-            }, 50);
+            
+            // Ensure canvas fits inside container bounds completely
+            window.setTimeout(resizeChart, 50);
         }
     }
 
+    // Set up clean event listeners without stacking duplicates
+    dateInput.removeEventListener('change', updateChartCaption);
     dateInput.addEventListener('change', function () {
         updateChartCaption();
         createOneDayChart(dateInput.value);
     });
 
-    window.addEventListener('resize', resizeChart);
+    window.removeEventListener('resize', window.resizeCpiChart);
+    window.addEventListener('resize', () => { if(window.resizeCpiChart) window.resizeCpiChart(); });
+
+    // Initial Execute Sequence
     updateChartCaption();
     createOneDayChart(dateInput.value || '2026-06-12');
 }
-
-// Chart is initialized only when the News tab becomes visible to avoid
-// a brief flash and redraw loop while the panel is still hidden.
-
-
-
