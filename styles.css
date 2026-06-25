@@ -526,36 +526,57 @@ body {
     gap: 6px;
 }
 
+.cpi-mini-events-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
 .cpi-mini-events {
     display: flex;
-    gap: 4px 14px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.cpi-mini-events-header {
+    padding-bottom: 1px;
+}
+
+.cpi-mini-col-label {
+    width: 38px;
+    text-align: center;
+    font-size: 0.52rem;
+    color: #848e9c;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .cpi-mini-event {
     display: flex;
     flex-direction: row-reverse;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .cpi-mini-event-name {
-    font-size: 0.62rem;
+    width: 68px;
+    font-size: 0.55rem;
     color: #848e9c;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     white-space: nowrap;
 }
 
 .cpi-mini-event-vals {
     display: flex;
-    gap: 4px;
+    gap: 10px;
 }
 
-.cpi-mini-input {
-    width: 52px;
-    padding: 4px 6px;
-    font-size: 0.75rem;
+.cpi-edit-input.cpi-mini-input {
+    width: 38px;
+    padding: 2px 4px;
+    font-size: 0.65rem;
     text-align: center;
 }
 
