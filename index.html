@@ -176,14 +176,15 @@
     
             <!-- News Filter Segment Header Row -->
             <header class="news-header" style="display: flex; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid #2a2e39; width: 100%;">
-                <button class="news-tab active" onclick="switchNewsTab('tab-cpi', this)">CPI</button>
+                <button class="news-tab active" onclick="switchNewsTab('tab-all-charts', this)">All Charts</button>
+                <button class="news-tab" onclick="switchNewsTab('tab-cpi', this)">CPI</button>
                 <button class="news-tab" onclick="switchNewsTab('tab-ppi', this)">PPI</button>
             </header>
 
             <!-- News Content Workspace Container -->
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
-                <!-- Sub-Page A: CPI (Visible by Default) -->
-                <div id="tab-cpi" class="news-sub-page" style="display: block;">
+                <!-- Sub-Page A: All Charts (Visible by Default) -->
+                <div id="tab-all-charts" class="news-sub-page" style="display: block;">
                     <section class="cpi-panel">
                         <section class="xauusd-chart-panel">
                             <div class="cpi-chart-toolbar">
@@ -253,7 +254,11 @@
                     </section>
                 </div>
 
-                <!-- Sub-Page B: PPI (Hidden by Default) -->
+                <!-- Sub-Page B: CPI (Hidden by Default) -->
+                <div id="tab-cpi" class="news-sub-page" style="display: none;">
+                </div>
+
+                <!-- Sub-Page C: PPI (Hidden by Default) -->
                 <div id="tab-ppi" class="news-sub-page" style="display: none;">
                     <h3 style="color: #2979ff; font-family: sans-serif; margin: 0;">Producer Price Index (PPI) Feed</h3>
                     <p style="color: #848e9c; font-family: sans-serif; font-size: 0.9rem;">Live wholesale production manufacturing index updates will load here.</p>  
