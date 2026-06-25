@@ -74,7 +74,7 @@ function createOneDayChart(dateString) {
     cpiChartInstance = LightweightCharts.createChart(chartContainer, {
         width: chartContainer.clientWidth || 900,
         height: 520,
-        layout: { background: { color: '#0f1220' }, textColor: '#d1d4dc' },
+        layout: { background: { color: '#0f1220' }, textColor: '#d1d4dc', attributionLogo: false },
         grid: {
             vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
             horzLines: { color: 'rgba(255, 255, 255, 0.05)' }
@@ -96,7 +96,8 @@ function createOneDayChart(dateString) {
     cpiSeriesInstance = cpiChartInstance.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#2ebd85', downColor: '#f6465d',
         borderDownColor: '#f6465d', borderUpColor: '#2ebd85',
-        wickDownColor: '#f6465d', wickUpColor: '#2ebd85'
+        wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
+        priceLineVisible: false
     });
 
     // MATCHES YOUR EXACT FILENAME PATTERN SHOWN IN VS CODE

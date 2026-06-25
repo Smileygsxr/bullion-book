@@ -185,67 +185,59 @@
                 <!-- Sub-Page A: CPI (Visible by Default) -->
                 <div id="tab-cpi" class="news-sub-page" style="display: block;">
                     <section class="cpi-panel">
-                        <div class="cpi-table-wrap">
-                            <table class="cpi-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Actual</th>
-                                        <th>Forecast</th>
-                                        <th>Previous</th>
-                                        <th>Event</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td rowspan="4">
-                                            <input type="date" class="cpi-edit-input cpi-date-input" value="2026-06-12">
-                                        </td>
-                                        <td rowspan="4">
-                                            <input type="time" class="cpi-edit-input cpi-time-input" value="08:30">
-                                        </td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.1%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.0%"></td>
-                                        <td>Core CPI m/m</td>
-                                    </tr>
-                                    <tr>
-                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.1%"></td>
-                                        <td>Core CPI y/y</td>
-                                    </tr>
-                                    <tr>
-                                        <td><input type="text" class="cpi-edit-input" value="3.4%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.2%"></td>
-                                        <td>CPI m/m</td>
-                                    </tr>
-                                    <tr>
-                                        <td><input type="text" class="cpi-edit-input" value="3.5%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.4%"></td>
-                                        <td><input type="text" class="cpi-edit-input" value="3.3%"></td>
-                                        <td>CPI y/y</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
                         <section class="xauusd-chart-panel">
                             <div class="cpi-chart-toolbar">
                                 <div>
                                     <p class="cpi-chart-title">XAUUSD</p>
-                                    <p class="cpi-chart-subtitle">5m • GMT+2</p>
+                                    <p class="cpi-chart-subtitle">5m</p>
                                 </div>
+
+                                <div class="cpi-mini-data">
+                                    <div class="cpi-mini-datetime" style="display: none;">
+                                        <input type="date" class="cpi-edit-input cpi-mini-input cpi-date-input" value="2026-06-12">
+                                        <input type="time" class="cpi-edit-input cpi-mini-input cpi-time-input" value="08:30">
+                                    </div>
+                                    <div class="cpi-mini-events">
+                                        <div class="cpi-mini-event">
+                                            <span class="cpi-mini-event-name">Core CPI m/m</span>
+                                            <span class="cpi-mini-event-vals">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Actual">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Forecast">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.0%" title="Previous">
+                                            </span>
+                                        </div>
+                                        <div class="cpi-mini-event">
+                                            <span class="cpi-mini-event-name">Core CPI y/y</span>
+                                            <span class="cpi-mini-event-vals">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Actual">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Forecast">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Previous">
+                                            </span>
+                                        </div>
+                                        <div class="cpi-mini-event">
+                                            <span class="cpi-mini-event-name">CPI m/m</span>
+                                            <span class="cpi-mini-event-vals">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Actual">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Forecast">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Previous">
+                                            </span>
+                                        </div>
+                                        <div class="cpi-mini-event">
+                                            <span class="cpi-mini-event-name">CPI y/y</span>
+                                            <span class="cpi-mini-event-vals">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.5%" title="Actual">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Forecast">
+                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Previous">
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <p class="cpi-chart-caption" id="xauusdDateCaption">2026-06-12</p>
                             </div>
 
-                            <!--<div class="cpi-chart-body cpi-chart-widget-body">-->
-                            <div class="cpi-chart-body cpi-chart-widget-body" style="width: 100%; min-height: 520px; display: block;"></div>
-                                
-                                <!--<div id="xauusd-lightweight-chart" class="xauusd-lightweight-chart"></div>-->
-                                <div id="xauusd-lightweight-chart" class="xauusd-lightweight-chart" style="width: 100%; height: 520px; min-height: 520px; display: block; position: relative;"></div>
+                            <div class="cpi-chart-body cpi-chart-widget-body">
+                                <div id="xauusd-lightweight-chart" class="xauusd-lightweight-chart"></div>
                             </div>
                         </section>
                     </section>
@@ -281,51 +273,8 @@
     </main>
 
     <!-- Page Engine Logic Script -->
-        <!-- Page Engine Logic Script -->
-    <script>
-        function showPage(pageId, clickedElement) {
-            // 1. Hide every page container block out of sight
-            const views = document.querySelectorAll('.view-section');
-            views.forEach(view => {
-                view.style.display = 'none';
-            });
-
-            // 2. Display the selected targeted view template container area
-            const targetView = document.getElementById(pageId);
-            if (targetView) {
-                targetView.style.display = 'flex';
-            }
-
-            // 3. Update the active visual navigation layout styling class state
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-            });
-
-            // 4. Highlight the correct sidebar element
-            if (clickedElement && clickedElement.classList.contains('nav-link')) {
-                clickedElement.classList.add('active');
-            } else {
-                // Default the highlight back to the Dashboard tab if the user clicks the logo
-                const dashLink = document.querySelector('.nav-link[onclick*="page-dashboard"]');
-                if (dashLink) {
-                    dashLink.classList.add('active');
-                }
-            }
-
-            if (pageId === 'page-news') {
-                window.setTimeout(function () {
-                    if (window.resizeCpiChart) {
-                        window.resizeCpiChart();
-                    }
-                }, 80);
-            }
-        }
-    </script>
-    <!--<script src="https://cdn.jsdelivr.net/npm/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="app.js"></script>-->
-    <script src="https://tradingview.com"></script>
-    <!--<script src="js/main.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="app.js"></script>
 
 </body>

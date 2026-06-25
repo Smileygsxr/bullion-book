@@ -12,9 +12,14 @@
 
 /* Global Base Rules - Removes default margins, sets a global dark grey background (#171b26), and enforces a modern, clean system font
  stack (like San Francisco and Segoe UI).*/
+html {
+    height: 100%;
+}
+
 body {
     margin: 0;
     padding: 0;
+    height: 100vh;
     background-color: #171b26;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     color: var(--text-light);
@@ -224,16 +229,28 @@ Formats the main application name in bold white text and positions a bright blue
 body {
     display: flex;
     background-color: #171b26;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .dashboard-main {
     flex: 1;
+    height: 100vh;
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 20px;
     box-sizing: border-box;
+    overflow: hidden;
+}
+
+.view-section {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+#page-news {
+    overflow: hidden;
 }
 
 /* 📐 Top Stats Section Row Layout LINE CHART ON DASHBOARD */
@@ -449,6 +466,7 @@ body {
     padding-bottom: 15px;
     border-bottom: 1px solid #2a2e39;
     width: 100%;
+    flex-shrink: 0;
 }
 
 /* Individual capsule button bases */
@@ -481,6 +499,9 @@ body {
 .news-content-area {
     margin-top: 15px;
     width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* CPI table and chart styles */
@@ -491,43 +512,56 @@ body {
     width: 100%;
 }
 
-.cpi-table-wrap {
-    background: #0f1220;
-    border: 1px solid #2a2e39;
-    border-radius: 12px;
-    overflow: hidden;
+.cpi-mini-data {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex: 1;
 }
 
-.cpi-table {
-    width: 100%;
-    border-collapse: collapse;
+.cpi-mini-datetime {
+    display: flex;
+    gap: 6px;
 }
 
-.cpi-table th,
-.cpi-table td {
-    padding: 10px 12px;
-    text-align: left;
-    color: #d1d4dc;
-    font-size: 0.85rem;
-    border-bottom: 1px solid #2a2e39;
-    vertical-align: middle;
+.cpi-mini-events {
+    display: flex;
+    gap: 4px 14px;
+    flex-wrap: wrap;
 }
 
-.cpi-table th {
-    background: #1a1e2d;
+.cpi-mini-event {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 8px;
+}
+
+.cpi-mini-event-name {
+    font-size: 0.62rem;
     color: #848e9c;
-    font-size: 0.72rem;
-    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
 }
 
-.cpi-table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.03);
+.cpi-mini-event-vals {
+    display: flex;
+    gap: 4px;
 }
 
-.cpi-table tbody tr:last-child td {
-    border-bottom: none;
+.cpi-mini-input {
+    width: 52px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.cpi-mini-datetime .cpi-mini-input {
+    width: auto;
+    min-width: unset;
 }
 
 .cpi-edit-input {
