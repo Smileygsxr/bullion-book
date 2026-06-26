@@ -185,74 +185,77 @@
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
                 <!-- Sub-Page A: All Charts (Visible by Default) -->
                 <div id="tab-all-charts" class="news-sub-page" style="display: block;">
-                    <section class="cpi-panel">
-                        <section class="xauusd-chart-panel">
-                            <div class="cpi-chart-toolbar">
-                                <div>
-                                    <p class="cpi-chart-title">XAUUSD</p>
-                                    <p class="cpi-chart-subtitle">5m</p>
-                                </div>
-
-                                <div class="cpi-mini-data">
-                                    <div class="cpi-mini-datetime" style="display: none;">
-                                        <input type="date" class="cpi-edit-input cpi-mini-input cpi-date-input" value="2026-06-12">
-                                        <input type="time" class="cpi-edit-input cpi-mini-input cpi-time-input" value="08:30">
-                                    </div>
-                                    <div class="cpi-mini-events-col">
-                                        <div class="cpi-mini-event cpi-mini-events-header">
-                                            <span class="cpi-mini-event-name" style="visibility: hidden;">&nbsp;</span>
-                                            <span class="cpi-mini-event-vals">
-                                                <span class="cpi-mini-col-label">Actual</span>
-                                                <span class="cpi-mini-col-label">Forecast</span>
-                                                <span class="cpi-mini-col-label">Previous</span>
-                                            </span>
-                                        </div>
-                                        <div class="cpi-mini-events">
-                                        <div class="cpi-mini-event">
-                                            <span class="cpi-mini-event-name">Core CPI m/m</span>
-                                            <span class="cpi-mini-event-vals">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Actual">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Forecast">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.0%" title="Previous">
-                                            </span>
-                                        </div>
-                                        <div class="cpi-mini-event">
-                                            <span class="cpi-mini-event-name">Core CPI y/y</span>
-                                            <span class="cpi-mini-event-vals">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Actual">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Forecast">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Previous">
-                                            </span>
-                                        </div>
-                                        <div class="cpi-mini-event">
-                                            <span class="cpi-mini-event-name">CPI m/m</span>
-                                            <span class="cpi-mini-event-vals">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Actual">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Forecast">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Previous">
-                                            </span>
-                                        </div>
-                                        <div class="cpi-mini-event">
-                                            <span class="cpi-mini-event-name">CPI y/y</span>
-                                            <span class="cpi-mini-event-vals">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.5%" title="Actual">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Forecast">
-                                                <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Previous">
-                                            </span>
-                                        </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <p class="cpi-chart-caption" id="xauusdDateCaption">2026-06-12</p>
-                            </div>
-
-                            <div class="cpi-chart-body cpi-chart-widget-body">
-                                <div id="xauusd-lightweight-chart" class="xauusd-lightweight-chart"></div>
-                            </div>
-                        </section>
-                    </section>
+                    <section class="cpi-panel" id="chart-blocks-container"></section>
                 </div>
+
+                <!-- Template cloned once per CSV file found in /data, newest date first -->
+                <template id="xauusd-chart-block-template">
+                    <section class="xauusd-chart-panel">
+                        <div class="cpi-chart-toolbar">
+                            <div>
+                                <p class="cpi-chart-title">XAUUSD</p>
+                                <p class="cpi-chart-subtitle">5m</p>
+                            </div>
+
+                            <div class="cpi-mini-data">
+                                <div class="cpi-mini-datetime" style="display: none;">
+                                    <input type="date" class="cpi-edit-input cpi-mini-input cpi-date-input" value="">
+                                    <input type="time" class="cpi-edit-input cpi-mini-input cpi-time-input" value="08:30">
+                                </div>
+                                <div class="cpi-mini-events-col">
+                                    <div class="cpi-mini-event cpi-mini-events-header">
+                                        <span class="cpi-mini-event-name" style="visibility: hidden;">&nbsp;</span>
+                                        <span class="cpi-mini-event-vals">
+                                            <span class="cpi-mini-col-label">Actual</span>
+                                            <span class="cpi-mini-col-label">Forecast</span>
+                                            <span class="cpi-mini-col-label">Previous</span>
+                                        </span>
+                                    </div>
+                                    <div class="cpi-mini-events">
+                                    <div class="cpi-mini-event">
+                                        <span class="cpi-mini-event-name">Core CPI m/m</span>
+                                        <span class="cpi-mini-event-vals">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Actual">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Forecast">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.0%" title="Previous">
+                                        </span>
+                                    </div>
+                                    <div class="cpi-mini-event">
+                                        <span class="cpi-mini-event-name">Core CPI y/y</span>
+                                        <span class="cpi-mini-event-vals">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Actual">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Forecast">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.1%" title="Previous">
+                                        </span>
+                                    </div>
+                                    <div class="cpi-mini-event">
+                                        <span class="cpi-mini-event-name">CPI m/m</span>
+                                        <span class="cpi-mini-event-vals">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Actual">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Forecast">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.2%" title="Previous">
+                                        </span>
+                                    </div>
+                                    <div class="cpi-mini-event">
+                                        <span class="cpi-mini-event-name">CPI y/y</span>
+                                        <span class="cpi-mini-event-vals">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.5%" title="Actual">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.4%" title="Forecast">
+                                            <input type="text" class="cpi-edit-input cpi-mini-input" value="3.3%" title="Previous">
+                                        </span>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="cpi-chart-caption"></p>
+                        </div>
+
+                        <div class="cpi-chart-body cpi-chart-widget-body">
+                            <div class="xauusd-lightweight-chart"></div>
+                        </div>
+                    </section>
+                </template>
 
                 <!-- Sub-Page B: CPI (Hidden by Default) -->
                 <div id="tab-cpi" class="news-sub-page" style="display: none;">

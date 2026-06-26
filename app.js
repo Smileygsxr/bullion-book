@@ -1,6 +1,5 @@
 // 1. GLOBAL STATE TRACKERS
-let cpiChartInstance = null;
-let cpiSeriesInstance = null;
+const cpiChartInstances = new Map(); // date string -> { chart, series, container }
 
 function switchNewsTab(tabId, clickedButton) {
     const subPages = document.querySelectorAll('.news-sub-page');
@@ -30,48 +29,97 @@ function showPage(pageId, clickedElement) {
     }
 }
 
+const XAUUSD_FILENAME_PATTERN = /^XAU-USD_5Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
+
 function initCpiChart() {
-    const dateInput = document.querySelector('.cpi-date-input');
-    const caption = document.getElementById('xauusdDateCaption');
-    const chartContainer = document.getElementById('xauusd-lightweight-chart');
+    const container = document.getElementById('chart-blocks-container');
+    const template = document.getElementById('xauusd-chart-block-template');
+    if (!container || !template) return;
 
-    if (!dateInput || !caption || !chartContainer) return;
-
-    function updateChartCaption() {
-        caption.textContent = dateInput.value || '2026-06-12';
-    }
-
-    dateInput.onchange = function () {
-        updateChartCaption();
-        createOneDayChart(dateInput.value);
-    };
+    discoverChartFiles()
+        .then(files => {
+            // Newest date first
+            files.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+            renderChartBlocks(files, container, template);
+        })
+        .catch(err => {
+            console.error("Data folder listing error:", err.message);
+            container.innerHTML = `
+                <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
+                    <div style="color: #f6465d; font-size: 1.1rem; font-weight: bold; margin-bottom: 6px;">Could not list /data folder</div>
+                    ${err.message}
+                </div>`;
+        });
 
     window.onresize = function () {
-        if (cpiChartInstance && chartContainer) {
-            requestAnimationFrame(() => {
-                cpiChartInstance.resize(chartContainer.clientWidth, 520);
-                cpiChartInstance.timeScale().fitContent();
+        requestAnimationFrame(() => {
+            cpiChartInstances.forEach(({ chart, container: chartContainer }) => {
+                chart.resize(chartContainer.clientWidth, 520);
+                chart.timeScale().fitContent();
             });
-        }
+        });
     };
-
-    updateChartCaption();
-    createOneDayChart(dateInput.value || '2026-06-12');
 }
 
-// 3. THE CSV READING AND RENDER ENGINE
-function createOneDayChart(dateString) {
-    const chartContainer = document.getElementById('xauusd-lightweight-chart');
+// 2. DISCOVER WHICH CSV FILES CURRENTLY EXIST IN /data
+function discoverChartFiles() {
+    return fetch('./data/')
+        .then(response => {
+            if (!response.ok) throw new Error("Unable to read the data folder listing.");
+            return response.text();
+        })
+        .then(html => {
+            const dirDoc = new DOMParser().parseFromString(html, 'text/html');
+            const links = Array.from(dirDoc.querySelectorAll('a'));
+
+            const filesByDate = new Map(); // date -> filename (first match wins)
+            links
+                .map(link => decodeURIComponent((link.getAttribute('href') || '').split('/').pop()))
+                .forEach(filename => {
+                    const match = filename.match(XAUUSD_FILENAME_PATTERN);
+                    if (match && !filesByDate.has(match[1])) {
+                        filesByDate.set(match[1], filename);
+                    }
+                });
+
+            return Array.from(filesByDate, ([date, filename]) => ({ date, filename }));
+        });
+}
+
+// 3. BUILD ONE CHART BLOCK PER CSV FILE, NEWEST DATE ON TOP
+function renderChartBlocks(files, container, template) {
+    cpiChartInstances.forEach(({ chart }) => chart.remove());
+    cpiChartInstances.clear();
+    container.innerHTML = '';
+
+    if (files.length === 0) {
+        container.innerHTML = `
+            <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
+                No XAUUSD 5m chart data found in /data.
+            </div>`;
+        return;
+    }
+
+    files.forEach(({ date, filename }) => {
+        const block = template.content.firstElementChild.cloneNode(true);
+
+        const caption = block.querySelector('.cpi-chart-caption');
+        const dateInput = block.querySelector('.cpi-date-input');
+        const chartContainer = block.querySelector('.xauusd-lightweight-chart');
+
+        caption.textContent = date;
+        if (dateInput) dateInput.value = date;
+
+        container.appendChild(block);
+        createOneDayChart(date, filename, chartContainer);
+    });
+}
+
+// 4. THE CSV READING AND RENDER ENGINE
+function createOneDayChart(dateString, filename, chartContainer) {
     if (!chartContainer) return;
 
-    if (cpiChartInstance) {
-        cpiChartInstance.remove();
-        cpiChartInstance = null;
-        cpiSeriesInstance = null;
-    }
-    chartContainer.innerHTML = '';
-
-    cpiChartInstance = LightweightCharts.createChart(chartContainer, {
+    const chart = LightweightCharts.createChart(chartContainer, {
         width: chartContainer.clientWidth || 900,
         height: 520,
         layout: { background: { color: '#0f1220' }, textColor: '#d1d4dc', attributionLogo: false },
@@ -85,23 +133,24 @@ function createOneDayChart(dateString) {
         },
         timeScale: {
             borderColor: '#2a2e39',
-            timeVisible: true,        
+            timeVisible: true,
             secondsVisible: false,
-            fixLeftEdge: true,        
+            fixLeftEdge: true,
             fixRightEdge: true
         },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
     });
 
-    cpiSeriesInstance = cpiChartInstance.addSeries(LightweightCharts.CandlestickSeries, {
+    const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#2ebd85', downColor: '#f6465d',
         borderDownColor: '#f6465d', borderUpColor: '#2ebd85',
         wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
         priceLineVisible: false
     });
 
-    // MATCHES YOUR EXACT FILENAME PATTERN SHOWN IN VS CODE
-    const targetPath = `./data/XAU-USD_5Minute_BID_${dateString}_00_00-23_59_Etc_UTC.csv`;
+    cpiChartInstances.set(dateString, { chart, series, container: chartContainer });
+
+    const targetPath = `./data/${filename}`;
 
     fetch(targetPath)
         .then(response => {
@@ -111,10 +160,11 @@ function createOneDayChart(dateString) {
         .then(csvText => {
             // Use PapaParse to split the spreadsheet rows into JavaScript data structures
             const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-            
+            // The timestamp column is named after the CSV's timezone (e.g. "Etc/UTC", "Africa/Johannesburg")
+            const timestampField = parsed.meta.fields[0];
+
             const formattedData = parsed.data.map(row => {
-                // MATCHES YOUR CSV'S UNIQUE "Etc/UTC" HEADER SHOWN IN YOUR IMAGE
-                const stringTimestamp = row['Etc/UTC']; 
+                const stringTimestamp = row[timestampField];
                 const epochSeconds = Math.floor(new Date(stringTimestamp).getTime() / 1000);
 
                 return {
@@ -131,8 +181,8 @@ function createOneDayChart(dateString) {
             cleanData.sort((a, b) => a.time - b.time);
 
             if (cleanData.length > 0) {
-                cpiSeriesInstance.setData(cleanData);
-                cpiChartInstance.timeScale().fitContent();
+                series.setData(cleanData);
+                chart.timeScale().fitContent();
             } else {
                 throw new Error("No readable rows found.");
             }
