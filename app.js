@@ -165,7 +165,14 @@ function createOneDayChart(dateString, filename, chartContainer) {
 
             const formattedData = parsed.data.map(row => {
                 const stringTimestamp = row[timestampField];
-                const epochSeconds = Math.floor(new Date(stringTimestamp).getTime() / 1000);
+                // Use the literal date/time digits as-is (ignore any UTC offset suffix),
+                // so the chart shows the same wall-clock time recorded in the CSV.
+                const stamp = stringTimestamp && stringTimestamp.match(
+                    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/
+                );
+                const epochSeconds = stamp
+                    ? Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], +stamp[6]) / 1000
+                    : NaN;
 
                 return {
                     time: epochSeconds,
