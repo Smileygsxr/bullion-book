@@ -175,18 +175,14 @@
         <div id="page-news" class="view-section" style="display: none; width: 100%; flex-direction: column; gap: 20px; align-items: flex-start;">
     
             <!-- News Filter Segment Header Row -->
-            <header class="news-header" style="display: flex; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid #2a2e39; width: 100%;">
-                <button class="news-tab active" onclick="switchNewsTab('tab-all-charts', this)">All Charts</button>
-                <button class="news-tab" onclick="switchNewsTab('tab-cpi', this)">CPI</button>
-                <button class="news-tab" onclick="switchNewsTab('tab-ppi', this)">PPI</button>
+            <header class="news-header" style="display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid #2a2e39; width: 100%;">
+                <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
+                <div id="event-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
             </header>
 
             <!-- News Content Workspace Container -->
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
-                <!-- Sub-Page A: All Charts (Visible by Default) -->
-                <div id="tab-all-charts" class="news-sub-page" style="display: block;">
-                    <section class="cpi-panel" id="chart-blocks-container"></section>
-                </div>
+                <section class="cpi-panel" id="chart-blocks-container"></section>
 
                 <!-- Template cloned once per CSV file found in /data, newest date first -->
                 <template id="xauusd-chart-block-template">
@@ -226,16 +222,6 @@
                         </div>
                     </section>
                 </template>
-
-                <!-- Sub-Page B: CPI (Hidden by Default) -->
-                <div id="tab-cpi" class="news-sub-page" style="display: none;">
-                </div>
-
-                <!-- Sub-Page C: PPI (Hidden by Default) -->
-                <div id="tab-ppi" class="news-sub-page" style="display: none;">
-                    <h3 style="color: #2979ff; font-family: sans-serif; margin: 0;">Producer Price Index (PPI) Feed</h3>
-                    <p style="color: #848e9c; font-family: sans-serif; font-size: 0.9rem;">Live wholesale production manufacturing index updates will load here.</p>  
-                </div>
 
             </div>
 

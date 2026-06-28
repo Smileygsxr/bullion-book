@@ -58,14 +58,54 @@ function parseEventDateLabel(label) {
     return `${ECONOMIC_EVENTS_YEAR}-${month}-${match[2].padStart(2, '0')}`;
 }
 
-function switchNewsTab(tabId, clickedButton) {
-    const subPages = document.querySelectorAll('.news-sub-page');
-    subPages.forEach(page => { page.style.display = 'none'; });
-    const activeTab = document.getElementById(tabId);
-    if (activeTab) { activeTab.style.display = 'block'; }
-    const newsButtons = document.querySelectorAll('.news-tab');
-    newsButtons.forEach(btn => { btn.classList.remove('active'); });
-    if (clickedButton) { clickedButton.classList.add('active'); }
+// Event-name filter tabs (multi-select) for the chart blocks
+const selectedEventFilters = new Set();
+
+function renderEventFilterTabs(eventsByDate) {
+    const tabsContainer = document.getElementById('event-filter-tabs');
+    if (!tabsContainer) return;
+
+    const eventNames = new Set();
+    Object.values(eventsByDate).forEach(events => {
+        events.forEach(({ name }) => eventNames.add(name));
+    });
+
+    tabsContainer.innerHTML = '';
+    Array.from(eventNames).sort().forEach(name => {
+        const button = document.createElement('button');
+        button.className = 'news-tab';
+        button.textContent = name;
+        button.addEventListener('click', () => toggleEventFilter(name, button));
+        tabsContainer.appendChild(button);
+    });
+}
+
+function toggleEventFilter(name, clickedButton) {
+    if (selectedEventFilters.has(name)) {
+        selectedEventFilters.delete(name);
+        clickedButton.classList.remove('active');
+    } else {
+        selectedEventFilters.add(name);
+        clickedButton.classList.add('active');
+    }
+    document.getElementById('all-charts-tab').classList.toggle('active', selectedEventFilters.size === 0);
+    applyEventFilters();
+}
+
+function clearEventFilters() {
+    selectedEventFilters.clear();
+    document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('all-charts-tab').classList.add('active');
+    applyEventFilters();
+}
+
+function applyEventFilters() {
+    document.querySelectorAll('#chart-blocks-container .xauusd-chart-panel').forEach(block => {
+        const blockEvents = (block.dataset.eventNames || '').split('|').filter(Boolean);
+        const matches = selectedEventFilters.size === 0 ||
+            blockEvents.some(name => selectedEventFilters.has(name));
+        block.style.display = matches ? '' : 'none';
+    });
 }
 
 function showPage(pageId, clickedElement) {
@@ -103,7 +143,9 @@ function initCpiChart() {
         .then(([files, eventsByDate]) => {
             // Newest date first
             files.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+            selectedEventFilters.clear();
             renderChartBlocks(files, container, template, eventsByDate);
+            renderEventFilterTabs(eventsByDate);
         })
         .catch(err => {
             console.error("Data folder listing error:", err.message);
@@ -173,6 +215,8 @@ function renderChartBlocks(files, container, template, eventsByDate) {
         caption.textContent = date;
         if (dateInput) dateInput.value = date;
 
+        const events = eventsByDate[date] || [];
+        block.dataset.eventNames = events.map(({ name }) => name).join('|');
         renderEventsForDate(block, date, eventsByDate);
 
         container.appendChild(block);
