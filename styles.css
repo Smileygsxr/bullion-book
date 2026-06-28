@@ -512,13 +512,18 @@ body {
     width: 100%;
 }
 
+.cpi-chart-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
 .cpi-mini-data {
     display: flex;
     align-items: center;
     gap: 18px;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    flex: 1;
 }
 
 .cpi-mini-datetime {
@@ -565,6 +570,13 @@ body {
     color: #848e9c;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.cpi-mini-event-time {
+    width: 44px;
+    font-size: 0.55rem;
+    color: #5b6271;
     white-space: nowrap;
 }
 

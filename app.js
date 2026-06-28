@@ -1,6 +1,63 @@
 // 1. GLOBAL STATE TRACKERS
 const cpiChartInstances = new Map(); // date string -> { chart, series, container }
 
+// Re-upload/replace this file in /data whenever new economic events come in.
+const ECONOMIC_EVENTS_CSV_PATH = './data/EconomicEvents.csv';
+const ECONOMIC_EVENTS_YEAR = 2026;
+const MONTH_ABBR_TO_NUM = {
+    Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+    Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+};
+
+// CSV has no header row: [dateLabel, time, currency, _, event, _, _, actual, forecast, previous].
+// dateLabel/time are blank on rows that share the same day/time as the row above (forward-filled).
+function loadUsdEconomicEvents() {
+    return fetch(ECONOMIC_EVENTS_CSV_PATH)
+        .then(response => {
+            if (!response.ok) throw new Error("EconomicEvents.csv not found.");
+            return response.text();
+        })
+        .then(csvText => {
+            const parsed = Papa.parse(csvText.trim(), { header: false, skipEmptyLines: true });
+            const eventsByDate = {};
+            let currentDate = null;
+            let currentTime = '';
+
+            parsed.data.forEach(row => {
+                const [dateLabel, time, currency, , name, , , actual, forecast, previous] = row;
+
+                if (dateLabel && dateLabel.trim()) {
+                    currentDate = parseEventDateLabel(dateLabel.trim());
+                }
+                if (time && time.trim()) {
+                    currentTime = time.trim().replace(/\s+/g, '').toLowerCase();
+                }
+                if (!currentDate || !name || !name.trim()) return;
+                if (!currency || currency.trim().toUpperCase() !== 'USD') return;
+
+                if (!eventsByDate[currentDate]) eventsByDate[currentDate] = [];
+                eventsByDate[currentDate].push({
+                    time: currentTime,
+                    name: name.trim(),
+                    actual: (actual || '').trim(),
+                    forecast: (forecast || '').trim(),
+                    previous: (previous || '').trim()
+                });
+            });
+
+            return eventsByDate;
+        });
+}
+
+// Converts a label like "WedJun 10" into "2026-06-10"
+function parseEventDateLabel(label) {
+    const match = label.match(/^[A-Za-z]{3}([A-Za-z]{3})\s*(\d{1,2})$/);
+    if (!match) return null;
+    const month = MONTH_ABBR_TO_NUM[match[1]];
+    if (!month) return null;
+    return `${ECONOMIC_EVENTS_YEAR}-${month}-${match[2].padStart(2, '0')}`;
+}
+
 function switchNewsTab(tabId, clickedButton) {
     const subPages = document.querySelectorAll('.news-sub-page');
     subPages.forEach(page => { page.style.display = 'none'; });
@@ -36,11 +93,17 @@ function initCpiChart() {
     const template = document.getElementById('xauusd-chart-block-template');
     if (!container || !template) return;
 
-    discoverChartFiles()
-        .then(files => {
+    Promise.all([
+        discoverChartFiles(),
+        loadUsdEconomicEvents().catch(err => {
+            console.error("Economic events load error:", err.message);
+            return {};
+        })
+    ])
+        .then(([files, eventsByDate]) => {
             // Newest date first
             files.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-            renderChartBlocks(files, container, template);
+            renderChartBlocks(files, container, template, eventsByDate);
         })
         .catch(err => {
             console.error("Data folder listing error:", err.message);
@@ -87,7 +150,7 @@ function discoverChartFiles() {
 }
 
 // 3. BUILD ONE CHART BLOCK PER CSV FILE, NEWEST DATE ON TOP
-function renderChartBlocks(files, container, template) {
+function renderChartBlocks(files, container, template, eventsByDate) {
     cpiChartInstances.forEach(({ chart }) => chart.remove());
     cpiChartInstances.clear();
     container.innerHTML = '';
@@ -110,9 +173,34 @@ function renderChartBlocks(files, container, template) {
         caption.textContent = date;
         if (dateInput) dateInput.value = date;
 
+        renderEventsForDate(block, date, eventsByDate);
+
         container.appendChild(block);
         createOneDayChart(date, filename, chartContainer);
     });
+}
+
+// Populates (or hides) the USD events strip above a chart block for its date
+function renderEventsForDate(block, date, eventsByDate) {
+    const miniData = block.querySelector('.cpi-mini-data');
+    const eventsList = block.querySelector('.cpi-mini-events');
+    const events = eventsByDate[date];
+
+    if (!miniData || !eventsList || !events || events.length === 0) return;
+
+    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous }) => `
+        <div class="cpi-mini-event">
+            <span class="cpi-mini-event-name">${name}</span>
+            <span class="cpi-mini-event-vals">
+                <input type="text" class="cpi-edit-input cpi-mini-input" value="${actual}" title="Actual">
+                <input type="text" class="cpi-edit-input cpi-mini-input" value="${forecast}" title="Forecast">
+                <input type="text" class="cpi-edit-input cpi-mini-input" value="${previous}" title="Previous">
+            </span>
+            <span class="cpi-mini-event-time">${time || ''}</span>
+        </div>
+    `).join('');
+
+    miniData.style.display = 'flex';
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
