@@ -592,6 +592,14 @@ body {
     text-align: center;
 }
 
+.cpi-edit-input.cpi-value-up {
+    color: #2ebd85;
+}
+
+.cpi-edit-input.cpi-value-down {
+    color: #f6465d;
+}
+
 .cpi-mini-datetime .cpi-mini-input {
     width: auto;
     min-width: unset;
@@ -612,6 +620,15 @@ body {
     outline: none;
     border-color: #2979ff;
     background: rgba(41, 121, 255, 0.08);
+}
+
+.cpi-edit-input[readonly] {
+    cursor: default;
+}
+
+.cpi-edit-input[readonly]:focus {
+    border-color: transparent;
+    background: transparent;
 }
 
 .cpi-edit-input[type="date"],
@@ -668,5 +685,28 @@ body {
 .xauusd-lightweight-chart {
     width: 100%;
     height: 100%;
+}
+
+.measure-box {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    z-index: 5;
+    background: rgba(41, 121, 255, 0.15);
+    border: 1px solid #2979ff;
+}
+
+.measure-label {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    z-index: 6;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: pre-line;
+    line-height: 1.4;
 }
 

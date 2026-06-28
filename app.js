@@ -232,19 +232,49 @@ function renderEventsForDate(block, date, eventsByDate) {
 
     if (!miniData || !eventsList || !events || events.length === 0) return;
 
-    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous }) => `
+    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous }) => {
+        const actualColorClass = getActualColorClass(name, actual, forecast);
+        return `
         <div class="cpi-mini-event">
             <span class="cpi-mini-event-name">${name}</span>
             <span class="cpi-mini-event-vals">
-                <input type="text" class="cpi-edit-input cpi-mini-input" value="${actual}" title="Actual">
-                <input type="text" class="cpi-edit-input cpi-mini-input" value="${forecast}" title="Forecast">
-                <input type="text" class="cpi-edit-input cpi-mini-input" value="${previous}" title="Previous">
+                <input type="text" class="cpi-edit-input cpi-mini-input ${actualColorClass}" value="${actual}" title="Actual" readonly>
+                <input type="text" class="cpi-edit-input cpi-mini-input" value="${forecast}" title="Forecast" readonly>
+                <input type="text" class="cpi-edit-input cpi-mini-input" value="${previous}" title="Previous" readonly>
             </span>
             <span class="cpi-mini-event-time">${time || ''}</span>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     miniData.style.display = 'flex';
+}
+
+// Parses values like "0.3%", "225K", "7.62M" into comparable numbers
+function parseEventNumber(value) {
+    if (!value) return null;
+    const match = value.match(/-?\d+(\.\d+)?/);
+    if (!match) return null;
+    let num = parseFloat(match[0]);
+    if (/B/i.test(value)) num *= 1e9;
+    else if (/M/i.test(value)) num *= 1e6;
+    else if (/K/i.test(value)) num *= 1e3;
+    return num;
+}
+
+// Indicators where a higher Actual than Forecast is bad news (red), not good (green)
+const INVERTED_EVENT_KEYWORDS = ['unemployment claims', 'unemployment rate', 'jobless claims'];
+
+// Green if Actual beat Forecast, red if it missed, otherwise left neutral/white
+function getActualColorClass(name, actual, forecast) {
+    const actualNum = parseEventNumber(actual);
+    const forecastNum = parseEventNumber(forecast);
+    if (actualNum === null || forecastNum === null) return '';
+
+    const isInverted = INVERTED_EVENT_KEYWORDS.some(keyword => name.toLowerCase().includes(keyword));
+    if (actualNum === forecastNum) return '';
+    const beatForecast = isInverted ? actualNum < forecastNum : actualNum > forecastNum;
+    return beatForecast ? 'cpi-value-up' : 'cpi-value-down';
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
@@ -311,7 +341,8 @@ function createOneDayChart(dateString, filename, chartContainer) {
                     open: parseFloat(row.Open),
                     high: parseFloat(row.High),
                     low: parseFloat(row.Low),
-                    close: parseFloat(row.Close)
+                    close: parseFloat(row.Close),
+                    volume: parseFloat(row.Volume)
                 };
             });
 
@@ -322,6 +353,9 @@ function createOneDayChart(dateString, filename, chartContainer) {
             if (cleanData.length > 0) {
                 series.setData(cleanData);
                 chart.timeScale().fitContent();
+                const instance = cpiChartInstances.get(dateString);
+                if (instance) instance.data = cleanData;
+                attachMeasureTool(chart, series, chartContainer, dateString);
             } else {
                 throw new Error("No readable rows found.");
             }
@@ -334,4 +368,102 @@ function createOneDayChart(dateString, filename, chartContainer) {
                     Looking for path: <code style="color: #2979ff;">${targetPath}</code>
                 </div>`;
         });
+}
+
+// 5. SHIFT+DRAG MEASURE TOOL (price/percent/bars/time/volume between two points)
+function formatMeasureDuration(seconds) {
+    const totalMinutes = Math.round(seconds / 60);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    const parts = [];
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (minutes || parts.length === 0) parts.push(`${minutes}m`);
+    return parts.join(' ');
+}
+
+function formatMeasureVolume(volume) {
+    if (volume >= 1e6) return `${(volume / 1e6).toFixed(2)}M`;
+    if (volume >= 1e3) return `${(volume / 1e3).toFixed(2)}K`;
+    return volume.toFixed(0);
+}
+
+function attachMeasureTool(chart, series, container, dateString) {
+    container.style.position = 'relative';
+
+    const box = document.createElement('div');
+    box.className = 'measure-box';
+    const label = document.createElement('div');
+    label.className = 'measure-label';
+    container.appendChild(box);
+    container.appendChild(label);
+
+    function clientToLocal(clientX, clientY) {
+        const rect = container.getBoundingClientRect();
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function updateOverlay(startX, startY, startTime, startPrice, curX, curY, curTime, curPrice) {
+        const left = Math.min(startX, curX);
+        const top = Math.min(startY, curY);
+
+        box.style.left = `${left}px`;
+        box.style.top = `${top}px`;
+        box.style.width = `${Math.abs(curX - startX)}px`;
+        box.style.height = `${Math.abs(curY - startY)}px`;
+        box.style.display = 'block';
+
+        const priceDiff = curPrice - startPrice;
+        const pctDiff = startPrice !== 0 ? (priceDiff / startPrice) * 100 : 0;
+
+        const data = (cpiChartInstances.get(dateString) || {}).data || [];
+        const lo = Math.min(startTime, curTime);
+        const hi = Math.max(startTime, curTime);
+        const barsInRange = data.filter(d => d.time >= lo && d.time <= hi);
+        const volumeSum = barsInRange.reduce((sum, d) => sum + (d.volume || 0), 0);
+
+        label.textContent =
+            `${priceDiff >= 0 ? '+' : ''}${priceDiff.toFixed(3)} (${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(2)}%) ${curPrice.toFixed(3)}\n` +
+            `${barsInRange.length} bars, ${formatMeasureDuration(hi - lo)}\n` +
+            `Vol ${formatMeasureVolume(volumeSum)}`;
+        label.style.background = priceDiff >= 0 ? '#2ebd85' : '#f6465d';
+        label.style.left = `${left}px`;
+        label.style.top = `${Math.max(top - 70, 0)}px`;
+        label.style.display = 'block';
+    }
+
+    container.addEventListener('mousedown', (e) => {
+        if (!e.shiftKey || e.button !== 0) {
+            box.style.display = 'none';
+            label.style.display = 'none';
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+
+        const start = clientToLocal(e.clientX, e.clientY);
+        const startTime = chart.timeScale().coordinateToTime(start.x);
+        const startPrice = series.coordinateToPrice(start.y);
+        if (startTime === null || startPrice === null) return;
+
+        chart.applyOptions({ handleScroll: false, handleScale: false });
+
+        function onMouseMove(moveEvent) {
+            const cur = clientToLocal(moveEvent.clientX, moveEvent.clientY);
+            const curTime = chart.timeScale().coordinateToTime(cur.x);
+            const curPrice = series.coordinateToPrice(cur.y);
+            if (curTime === null || curPrice === null) return;
+            updateOverlay(start.x, start.y, startTime, startPrice, cur.x, cur.y, curTime, curPrice);
+        }
+
+        function onMouseUp() {
+            chart.applyOptions({ handleScroll: true, handleScale: true });
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }, true);
 }
