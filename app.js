@@ -12,7 +12,7 @@ const MONTH_ABBR_TO_NUM = {
 // CSV has no header row: [dateLabel, time, currency, _, event, _, _, actual, forecast, previous].
 // dateLabel/time are blank on rows that share the same day/time as the row above (forward-filled).
 function loadUsdEconomicEvents() {
-    return fetch(ECONOMIC_EVENTS_CSV_PATH)
+    return fetch(`${ECONOMIC_EVENTS_CSV_PATH}?t=${Date.now()}`)
         .then(response => {
             if (!response.ok) throw new Error("EconomicEvents.csv not found.");
             return response.text();
