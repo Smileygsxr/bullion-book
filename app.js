@@ -234,28 +234,41 @@ function resetChartBatches(container, template) {
 }
 
 // 2. DISCOVER WHICH CSV FILES CURRENTLY EXIST IN /data
+// Tries the Vercel serverless listing first (production); falls back to parsing
+// a directory-listing response (e.g. `python -m http.server` for local dev).
 function discoverChartFiles() {
-    return fetch('./data/')
-        .then(response => {
-            if (!response.ok) throw new Error("Unable to read the data folder listing.");
-            return response.text();
-        })
-        .then(html => {
-            const dirDoc = new DOMParser().parseFromString(html, 'text/html');
-            const links = Array.from(dirDoc.querySelectorAll('a'));
-
-            const filesByDate = new Map(); // date -> filename (first match wins)
-            links
-                .map(link => decodeURIComponent((link.getAttribute('href') || '').split('/').pop()))
-                .forEach(filename => {
-                    const match = filename.match(XAUUSD_FILENAME_PATTERN);
-                    if (match && !filesByDate.has(match[1])) {
-                        filesByDate.set(match[1], filename);
-                    }
-                });
-
-            return Array.from(filesByDate, ([date, filename]) => ({ date, filename }));
+    function namesToDatedFiles(filenames) {
+        const filesByDate = new Map(); // date -> filename (first match wins)
+        filenames.forEach(filename => {
+            const match = filename.match(XAUUSD_FILENAME_PATTERN);
+            if (match && !filesByDate.has(match[1])) {
+                filesByDate.set(match[1], filename);
+            }
         });
+        return Array.from(filesByDate, ([date, filename]) => ({ date, filename }));
+    }
+
+    return fetch('/api/data-files')
+        .then(response => {
+            if (!response.ok) throw new Error("api/data-files unavailable");
+            return response.json();
+        })
+        .then(namesToDatedFiles)
+        .catch(() =>
+            fetch('./data/')
+                .then(response => {
+                    if (!response.ok) throw new Error("Unable to read the data folder listing.");
+                    return response.text();
+                })
+                .then(html => {
+                    const dirDoc = new DOMParser().parseFromString(html, 'text/html');
+                    const links = Array.from(dirDoc.querySelectorAll('a'));
+                    const filenames = links.map(link =>
+                        decodeURIComponent((link.getAttribute('href') || '').split('/').pop())
+                    );
+                    return namesToDatedFiles(filenames);
+                })
+        );
 }
 
 // 3. APPEND ONE CHART BLOCK PER CSV FILE IN THIS BATCH
