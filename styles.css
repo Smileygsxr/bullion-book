@@ -495,6 +495,23 @@ body {
     border-color: #647080;
 }
 
+.event-tabs-toggle {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid #2a2e39;
+    color: #848e9c;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.event-tabs-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #d1d4dc;
+}
+
 /* Padding offset block for inner data lists */
 .news-content-area {
     margin-top: 15px;
@@ -685,6 +702,32 @@ body {
 .xauusd-lightweight-chart {
     width: 100%;
     height: 100%;
+}
+
+.chart-lock-toggle {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(15, 18, 32, 0.85);
+    border: 1px solid #2a2e39;
+    color: #848e9c;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-lock-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #d1d4dc;
+}
+
+.chart-lock-toggle.locked {
+    border-color: #dfb15b;
+    color: #dfb15b;
 }
 
 .measure-box {

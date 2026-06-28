@@ -96,7 +96,10 @@ function clearEventFilters() {
     selectedEventFilters.clear();
     document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
     document.getElementById('all-charts-tab').classList.add('active');
-    applyEventFilters();
+
+    const container = document.getElementById('chart-blocks-container');
+    const template = document.getElementById('xauusd-chart-block-template');
+    if (container && template) resetChartBatches(container, template);
 }
 
 function applyEventFilters() {
@@ -106,6 +109,14 @@ function applyEventFilters() {
             blockEvents.some(name => selectedEventFilters.has(name));
         block.style.display = matches ? '' : 'none';
     });
+}
+
+function toggleEventTabsCollapse() {
+    const tabsContainer = document.getElementById('event-filter-tabs');
+    const toggleButton = document.getElementById('event-tabs-toggle');
+    const isCollapsed = tabsContainer.style.display === 'none';
+    tabsContainer.style.display = isCollapsed ? 'flex' : 'none';
+    toggleButton.innerHTML = isCollapsed ? '&#9662;' : '&#9656;';
 }
 
 function showPage(pageId, clickedElement) {
@@ -128,9 +139,18 @@ function showPage(pageId, clickedElement) {
 
 const XAUUSD_FILENAME_PATTERN = /^XAU-USD_5Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
+// Chart blocks are heavy (CSV fetch + chart instance each), so load them in
+// batches of CHART_BLOCKS_BATCH_SIZE instead of rendering every date up front.
+const CHART_BLOCKS_BATCH_SIZE = 10;
+let allChartFiles = [];
+let allChartEventsByDate = {};
+let renderedChartFileCount = 0;
+let isLoadingChartBatch = false;
+
 function initCpiChart() {
     const container = document.getElementById('chart-blocks-container');
     const template = document.getElementById('xauusd-chart-block-template');
+    const scrollArea = document.querySelector('#page-news .news-content-area');
     if (!container || !template) return;
 
     Promise.all([
@@ -143,8 +163,11 @@ function initCpiChart() {
         .then(([files, eventsByDate]) => {
             // Newest date first
             files.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+            allChartFiles = files;
+            allChartEventsByDate = eventsByDate;
             selectedEventFilters.clear();
-            renderChartBlocks(files, container, template, eventsByDate);
+            resetChartBatches(container, template);
             renderEventFilterTabs(eventsByDate);
         })
         .catch(err => {
@@ -156,6 +179,11 @@ function initCpiChart() {
                 </div>`;
         });
 
+    if (scrollArea) {
+        scrollArea.removeEventListener('scroll', handleChartScrollLoad);
+        scrollArea.addEventListener('scroll', handleChartScrollLoad);
+    }
+
     window.onresize = function () {
         requestAnimationFrame(() => {
             cpiChartInstances.forEach(({ chart, container: chartContainer }) => {
@@ -164,6 +192,45 @@ function initCpiChart() {
             });
         });
     };
+}
+
+// Loads the next batch once the chart list is scrolled near its bottom
+function handleChartScrollLoad(e) {
+    const el = e.target;
+    if (el.scrollTop + el.clientHeight < el.scrollHeight - 200) return;
+
+    const container = document.getElementById('chart-blocks-container');
+    const template = document.getElementById('xauusd-chart-block-template');
+    if (container && template) loadNextChartBatch(container, template);
+}
+
+function loadNextChartBatch(container, template) {
+    if (isLoadingChartBatch || renderedChartFileCount >= allChartFiles.length) return;
+
+    isLoadingChartBatch = true;
+    const batch = allChartFiles.slice(renderedChartFileCount, renderedChartFileCount + CHART_BLOCKS_BATCH_SIZE);
+    renderedChartFileCount += batch.length;
+
+    renderChartBlocks(batch, container, template, allChartEventsByDate);
+    applyEventFilters();
+    isLoadingChartBatch = false;
+}
+
+// Wipes whatever chart blocks are currently rendered and starts back at the first batch of 10
+function resetChartBatches(container, template) {
+    cpiChartInstances.forEach(({ chart }) => chart.remove());
+    cpiChartInstances.clear();
+    container.innerHTML = '';
+    renderedChartFileCount = 0;
+
+    if (allChartFiles.length === 0) {
+        container.innerHTML = `
+            <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
+                No XAUUSD 5m chart data found in /data.
+            </div>`;
+    } else {
+        loadNextChartBatch(container, template);
+    }
 }
 
 // 2. DISCOVER WHICH CSV FILES CURRENTLY EXIST IN /data
@@ -191,20 +258,8 @@ function discoverChartFiles() {
         });
 }
 
-// 3. BUILD ONE CHART BLOCK PER CSV FILE, NEWEST DATE ON TOP
+// 3. APPEND ONE CHART BLOCK PER CSV FILE IN THIS BATCH
 function renderChartBlocks(files, container, template, eventsByDate) {
-    cpiChartInstances.forEach(({ chart }) => chart.remove());
-    cpiChartInstances.clear();
-    container.innerHTML = '';
-
-    if (files.length === 0) {
-        container.innerHTML = `
-            <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
-                No XAUUSD 5m chart data found in /data.
-            </div>`;
-        return;
-    }
-
     files.forEach(({ date, filename }) => {
         const block = template.content.firstElementChild.cloneNode(true);
 
@@ -300,7 +355,10 @@ function createOneDayChart(dateString, filename, chartContainer) {
             fixLeftEdge: true,
             fixRightEdge: true
         },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        // Locked by default so wheel/drag scrolls the page, not the chart, between stacked charts
+        handleScroll: false,
+        handleScale: false
     });
 
     const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
@@ -309,6 +367,8 @@ function createOneDayChart(dateString, filename, chartContainer) {
         wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
         priceLineVisible: false
     });
+
+    attachLockToggle(chart, chartContainer);
 
     cpiChartInstances.set(dateString, { chart, series, container: chartContainer });
 
@@ -458,7 +518,8 @@ function attachMeasureTool(chart, series, container, dateString) {
         }
 
         function onMouseUp() {
-            chart.applyOptions({ handleScroll: true, handleScale: true });
+            const stillLocked = container.dataset.locked !== 'false';
+            chart.applyOptions({ handleScroll: !stillLocked, handleScale: !stillLocked });
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
         }
@@ -466,4 +527,30 @@ function attachMeasureTool(chart, series, container, dateString) {
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     }, true);
+}
+
+// Bottom-right lock button: locked by default so dragging/scrolling the page
+// between stacked charts doesn't accidentally pan/zoom whichever chart is under the cursor
+function attachLockToggle(chart, container) {
+    container.style.position = 'relative';
+    container.dataset.locked = 'true';
+
+    const button = document.createElement('button');
+    button.className = 'chart-lock-toggle locked';
+    button.innerHTML = '<i class="fa-solid fa-lock"></i>';
+    button.title = 'Chart is locked — click to enable scroll/zoom';
+
+    button.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const locked = container.dataset.locked !== 'false';
+        const nowLocked = !locked;
+        container.dataset.locked = String(nowLocked);
+        chart.applyOptions({ handleScroll: !nowLocked, handleScale: !nowLocked });
+        button.classList.toggle('locked', nowLocked);
+        button.innerHTML = nowLocked ? '<i class="fa-solid fa-lock"></i>' : '<i class="fa-solid fa-lock-open"></i>';
+        button.title = nowLocked ? 'Chart is locked — click to enable scroll/zoom' : 'Chart is interactive — click to lock';
+    });
+
+    container.appendChild(button);
 }
