@@ -19,18 +19,24 @@
             </a>
         </div>
         
-        <!-- 2. Account & Transactions Container Box -->
+        <!-- 2. Primary Account Switcher -->
+        <div class="account-switcher">
+            <label class="account-switcher-label">Primary Account</label>
+            <select id="account-switcher-select" class="account-switcher-select" onchange="switchActiveAccount(this.value)"></select>
+        </div>
+
+        <!-- 3. Account & Transactions Container Box -->
         <div class="account-box">
             <div class="account-title">
                 <span>Account Balance</span>
-                <button class="btn-edit" title="Edit Balance">
+                <button class="btn-edit" title="Edit Balance" onclick="openAccountModal()">
                     <i class="fa-solid fa-pen"></i>
                 </button>
             </div>
             <div class="transaction-summary">
                 <div class="summary-row">
                     <span>Balance:</span>
-                    <span class="text-white">$0.00</span>
+                    <span class="text-white" id="sidebar-account-balance">$0.00</span>
                 </div>
             </div>
         </div>
@@ -201,6 +207,12 @@
                 <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
             </header>
 
+            <div style="display: flex; align-items: center; gap: 8px; margin: -14px 0;">
+                <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">
+                    <i class="fa-solid fa-arrow-up"></i> News Time Markers
+                </button>
+            </div>
+
             <!-- News Content Workspace Container -->
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
                 <section class="cpi-panel" id="chart-blocks-container"></section>
@@ -267,12 +279,65 @@
 
     </main>
 
+    <!-- Account & Transactions Modal -->
+    <div id="account-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-card-header">
+                <span>Account & Transactions</span>
+                <button class="modal-close-btn" onclick="closeAccountModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-card-body">
+                <div class="modal-field-row">
+                    <div class="modal-field">
+                        <label class="modal-label">Name</label>
+                        <input type="text" id="account-modal-name" class="modal-input">
+                    </div>
+                    <div class="modal-field modal-field-narrow">
+                        <label class="modal-label">Primary</label>
+                        <input type="checkbox" id="account-modal-primary" class="modal-primary-checkbox">
+                    </div>
+                    <div class="modal-field">
+                        <label class="modal-label">Account Balance</label>
+                        <input type="text" id="account-modal-balance" class="modal-input modal-balance-input" readonly>
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Transactions</div>
+                <table class="modal-transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Note</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="account-modal-transactions"></tbody>
+                </table>
+
+                <button class="modal-add-row-btn" onclick="addDraftTransaction()" title="Add transaction">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+            <div class="modal-card-footer">
+                <button class="btn-action btn-danger" onclick="deleteAccountModal()">Delete Account</button>
+                <button class="btn-action btn-gold" onclick="newAccountModal()">New Account</button>
+                <button class="btn-action btn-blue" onclick="saveAccountModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Page Engine Logic Script -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
-    <script>requireAuth(); renderSidebarProfile();</script>
+    <script src="accounts.js"></script>
+    <script>requireAuth(); renderSidebarProfile(); initAccounts();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="app.js?v=10"></script>

@@ -288,8 +288,65 @@ function renderChartBlocks(files, container, template, eventsByDate) {
         renderEventsForDate(block, date, eventsByDate);
 
         container.appendChild(block);
-        createOneDayChart(date, filename, chartContainer);
+        createOneDayChart(date, filename, chartContainer, events);
     });
+}
+
+// ---- NEWS TIME MARKERS: a toggle that drops one arrow-below-bar marker per
+// unique event time, so simultaneous events (e.g. two events both at 4:00pm)
+// only draw a single marker rather than stacking duplicates.
+let newsTimeLinesEnabled = false;
+
+function toggleNewsTimeLines() {
+    newsTimeLinesEnabled = !newsTimeLinesEnabled;
+    document.getElementById('news-time-lines-toggle').classList.toggle('active', newsTimeLinesEnabled);
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+}
+
+// Parses "4:00pm" / "12:30am" (no space, lowercase, as produced by parseEventDateLabel's
+// forward-filled time column) into 24-hour { hour, minute }. Returns null if unparseable.
+function parseEventClockTime(timeStr) {
+    const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})(am|pm)$/i);
+    if (!match) return null;
+    let hour = parseInt(match[1], 10) % 12;
+    if (match[3].toLowerCase() === 'pm') hour += 12;
+    return { hour, minute: parseInt(match[2], 10) };
+}
+
+function buildNewsTimeMarkers(dateString, events) {
+    const dateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) return [];
+
+    const seenTimes = new Set();
+    const markers = [];
+
+    events.forEach(({ time }) => {
+        const clock = parseEventClockTime(time);
+        if (!clock || seenTimes.has(time)) return;
+        seenTimes.add(time);
+
+        const epochSeconds = Date.UTC(
+            +dateMatch[1], +dateMatch[2] - 1, +dateMatch[3], clock.hour, clock.minute, 0
+        ) / 1000;
+
+        markers.push({
+            time: epochSeconds,
+            position: 'belowBar',
+            color: '#ffeb3b',
+            shape: 'arrowUp'
+        });
+    });
+
+    return markers.sort((a, b) => a.time - b.time);
+}
+
+function applyNewsTimeMarkers(dateString) {
+    const instance = cpiChartInstances.get(dateString);
+    if (!instance || !instance.markersApi) return;
+
+    instance.markersApi.setMarkers(
+        newsTimeLinesEnabled ? buildNewsTimeMarkers(dateString, instance.events || []) : []
+    );
 }
 
 // Populates (or hides) the USD events strip above a chart block for its date
@@ -346,7 +403,7 @@ function getActualColorClass(name, actual, forecast) {
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
-function createOneDayChart(dateString, filename, chartContainer) {
+function createOneDayChart(dateString, filename, chartContainer, events) {
     if (!chartContainer) return;
 
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -383,7 +440,8 @@ function createOneDayChart(dateString, filename, chartContainer) {
 
     attachLockToggle(chart, chartContainer);
 
-    cpiChartInstances.set(dateString, { chart, series, container: chartContainer });
+    const markersApi = LightweightCharts.createSeriesMarkers(series, []);
+    cpiChartInstances.set(dateString, { chart, series, container: chartContainer, events: events || [], markersApi });
 
     const targetPath = `./data/${filename}`;
 
@@ -429,6 +487,7 @@ function createOneDayChart(dateString, filename, chartContainer) {
                 const instance = cpiChartInstances.get(dateString);
                 if (instance) instance.data = cleanData;
                 attachMeasureTool(chart, series, chartContainer, dateString);
+                applyNewsTimeMarkers(dateString);
             } else {
                 throw new Error("No readable rows found.");
             }

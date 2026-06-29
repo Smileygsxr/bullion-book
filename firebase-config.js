@@ -21,3 +21,5 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+// Only login.html/signup.html skip the Firestore SDK script (they don't need accounts.js).
+const db = firebase.firestore ? firebase.firestore() : null;
