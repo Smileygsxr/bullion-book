@@ -90,10 +90,10 @@
             <!-- Top Dashboard Stats Overview Section -->
             <section class="stats-row">
                 
-                <!-- A. Performance Line Graph Card -->
+                <!-- A. Performance Line Graph Card: cumulative PnL across closed trades -->
                 <div class="dash-card chart-card">
-                    <span class="chart-metric-label">100</span>
-                    <div class="mock-chart-line"></div>
+                    <span class="chart-metric-label" id="equity-trade-count">0</span>
+                    <div id="equity-curve-chart" class="equity-curve-chart"></div>
                 </div>
 
                 <!-- B. Wins and Losses Block Metrics -->
@@ -162,19 +162,19 @@
             <!-- Bottom Detailed Trade Log Ledger Grid -->
             <section class="table-container">
                 <div class="table-header-row">
-                    <div class="col-head sortable">Date <i class="fa-solid fa-bars-staggered"></i></div>
-                    <div class="col-head">Symbol</div>
-                    <div class="col-head">Status</div>
-                    <div class="col-head">Side</div>
-                    <div class="col-head">Qty</div>
-                    <div class="col-head">Entry</div>
-                    <div class="col-head">Exit</div>
-                    <div class="col-head">Ent Tot</div>
-                    <div class="col-head">Ext Tot</div>
-                    <div class="col-head">Pos</div>
-                    <div class="col-head">Hold</div>
-                    <div class="col-head">Return</div>
-                    <div class="col-head">Return %</div>
+                    <div class="col-head sortable" onclick="sortTradeLog('date')">Date <i class="fa-solid fa-sort" id="sort-icon-date"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('symbol')">Symbol <i class="fa-solid fa-sort" id="sort-icon-symbol"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('status')">Status <i class="fa-solid fa-sort" id="sort-icon-status"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('direction')">Side <i class="fa-solid fa-sort" id="sort-icon-direction"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('qty')">Qty <i class="fa-solid fa-sort" id="sort-icon-qty"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('entryPrice')">Entry <i class="fa-solid fa-sort" id="sort-icon-entryPrice"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('exitPrice')">Exit <i class="fa-solid fa-sort" id="sort-icon-exitPrice"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('entTot')">Ent Tot <i class="fa-solid fa-sort" id="sort-icon-entTot"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('extTot')">Ext Tot <i class="fa-solid fa-sort" id="sort-icon-extTot"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('pos')">Pos <i class="fa-solid fa-sort" id="sort-icon-pos"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('holdSeconds')">Hold <i class="fa-solid fa-sort" id="sort-icon-holdSeconds"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('returnAmount')">Return <i class="fa-solid fa-sort" id="sort-icon-returnAmount"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('returnPct')">Return % <i class="fa-solid fa-sort" id="sort-icon-returnPct"></i></div>
                 </div>
                 <div class="table-body" id="trade-log-body"></div>
             </section>
@@ -284,7 +284,7 @@
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
         <div class="modal-card trade-modal-card">
             <div class="modal-card-header">
-                <span>New Trade</span>
+                <span id="trade-modal-title">New Trade</span>
                 <button class="modal-close-btn" onclick="closeTradeModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
@@ -339,6 +339,50 @@
 
             <div class="modal-card-footer">
                 <button class="btn-action btn-blue" onclick="saveTradeModal()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade View Modal (click a dashboard row) -->
+    <div id="trade-view-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card trade-view-card">
+            <div class="modal-card-header">
+                <span>Trade View</span>
+                <button class="modal-close-btn" onclick="closeTradeViewModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-card-body">
+                <div class="trade-view-header">
+                    <div class="trade-view-title">
+                        <span class="trade-view-symbol" id="trade-view-symbol">-</span>
+                        <span class="trade-view-return" id="trade-view-return">-</span>
+                    </div>
+                    <div class="trade-view-badges">
+                        <span class="trade-view-badge" id="trade-view-hold">-</span>
+                        <span class="trade-view-badge" id="trade-view-direction">-</span>
+                    </div>
+                </div>
+
+                <div class="trade-view-timeline">
+                    <div class="trade-view-point">
+                        <div class="trade-view-point-time" id="trade-view-entry-time">-</div>
+                        <div class="trade-view-dot entry"></div>
+                        <div class="trade-view-point-detail" id="trade-view-entry-detail">-</div>
+                    </div>
+                    <div class="trade-view-line"></div>
+                    <div class="trade-view-point">
+                        <div class="trade-view-point-time" id="trade-view-exit-time">-</div>
+                        <div class="trade-view-dot exit"></div>
+                        <div class="trade-view-point-detail" id="trade-view-exit-detail">-</div>
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Notes 'n Things</div>
+                <textarea id="trade-view-journal" class="modal-input trade-journal-textarea" rows="3" readonly placeholder="No notes for this trade."></textarea>
+            </div>
+
+            <div class="modal-card-footer">
+                <button class="btn-action btn-blue" onclick="editTradeFromView()">Edit</button>
             </div>
         </div>
     </div>

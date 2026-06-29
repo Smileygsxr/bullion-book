@@ -359,13 +359,9 @@ body {
     left: 12px;
 }
 
-.mock-chart-line {
+.equity-curve-chart {
     width: 100%;
-    height: 60%;
-    align-self: flex-end;
-    border-bottom: 2px solid #2979ff;
-    background: linear-gradient(180deg, rgba(41, 121, 255, 0.15) 0%, rgba(41, 121, 255, 0) 100%);
-    clip-path: ellipse(75% 100% at 50% 100%); /* Simulates smooth mountain wave chart slope contour layout */
+    height: 100%;
 }
 
 /* Metric Pill Double Stacks */
@@ -470,6 +466,7 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 100%;
+    padding-right: 30px;
 }
 
 .col-head {
@@ -496,19 +493,83 @@ body {
 }
 
 .table-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 12px 0;
+    padding: 12px 30px 12px 0;
     border-top: 1px solid var(--border-color);
     font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.table-row:hover {
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .table-cell {
     flex: 1;
     text-align: left;
     color: var(--text-light);
+}
+
+/* Per-row "..." actions menu (Mark as Wash / Delete Trade) */
+.trade-row-menu-wrap {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.trade-row-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px 6px;
+}
+
+.trade-row-menu-btn:hover {
+    color: #ffffff;
+}
+
+.trade-row-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-width: 170px;
+    z-index: 50;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.trade-row-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.trade-row-menu-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.trade-row-menu-item.danger {
+    color: #f6465d;
 }
 
 .status-pill {
@@ -1091,5 +1152,95 @@ body {
     resize: vertical;
     font-family: inherit;
     box-sizing: border-box;
+}
+
+/* Trade View Modal */
+.trade-view-card {
+    max-width: 560px;
+}
+
+.trade-view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.trade-view-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.trade-view-symbol {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.trade-view-return {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.trade-view-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.trade-view-badge {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.trade-view-badge.long { background: rgba(46, 189, 133, 0.12); color: #2ebd85; border-color: transparent; }
+.trade-view-badge.short { background: rgba(246, 70, 93, 0.12); color: #f6465d; border-color: transparent; }
+
+.trade-view-timeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 24px 10px 8px;
+}
+
+.trade-view-point {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 140px;
+}
+
+.trade-view-point-time,
+.trade-view-point-detail {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+}
+
+.trade-view-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-card);
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+.trade-view-dot.entry { color: #2ebd85; background: #2ebd85; }
+.trade-view-dot.exit { color: #f6465d; background: #f6465d; }
+
+.trade-view-line {
+    flex: 1;
+    height: 2px;
+    background: var(--accent-blue);
 }
 

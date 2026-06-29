@@ -2,6 +2,8 @@
 // (accountsState.accounts[id].trades, see accounts.js), so switching/deleting an
 // account swaps/clears its trade log along with its balance.
 let draftTrade = null;
+let editingTradeId = null;
+let viewingTradeId = null;
 
 function genTradeId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -18,20 +20,23 @@ function makeDefaultLeg() {
 }
 
 // ---- Modal open/close/tabs ----
-function openTradeModal() {
-    draftTrade = {
-        id: genTradeId(),
-        symbol: '',
-        target: '',
-        stopLoss: '',
-        journal: '',
-        legs: [makeDefaultLeg()]
-    };
+// With no tradeId: blank "New Trade". With a tradeId: "Edit Trade", prefilled from
+// that trade (used by the Trade View modal's Edit button).
+function openTradeModal(tradeId) {
+    const existing = tradeId
+        ? (getActiveAccount().trades || []).find(t => t.id === tradeId)
+        : null;
 
-    document.getElementById('trade-modal-symbol').value = '';
-    document.getElementById('trade-modal-target').value = '';
-    document.getElementById('trade-modal-stoploss').value = '';
-    document.getElementById('trade-modal-journal').value = '';
+    editingTradeId = existing ? existing.id : null;
+    draftTrade = existing
+        ? JSON.parse(JSON.stringify(existing))
+        : { id: genTradeId(), symbol: '', target: '', stopLoss: '', journal: '', legs: [makeDefaultLeg()] };
+
+    document.getElementById('trade-modal-title').textContent = editingTradeId ? 'Edit Trade' : 'New Trade';
+    document.getElementById('trade-modal-symbol').value = draftTrade.symbol || '';
+    document.getElementById('trade-modal-target').value = draftTrade.target || '';
+    document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
+    document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
     switchTradeModalTab('general');
     renderTradeLegs();
 
@@ -41,6 +46,7 @@ function openTradeModal() {
 function closeTradeModal() {
     document.getElementById('trade-modal-overlay').style.display = 'none';
     draftTrade = null;
+    editingTradeId = null;
 }
 
 function switchTradeModalTab(tab) {
@@ -105,7 +111,14 @@ function saveTradeModal() {
 
     const account = getActiveAccount();
     if (!account.trades) account.trades = [];
-    account.trades.push(draftTrade);
+
+    if (editingTradeId) {
+        const index = account.trades.findIndex(t => t.id === editingTradeId);
+        if (index >= 0) account.trades[index] = draftTrade;
+        else account.trades.push(draftTrade);
+    } else {
+        account.trades.push(draftTrade);
+    }
 
     saveAccountsState();
     renderTradeLog();
@@ -147,6 +160,7 @@ function computeTradeSummary(trade) {
         else if (returnAmount < 0) status = 'LOSS';
         else status = 'WASH';
     }
+    if (trade.forceWash) status = 'WASH';
 
     const firstTime = new Date(legs[0].datetime).getTime();
     const lastTime = new Date(legs[legs.length - 1].datetime).getTime();
@@ -183,6 +197,13 @@ function formatTradeDate(isoLike) {
     return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+function formatTradeDateTime(isoLike) {
+    const d = new Date(isoLike);
+    const datePart = d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: '2-digit' });
+    const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `${datePart}, ${timePart}`;
+}
+
 function formatPrice(value) {
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 }
@@ -190,6 +211,140 @@ function formatPrice(value) {
 function formatTotal(value) {
     const sign = value < 0 ? '-' : '';
     return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// ---- Column sorting ----
+const TRADE_SORT_KEYS = [
+    'date', 'symbol', 'status', 'direction', 'qty', 'entryPrice', 'exitPrice',
+    'entTot', 'extTot', 'pos', 'holdSeconds', 'returnAmount', 'returnPct'
+];
+let tradeSortKey = 'date';
+let tradeSortDir = 'desc';
+
+function sortTradeLog(key) {
+    if (tradeSortKey === key) {
+        tradeSortDir = tradeSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+        tradeSortKey = key;
+        tradeSortDir = 'desc';
+    }
+    renderTradeLog();
+}
+
+function compareTradeRows(a, b, key, dir) {
+    let av = a[key];
+    let bv = b[key];
+
+    if (key === 'date') {
+        av = new Date(av).getTime();
+        bv = new Date(bv).getTime();
+    } else {
+        if (av === null) av = -Infinity;
+        if (bv === null) bv = -Infinity;
+        if (typeof av === 'string') av = av.toLowerCase();
+        if (typeof bv === 'string') bv = bv.toLowerCase();
+    }
+
+    if (av < bv) return dir === 'asc' ? -1 : 1;
+    if (av > bv) return dir === 'asc' ? 1 : -1;
+    return 0;
+}
+
+function updateSortHeaderIcons() {
+    TRADE_SORT_KEYS.forEach(key => {
+        const icon = document.getElementById(`sort-icon-${key}`);
+        if (!icon) return;
+        icon.className = key === tradeSortKey
+            ? (tradeSortDir === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down')
+            : 'fa-solid fa-sort';
+    });
+}
+
+// ---- Per-row "..." menu: Mark as Wash / Delete Trade ----
+function toggleTradeRowMenu(event, tradeId) {
+    event.stopPropagation();
+    document.querySelectorAll('.trade-row-menu').forEach(menu => {
+        if (menu.dataset.tradeId !== tradeId) menu.style.display = 'none';
+    });
+    const menu = document.getElementById(`trade-row-menu-${tradeId}`);
+    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+document.addEventListener('click', () => {
+    document.querySelectorAll('.trade-row-menu').forEach(menu => { menu.style.display = 'none'; });
+});
+
+function markTradeAsWash(tradeId) {
+    const account = getActiveAccount();
+    const trade = (account.trades || []).find(t => t.id === tradeId);
+    if (!trade) return;
+    trade.forceWash = true;
+    saveAccountsState();
+    renderTradeLog();
+}
+
+function deleteTrade(tradeId) {
+    if (!confirm("Delete this trade? This can't be undone.")) return;
+    const account = getActiveAccount();
+    account.trades = (account.trades || []).filter(t => t.id !== tradeId);
+    saveAccountsState();
+    renderTradeLog();
+}
+
+// ---- Trade View modal (click a row): read-only summary + an Edit button ----
+function openTradeViewModal(event, tradeId) {
+    if (event && event.target.closest('.trade-row-menu-wrap')) return;
+
+    const account = getActiveAccount();
+    const trade = (account.trades || []).find(t => t.id === tradeId);
+    if (!trade) return;
+
+    const row = computeTradeSummary(trade);
+    viewingTradeId = tradeId;
+
+    const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const entryAction = row.direction === 'long' ? 'buy' : 'sell';
+    const exitAction = row.direction === 'long' ? 'sell' : 'buy';
+    const firstEntryLeg = legs.find(l => l.action === entryAction);
+    const lastExitLeg = legs.slice().reverse().find(l => l.action === exitAction);
+
+    document.getElementById('trade-view-symbol').textContent = row.symbol;
+
+    const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
+    const returnEl = document.getElementById('trade-view-return');
+    returnEl.textContent = row.returnAmount === null
+        ? 'Open'
+        : `${formatTotal(row.returnAmount)} ${row.returnPct.toFixed(2)}%`;
+    returnEl.className = `trade-view-return ${returnClass}`;
+
+    document.getElementById('trade-view-hold').textContent = formatHoldDuration(row.holdSeconds);
+
+    const directionEl = document.getElementById('trade-view-direction');
+    directionEl.textContent = row.direction.toUpperCase();
+    directionEl.className = `trade-view-badge ${row.direction === 'long' ? 'long' : 'short'}`;
+
+    document.getElementById('trade-view-entry-time').textContent = firstEntryLeg ? formatTradeDateTime(firstEntryLeg.datetime) : '-';
+    document.getElementById('trade-view-entry-detail').textContent = firstEntryLeg
+        ? `${firstEntryLeg.quantity} @ ${formatPrice(parseFloat(firstEntryLeg.price))}` : '-';
+
+    document.getElementById('trade-view-exit-time').textContent = lastExitLeg ? formatTradeDateTime(lastExitLeg.datetime) : 'Still open';
+    document.getElementById('trade-view-exit-detail').textContent = lastExitLeg
+        ? `${lastExitLeg.quantity} @ ${formatPrice(parseFloat(lastExitLeg.price))}` : '-';
+
+    document.getElementById('trade-view-journal').value = trade.journal || '';
+
+    document.getElementById('trade-view-modal-overlay').style.display = 'flex';
+}
+
+function closeTradeViewModal() {
+    document.getElementById('trade-view-modal-overlay').style.display = 'none';
+    viewingTradeId = null;
+}
+
+function editTradeFromView() {
+    const tradeId = viewingTradeId;
+    closeTradeViewModal();
+    openTradeModal(tradeId);
 }
 
 // ---- Dashboard trade log table ----
@@ -202,9 +357,11 @@ function renderTradeLog() {
 
     const rows = trades
         .map(computeTradeSummary)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+        .sort((a, b) => compareTradeRows(a, b, tradeSortKey, tradeSortDir));
 
     renderDashboardStats(rows);
+    renderEquityChart(rows);
+    updateSortHeaderIcons();
 
     body.innerHTML = rows.map(row => {
         const statusClass = `status-${row.status.toLowerCase()}`;
@@ -214,7 +371,7 @@ function renderTradeLog() {
         const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
 
         return `
-        <div class="table-row">
+        <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
             <div class="table-cell">${formatTradeDate(row.date)}</div>
             <div class="table-cell">${escapeHtml(row.symbol)}</div>
             <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
@@ -228,8 +385,72 @@ function renderTradeLog() {
             <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
             <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
             <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
+            <div class="trade-row-menu-wrap">
+                <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
+                <div class="trade-row-menu" id="trade-row-menu-${row.id}" data-trade-id="${row.id}" style="display: none;">
+                    <button class="trade-row-menu-item" onclick="event.stopPropagation(); markTradeAsWash('${row.id}')"><i class="fa-solid fa-scale-balanced"></i> Mark as Wash</button>
+                    <button class="trade-row-menu-item danger" onclick="event.stopPropagation(); deleteTrade('${row.id}')"><i class="fa-solid fa-xmark"></i> Delete Trade</button>
+                </div>
+            </div>
         </div>`;
     }).join('');
+}
+
+// ---- Top-left dashboard card: cumulative PnL across closed trades, in the order they closed ----
+let equityChartInstance = null;
+let equitySeriesInstance = null;
+
+function ensureEquityChart() {
+    const container = document.getElementById('equity-curve-chart');
+    if (!container || equityChartInstance) return;
+
+    equityChartInstance = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 300,
+        height: container.clientHeight || 110,
+        layout: { background: { color: 'transparent' }, textColor: '#647080', attributionLogo: false },
+        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        rightPriceScale: { visible: false, scaleMargins: { top: 0.05, bottom: 0 } },
+        timeScale: { visible: false },
+        handleScroll: false,
+        handleScale: false
+    });
+
+    equitySeriesInstance = equityChartInstance.addSeries(LightweightCharts.AreaSeries, {
+        lineColor: '#2979ff',
+        topColor: 'rgba(41, 121, 255, 0.55)',
+        bottomColor: 'rgba(41, 121, 255, 0.08)',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false
+    });
+
+    window.addEventListener('resize', () => {
+        if (equityChartInstance) equityChartInstance.resize(container.clientWidth, container.clientHeight);
+    });
+}
+
+function renderEquityChart(rows) {
+    ensureEquityChart();
+    if (!equitySeriesInstance) return;
+
+    const closed = rows
+        .filter(r => r.returnAmount !== null)
+        .slice()
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    let cumulative = 0;
+    // Fake, evenly-spaced time axis (one "day" per trade) since the axis is hidden
+    // and all that matters is the chronological order trades closed in.
+    const data = closed.map((r, i) => {
+        cumulative += r.returnAmount;
+        return { time: i * 86400, value: cumulative };
+    });
+
+    equitySeriesInstance.setData(data.length > 0 ? data : [{ time: 0, value: 0 }]);
+    equityChartInstance.timeScale().fitContent();
+
+    setText('equity-trade-count', rows.length);
 }
 
 // ---- Dashboard summary cards: WINS/LOSSES/OPEN/WASH, AVG W/L, total PnL ----
