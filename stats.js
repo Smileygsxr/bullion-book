@@ -243,18 +243,37 @@ function renderStatsHourChart(closed) {
 
 // ---- Breakdown tables ----
 function renderStatsTagTable(closed) {
-    const totalPnl = closed.reduce((sum, r) => sum + r.returnAmount, 0);
-    const totalEntTot = closed.reduce((sum, r) => sum + r.entTot, 0);
-    const pnlPct = totalEntTot !== 0 ? (totalPnl / totalEntTot) * 100 : 0;
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+    const tagNameById = new Map(tagDefs.map(t => [t.id, t.name]));
 
-    setHtml('stats-tag-table-body', `
+    const byTag = new Map();
+    closed.forEach(r => {
+        const key = r.tagId || '';
+        if (!byTag.has(key)) byTag.set(key, []);
+        byTag.get(key).push(r);
+    });
+
+    const totalPnl = closed.reduce((sum, r) => sum + r.returnAmount, 0);
+
+    const tagRows = Array.from(byTag.entries())
+        .map(([tagId, tagTrades]) => {
+            const pnl = tagTrades.reduce((sum, r) => sum + r.returnAmount, 0);
+            const entTot = tagTrades.reduce((sum, r) => sum + r.entTot, 0);
+            const pnlPct = entTot !== 0 ? (pnl / entTot) * 100 : 0;
+            const contributionPct = totalPnl !== 0 ? (pnl / totalPnl) * 100 : 0;
+            const name = tagId ? (tagNameById.get(tagId) || 'Unknown Tag') : '--NO TAGS--';
+            return { name, trades: tagTrades.length, pnl, pnlPct, contributionPct };
+        })
+        .sort((a, b) => b.trades - a.trades);
+
+    setHtml('stats-tag-table-body', tagRows.map(row => `
         <tr>
-            <td>--NO TAGS--</td>
-            <td>${closed.length}</td>
-            <td class="${totalPnl < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(totalPnl)}</td>
-            <td class="${totalPnl < 0 ? 'value-negative' : 'value-positive'}">${pnlPct.toFixed(2)}%</td>
-            <td>100.00%</td>
-        </tr>`);
+            <td>${escapeHtml(row.name)}</td>
+            <td>${row.trades}</td>
+            <td class="${row.pnl < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(row.pnl)}</td>
+            <td class="${row.pnl < 0 ? 'value-negative' : 'value-positive'}">${row.pnlPct.toFixed(2)}%</td>
+            <td>${row.contributionPct.toFixed(2)}%</td>
+        </tr>`).join(''));
 }
 
 function renderStatsSymbolTable(closed) {

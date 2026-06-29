@@ -138,6 +138,12 @@ function showPage(pageId, clickedElement) {
     if (pageId === 'page-stats') {
         window.setTimeout(function () { renderStatsPage(); }, 50);
     }
+    if (pageId === 'page-calendar') {
+        window.setTimeout(function () { renderCalendarPage(); }, 50);
+    }
+    if (pageId === 'page-settings') {
+        window.setTimeout(function () { renderSettingsPage(); }, 50);
+    }
 }
 
 const XAUUSD_FILENAME_PATTERN = /^XAU-USD_5Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;

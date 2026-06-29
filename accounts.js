@@ -25,7 +25,7 @@ function computeAccountBalance(account) {
 
 function formatCurrency(amount) {
     const sign = amount < 0 ? '-' : '';
-    return `${sign}$${Math.abs(amount).toFixed(2)}`;
+    return `${sign}${getCurrencySymbol()}${Math.abs(amount).toFixed(2)}`;
 }
 
 function escapeHtml(str) {
@@ -99,7 +99,8 @@ function renderSidebarAccount() {
             .join('');
     }
 
-    // trades.js renders the dashboard trade log for whichever account is now active
+    // trades.js renders the dashboard trade log (and merges in day notes by date)
+    // for whichever account is now active
     if (typeof renderTradeLog === 'function') renderTradeLog();
 }
 

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Trading Journal - Bullion Book</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #131722;
+            --bg-card: #1c2030;
+            --border-color: #2a2e39;
+            --text-muted: #848e9c;
+            --text-light: #d1d4dc;
+            --accent-blue: #2979ff;
+        }
+        body {
+            margin: 0;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            padding: 40px 24px;
+        }
+        .journal-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .journal-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+        .journal-brand i { color: #dfb15b; font-size: 1.4rem; }
+        .journal-brand span { font-weight: 700; font-size: 1.1rem; color: #fff; }
+        .journal-title {
+            font-size: 1.4rem;
+            margin: 0 0 4px;
+        }
+        .journal-meta {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+        }
+        .journal-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 0.85rem;
+        }
+        .journal-table th, .journal-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .journal-table th {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+        }
+        .value-positive { color: #2ebd85; font-weight: 600; }
+        .value-negative { color: #f6465d; font-weight: 600; }
+        .journal-empty {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 40px;
+        }
+        .journal-note {
+            margin-top: 20px;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="journal-wrap">
+        <div class="journal-brand">
+            <i class="fa-solid fa-coins"></i>
+            <span>Bullion Book</span>
+        </div>
+        <h1 class="journal-title" id="journal-title">Shared Trading Journal</h1>
+        <div class="journal-meta" id="journal-meta"></div>
+        <div id="journal-content"></div>
+        <p class="journal-note">This is a snapshot taken when the link was generated, not a live feed - ask the owner for a fresh link to see their latest trades.</p>
+    </div>
+
+    <script>
+        function formatTotal(value, symbol) {
+            const sign = value < 0 ? '-' : '';
+            return `${sign}${symbol}${Math.abs(value).toFixed(2)}`;
+        }
+
+        function renderJournal() {
+            const hash = window.location.hash.replace(/^#/, '');
+            const params = new URLSearchParams(hash);
+            const encoded = params.get('data');
+            const content = document.getElementById('journal-content');
+
+            if (!encoded) {
+                content.innerHTML = '<div class="journal-empty">No journal data found in this link.</div>';
+                return;
+            }
+
+            let payload;
+            try {
+                payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+            } catch (e) {
+                content.innerHTML = '<div class="journal-empty">This link is invalid or corrupted.</div>';
+                return;
+            }
+
+            const symbol = payload.currencySymbol || '$';
+            document.getElementById('journal-title').textContent = `${payload.accountName || 'Trading'} Journal`;
+            document.getElementById('journal-meta').textContent =
+                `Generated ${new Date(payload.generatedAt).toLocaleString()} - last ${payload.trades.length} trade(s)`;
+
+            if (payload.trades.length === 0) {
+                content.innerHTML = '<div class="journal-empty">No closed trades to show.</div>';
+                return;
+            }
+
+            const rows = payload.trades.map(t => {
+                const returnClass = t.ret < 0 ? 'value-negative' : 'value-positive';
+                const sideIcon = t.direction === 'long'
+                    ? '<i class="fa-solid fa-arrow-trend-up" style="color:#2ebd85;"></i>'
+                    : '<i class="fa-solid fa-arrow-trend-down" style="color:#f6465d;"></i>';
+                return `
+                    <tr>
+                        <td>${new Date(t.date).toLocaleDateString()}</td>
+                        <td>${t.symbol}</td>
+                        <td>${sideIcon}</td>
+                        <td>${t.qty}</td>
+                        <td>${symbol}${t.entry.toFixed(3)}</td>
+                        <td>${t.exit ? symbol + t.exit.toFixed(3) : '-'}</td>
+                        <td class="${returnClass}">${formatTotal(t.ret, symbol)}</td>
+                        <td class="${returnClass}">${t.retPct.toFixed(2)}%</td>
+                    </tr>`;
+            }).join('');
+
+            content.innerHTML = `
+                <table class="journal-table">
+                    <thead>
+                        <tr><th>Date</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Return</th><th>Return %</th></tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        renderJournal();
+    </script>
+</body>
+</html>

@@ -15,32 +15,51 @@ function nowDatetimeLocal() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function makeDefaultLeg() {
-    return { id: genTradeId(), action: 'buy', datetime: nowDatetimeLocal(), quantity: '', price: '', fee: 0 };
+function makeDefaultLeg(quantity, fee) {
+    return { id: genTradeId(), action: 'buy', datetime: nowDatetimeLocal(), quantity: quantity || '', price: '', fee: fee || 0 };
 }
 
 // ---- Modal open/close/tabs ----
-// With no tradeId: blank "New Trade". With a tradeId: "Edit Trade", prefilled from
-// that trade (used by the Trade View modal's Edit button).
+// With no tradeId: blank "New Trade" (prefilled from Settings > Account Settings
+// defaults). With a tradeId: "Edit Trade", prefilled from that trade (used by the
+// Trade View modal's Edit button).
 function openTradeModal(tradeId) {
     const existing = tradeId
         ? (getActiveAccount().trades || []).find(t => t.id === tradeId)
         : null;
+    const defaults = (typeof appSettings !== 'undefined') ? appSettings : {};
 
     editingTradeId = existing ? existing.id : null;
     draftTrade = existing
         ? JSON.parse(JSON.stringify(existing))
-        : { id: genTradeId(), symbol: '', target: '', stopLoss: '', journal: '', legs: [makeDefaultLeg()] };
+        : {
+            id: genTradeId(),
+            symbol: defaults.defaultSymbol || '',
+            target: '',
+            stopLoss: '',
+            journal: '',
+            tagId: defaults.defaultTagId || '',
+            legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
+        };
 
     document.getElementById('trade-modal-title').textContent = editingTradeId ? 'Edit Trade' : 'New Trade';
     document.getElementById('trade-modal-symbol').value = draftTrade.symbol || '';
     document.getElementById('trade-modal-target').value = draftTrade.target || '';
     document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
     document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
+    populateTradeTagSelect(draftTrade.tagId || '');
     switchTradeModalTab('general');
     renderTradeLegs();
 
     document.getElementById('trade-modal-overlay').style.display = 'flex';
+}
+
+function populateTradeTagSelect(selectedTagId) {
+    const select = document.getElementById('trade-modal-tag');
+    if (!select) return;
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+    select.innerHTML = '<option value="">No Tag</option>' +
+        tagDefs.map(t => `<option value="${t.id}" ${t.id === selectedTagId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
 }
 
 function closeTradeModal() {
@@ -101,6 +120,7 @@ function saveTradeModal() {
     draftTrade.target = document.getElementById('trade-modal-target').value;
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
     draftTrade.journal = document.getElementById('trade-modal-journal').value;
+    draftTrade.tagId = document.getElementById('trade-modal-tag').value;
 
     const validLegs = draftTrade.legs.filter(leg => parseFloat(leg.quantity) > 0 && leg.price !== '' && leg.datetime);
     if (!draftTrade.symbol || validLegs.length === 0) {
@@ -152,7 +172,14 @@ function computeTradeSummary(trade) {
     const returnAmount = closedQty > 0
         ? (closedExitValue - closedEntryValue) * directionSign - totalFees
         : null;
-    const returnPct = closedQty > 0 && closedEntryValue !== 0 ? (returnAmount / closedEntryValue) * 100 : null;
+
+    // PnL % is normally "return on invested capital" (this trade's own entry value).
+    // The Settings > Account Settings page can switch it to "return on account balance" instead.
+    const usesBalanceDenominator = typeof appSettings !== 'undefined' && appSettings.pnlCalcType === 'balance';
+    const pnlDenominator = usesBalanceDenominator
+        ? Math.abs(computeAccountBalance(getActiveAccount())) || closedEntryValue
+        : closedEntryValue;
+    const returnPct = closedQty > 0 && pnlDenominator !== 0 ? (returnAmount / pnlDenominator) * 100 : null;
 
     let status = 'OPEN';
     if (closedQty > 0) {
@@ -171,6 +198,7 @@ function computeTradeSummary(trade) {
         date: legs[0].datetime,
         direction,
         status,
+        tagId: trade.tagId || '',
         qty: entryQty,
         entryPrice,
         exitPrice,
@@ -205,12 +233,12 @@ function formatTradeDateTime(isoLike) {
 }
 
 function formatPrice(value) {
-    return `$${value.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+    return `${getCurrencySymbol()}${value.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 }
 
 function formatTotal(value) {
     const sign = value < 0 ? '-' : '';
-    return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${sign}${getCurrencySymbol()}${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // ---- Column sorting ----
@@ -377,6 +405,34 @@ function editTradeFromView() {
 }
 
 // ---- Dashboard trade log table ----
+function buildTradeRowHtml(row) {
+    const statusClass = `status-${row.status.toLowerCase()}`;
+    const sideIcon = row.direction === 'long'
+        ? '<i class="fa-solid fa-arrow-trend-up" style="color:#2ebd85;"></i>'
+        : '<i class="fa-solid fa-arrow-trend-down" style="color:#f6465d;"></i>';
+    const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
+
+    return `
+    <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
+        <div class="table-cell">${formatTradeDate(row.date)}</div>
+        <div class="table-cell">${escapeHtml(row.symbol)}</div>
+        <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
+        <div class="table-cell">${sideIcon}</div>
+        <div class="table-cell">${row.qty}</div>
+        <div class="table-cell">${formatPrice(row.entryPrice)}</div>
+        <div class="table-cell">${row.exitPrice ? formatPrice(row.exitPrice) : '-'}</div>
+        <div class="table-cell">${formatTotal(row.entTot)}</div>
+        <div class="table-cell">${row.extTot ? formatTotal(row.extTot) : '-'}</div>
+        <div class="table-cell">${row.pos > 0 ? row.pos : '-'}</div>
+        <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
+        <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
+        <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
+        <div class="trade-row-menu-wrap">
+            <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
+        </div>
+    </div>`;
+}
+
 function renderTradeLog() {
     const body = document.getElementById('trade-log-body');
     if (!body) return;
@@ -392,33 +448,39 @@ function renderTradeLog() {
     renderEquityChart(rows);
     updateSortHeaderIcons();
 
-    body.innerHTML = rows.map(row => {
-        const statusClass = `status-${row.status.toLowerCase()}`;
-        const sideIcon = row.direction === 'long'
-            ? '<i class="fa-solid fa-arrow-trend-up" style="color:#2ebd85;"></i>'
-            : '<i class="fa-solid fa-arrow-trend-down" style="color:#f6465d;"></i>';
-        const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
+    // Notes only interleave with trades by date when the log itself is date-sorted;
+    // otherwise they're just listed first (newest note on top either way).
+    const noteEntries = getDayNotesArray(account).map(note => ({ type: 'note', note, date: note.date }));
 
-        return `
-        <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
-            <div class="table-cell">${formatTradeDate(row.date)}</div>
-            <div class="table-cell">${escapeHtml(row.symbol)}</div>
-            <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
-            <div class="table-cell">${sideIcon}</div>
-            <div class="table-cell">${row.qty}</div>
-            <div class="table-cell">${formatPrice(row.entryPrice)}</div>
-            <div class="table-cell">${row.exitPrice ? formatPrice(row.exitPrice) : '-'}</div>
-            <div class="table-cell">${formatTotal(row.entTot)}</div>
-            <div class="table-cell">${row.extTot ? formatTotal(row.extTot) : '-'}</div>
-            <div class="table-cell">${row.pos > 0 ? row.pos : '-'}</div>
-            <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
-            <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
-            <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
-            <div class="trade-row-menu-wrap">
-                <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
-            </div>
-        </div>`;
-    }).join('');
+    let entries;
+    if (tradeSortKey === 'date') {
+        const tradeEntries = rows.map(row => ({ type: 'trade', row, date: row.date }));
+        entries = mergeNoteAndTradeEntries(tradeEntries, noteEntries, tradeSortDir);
+    } else {
+        const sortedNotes = noteEntries.slice().sort((a, b) => (b.note.createdAt || 0) - (a.note.createdAt || 0));
+        entries = [...sortedNotes, ...rows.map(row => ({ type: 'trade', row, date: row.date }))];
+    }
+
+    body.innerHTML = entries
+        .map(entry => entry.type === 'note' ? buildNoteRowHtml(entry.note) : buildTradeRowHtml(entry.row))
+        .join('');
+}
+
+// Same calendar day: notes always rank above trades, and among notes the most
+// recently created/edited one ranks first - so a freshly saved note jumps to the
+// top of its day's group instead of sitting wherever its date alone would sort it.
+function mergeNoteAndTradeEntries(tradeEntries, noteEntries, dir) {
+    return [...tradeEntries, ...noteEntries].sort((a, b) => {
+        const aDay = a.date.slice(0, 10);
+        const bDay = b.date.slice(0, 10);
+        if (aDay !== bDay) {
+            const cmp = aDay < bDay ? -1 : 1;
+            return dir === 'asc' ? cmp : -cmp;
+        }
+        if (a.type !== b.type) return a.type === 'note' ? -1 : 1;
+        if (a.type === 'note') return (b.note.createdAt || 0) - (a.note.createdAt || 0);
+        return 0;
+    });
 }
 
 // ---- Top-left dashboard card: cumulative PnL across closed trades, in the order they closed ----

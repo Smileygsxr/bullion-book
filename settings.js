@@ -1,0 +1,416 @@
+// Settings page: Personal Info, Account Settings, Tag Management, Password &
+// Security, Danger. App-wide preferences (appSettings) and the custom avatar are
+// stored on the Firestore users/{uid} doc for logged-in users, or localStorage for
+// guests - same split pattern as accounts.js.
+const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', ZAR: 'R' };
+
+let appSettings = {
+    currencyCode: 'USD',
+    defaultOrderDate: 'previous',
+    defaultGridDate: 'last-action',
+    defaultSymbol: '',
+    defaultQty: '',
+    defaultFee: 0,
+    defaultTagId: '',
+    pnlCalcType: 'capital',
+    defaultLeverage: '20'
+};
+
+let customAvatarDataUrl = null;
+let currentSettingsTab = 'personal';
+
+function getCurrencySymbol() {
+    return CURRENCY_SYMBOLS[appSettings.currencyCode] || '$';
+}
+
+function loadAppSettings() {
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            db.collection('users').doc(user.uid).get()
+                .then(doc => applyLoadedSettings(doc.exists ? doc.data().appSettings : null))
+                .catch(() => applyLoadedSettings(null));
+        } else {
+            let saved = null;
+            try { saved = JSON.parse(localStorage.getItem('bb_settings_guest')); } catch (e) { /* ignore */ }
+            applyLoadedSettings(saved);
+        }
+    });
+}
+
+function applyLoadedSettings(saved) {
+    if (saved) appSettings = Object.assign({}, appSettings, saved);
+    renderSidebarAccount();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+}
+
+function saveAppSettings() {
+    const uid = auth.currentUser && auth.currentUser.uid;
+    if (uid) {
+        db.collection('users').doc(uid).set({ appSettings }, { merge: true })
+            .catch(err => console.error('Failed to save settings to Firestore:', err.message));
+    } else {
+        localStorage.setItem('bb_settings_guest', JSON.stringify(appSettings));
+    }
+}
+
+// ---- Custom avatar (overrides Google photoURL once set) ----
+function loadCustomAvatar() {
+    auth.onAuthStateChanged(user => {
+        if (!user) return;
+        db.collection('users').doc(user.uid).get()
+            .then(doc => {
+                const dataUrl = doc.exists ? doc.data().profilePhotoDataUrl : null;
+                if (dataUrl) {
+                    customAvatarDataUrl = dataUrl;
+                    applyAvatarToSidebar(dataUrl);
+                }
+            })
+            .catch(err => console.error('Failed to load avatar:', err.message));
+    });
+}
+
+function applyAvatarToSidebar(dataUrl) {
+    const img = document.getElementById('sidebar-avatar');
+    const fallback = document.getElementById('sidebar-avatar-fallback');
+    if (!img || !fallback) return;
+    img.src = dataUrl;
+    img.style.display = 'block';
+    fallback.style.display = 'none';
+}
+
+function handleAvatarFileChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const scale = Math.max(size / image.width, size / image.height);
+            const w = image.width * scale;
+            const h = image.height * scale;
+            ctx.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
+
+            customAvatarDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            applyAvatarToSidebar(customAvatarDataUrl);
+
+            const previewImg = document.getElementById('settings-avatar-img');
+            const previewFallback = document.getElementById('settings-avatar-fallback');
+            if (previewImg && previewFallback) {
+                previewImg.src = customAvatarDataUrl;
+                previewImg.style.display = 'block';
+                previewFallback.style.display = 'none';
+            }
+        };
+        image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveCustomAvatar() {
+    const uid = auth.currentUser && auth.currentUser.uid;
+    if (!customAvatarDataUrl) return;
+    if (uid) {
+        db.collection('users').doc(uid).set({ profilePhotoDataUrl: customAvatarDataUrl }, { merge: true })
+            .catch(err => console.error('Failed to save avatar:', err.message));
+    } else {
+        localStorage.setItem('bb_avatar_guest', customAvatarDataUrl);
+    }
+}
+
+// ---- Page shell: sub-nav tabs ----
+function renderSettingsPage() {
+    if (!document.getElementById('settings-panel-personal')) return;
+    switchSettingsPanel(currentSettingsTab);
+}
+
+function switchSettingsPanel(tab) {
+    currentSettingsTab = tab;
+    ['personal', 'account', 'tags', 'security', 'danger'].forEach(t => {
+        const panel = document.getElementById(`settings-panel-${t}`);
+        const navItem = document.getElementById(`settings-tab-${t}`);
+        if (panel) panel.style.display = t === tab ? 'block' : 'none';
+        if (navItem) navItem.classList.toggle('active', t === tab);
+    });
+
+    if (tab === 'personal') populatePersonalInfoPanel();
+    if (tab === 'account') populateAccountSettingsPanel();
+    if (tab === 'tags') renderTagTable();
+    if (tab === 'danger') {
+        const nameEl = document.getElementById('settings-danger-account-name');
+        if (nameEl) nameEl.textContent = getActiveAccount().name;
+    }
+}
+
+function showSettingsStatus(id, message, kind) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = message;
+    el.className = `settings-status ${kind || ''}`.trim();
+}
+
+// ---- Personal Info ----
+function populatePersonalInfoPanel() {
+    const user = auth.currentUser;
+    document.getElementById('settings-name-input').value = (user && user.displayName) || '';
+    document.getElementById('settings-email-input').value = (user && user.email) || 'Guest (not logged in)';
+    showSettingsStatus('settings-personal-status', '');
+
+    const img = document.getElementById('settings-avatar-img');
+    const fallback = document.getElementById('settings-avatar-fallback');
+    const photo = customAvatarDataUrl || (user && user.photoURL);
+    if (photo) {
+        img.src = photo;
+        img.style.display = 'block';
+        fallback.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        fallback.style.display = 'block';
+    }
+}
+
+function savePersonalInfo() {
+    const user = auth.currentUser;
+    if (!user) {
+        showSettingsStatus('settings-personal-status', 'Log in to save profile changes.', 'error');
+        return;
+    }
+
+    const name = document.getElementById('settings-name-input').value.trim();
+    user.updateProfile({ displayName: name })
+        .then(() => {
+            const nameLabel = document.getElementById('sidebar-username');
+            if (nameLabel) nameLabel.textContent = name || user.email || 'Account';
+            saveCustomAvatar();
+            showSettingsStatus('settings-personal-status', 'Saved.', 'success');
+        })
+        .catch(err => showSettingsStatus('settings-personal-status', err.message, 'error'));
+}
+
+// ---- Account Settings ----
+function populateAccountSettingsPanel() {
+    document.getElementById('settings-currency-format').value = appSettings.currencyCode;
+    document.getElementById('settings-default-order-date').value = appSettings.defaultOrderDate;
+    document.getElementById('settings-default-grid-date').value = appSettings.defaultGridDate;
+    document.getElementById('settings-default-symbol').value = appSettings.defaultSymbol;
+    document.getElementById('settings-default-qty').value = appSettings.defaultQty;
+    document.getElementById('settings-default-fee').value = appSettings.defaultFee;
+    document.getElementById('settings-pnl-calc-type').value = appSettings.pnlCalcType;
+    document.getElementById('settings-default-leverage').value = appSettings.defaultLeverage;
+    populateDefaultTagSelect();
+    showSettingsStatus('settings-account-status', '');
+    document.getElementById('settings-public-link-result').innerHTML = '';
+}
+
+function populateDefaultTagSelect() {
+    const select = document.getElementById('settings-default-tag');
+    if (!select) return;
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+    select.innerHTML = '<option value="">None</option>' +
+        tagDefs.map(t => `<option value="${t.id}" ${t.id === appSettings.defaultTagId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+}
+
+function saveAccountSettings() {
+    appSettings.currencyCode = document.getElementById('settings-currency-format').value;
+    appSettings.defaultOrderDate = document.getElementById('settings-default-order-date').value;
+    appSettings.defaultGridDate = document.getElementById('settings-default-grid-date').value;
+    appSettings.defaultSymbol = document.getElementById('settings-default-symbol').value.trim().toUpperCase();
+    appSettings.defaultQty = document.getElementById('settings-default-qty').value;
+    appSettings.defaultFee = document.getElementById('settings-default-fee').value;
+    appSettings.defaultTagId = document.getElementById('settings-default-tag').value;
+    appSettings.pnlCalcType = document.getElementById('settings-pnl-calc-type').value;
+    appSettings.defaultLeverage = document.getElementById('settings-default-leverage').value;
+
+    saveAppSettings();
+    renderSidebarAccount();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    showSettingsStatus('settings-account-status', 'Saved.', 'success');
+}
+
+function round2(n) {
+    return Math.round((n || 0) * 100) / 100;
+}
+
+// Embeds a snapshot of the last 100 closed trades directly in the URL (base64 in
+// the hash) so the link works with zero backend/Firestore changes. It's a
+// point-in-time snapshot, not a live feed - regenerate it to share an update.
+function generatePublicLink() {
+    const account = getActiveAccount();
+    const rows = (account.trades || [])
+        .map(computeTradeSummary)
+        .filter(r => r.returnAmount !== null)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 100);
+
+    const payload = {
+        accountName: account.name,
+        generatedAt: new Date().toISOString(),
+        currencySymbol: getCurrencySymbol(),
+        trades: rows.map(r => ({
+            date: r.date,
+            symbol: r.symbol,
+            direction: r.direction,
+            qty: r.qty,
+            entry: round2(r.entryPrice),
+            exit: round2(r.exitPrice),
+            ret: round2(r.returnAmount),
+            retPct: round2(r.returnPct)
+        }))
+    };
+
+    const json = JSON.stringify(payload);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    const basePath = location.pathname.replace(/index\.html$/, '');
+    const url = `${location.origin}${basePath}journal.html#data=${encoded}`;
+
+    document.getElementById('settings-public-link-result').innerHTML = `
+        <input type="text" class="settings-public-link-input" readonly value="${escapeHtml(url)}" onclick="this.select()">
+        <button class="btn-action btn-blue" style="width: auto; margin-top: 8px;" onclick="copyPublicLink('${url.replace(/'/g, "\\'")}')">Copy Link</button>`;
+}
+
+function copyPublicLink(url) {
+    navigator.clipboard.writeText(url)
+        .then(() => showSettingsStatus('settings-account-status', 'Link copied to clipboard.', 'success'))
+        .catch(() => showSettingsStatus('settings-account-status', 'Could not copy automatically - select and copy the link manually.', 'error'));
+}
+
+// ---- Tag Management ----
+function renderTagTable() {
+    const tbody = document.getElementById('settings-tag-table-body');
+    if (!tbody) return;
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+
+    tbody.innerHTML = tagDefs.map(t => `
+        <tr>
+            <td><input type="text" value="${escapeHtml(t.name)}" onchange="updateTagField('${t.id}','name',this.value)"></td>
+            <td><input type="text" value="${escapeHtml(t.category || '')}" onchange="updateTagField('${t.id}','category',this.value)"></td>
+            <td><input type="text" value="${escapeHtml(t.description || '')}" onchange="updateTagField('${t.id}','description',this.value)"></td>
+            <td><button class="txn-remove-btn" onclick="deleteTagRow('${t.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button></td>
+        </tr>`).join('');
+}
+
+function addTagRow() {
+    const account = getActiveAccount();
+    if (!account.tagDefs) account.tagDefs = [];
+    account.tagDefs.push({ id: genId(), name: 'New Tag', category: '', description: '' });
+    saveAccountsState();
+    renderTagTable();
+}
+
+function updateTagField(tagId, field, value) {
+    const account = getActiveAccount();
+    const tag = (account.tagDefs || []).find(t => t.id === tagId);
+    if (!tag) return;
+    tag[field] = value;
+    saveAccountsState();
+}
+
+function deleteTagRow(tagId) {
+    const account = getActiveAccount();
+    account.tagDefs = (account.tagDefs || []).filter(t => t.id !== tagId);
+    saveAccountsState();
+    renderTagTable();
+}
+
+// ---- Password & Security ----
+function savePassword() {
+    const password = document.getElementById('settings-new-password').value;
+    const confirmPassword = document.getElementById('settings-confirm-password').value;
+
+    if (password.length < 6) {
+        showSettingsStatus('settings-password-status', 'Password must be at least 6 characters.', 'error');
+        return;
+    }
+    if (password !== confirmPassword) {
+        showSettingsStatus('settings-password-status', 'Passwords do not match.', 'error');
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) {
+        showSettingsStatus('settings-password-status', 'Log in to change your password.', 'error');
+        return;
+    }
+
+    user.updatePassword(password)
+        .then(() => {
+            document.getElementById('settings-new-password').value = '';
+            document.getElementById('settings-confirm-password').value = '';
+            showSettingsStatus('settings-password-status', 'Password updated.', 'success');
+        })
+        .catch(err => {
+            const message = err.code === 'auth/requires-recent-login'
+                ? 'For security, please log out and back in, then try again.'
+                : err.message;
+            showSettingsStatus('settings-password-status', message, 'error');
+        });
+}
+
+// ---- Danger ----
+// Our accounts have always stored trades inside an account object, so the
+// "orphaned trades" scenario this is meant to fix shouldn't occur here - this is a
+// defensive sweep for any stray trade data sitting outside accountsState.accounts.
+function fixMissingTrades() {
+    const active = getActiveAccount();
+    let recovered = 0;
+
+    if (Array.isArray(accountsState.trades)) {
+        active.trades = (active.trades || []).concat(accountsState.trades);
+        recovered += accountsState.trades.length;
+        delete accountsState.trades;
+    }
+
+    Object.values(accountsState.accounts).forEach(acc => {
+        if (acc.id !== active.id && Array.isArray(acc.orphanedTrades)) {
+            active.trades = (active.trades || []).concat(acc.orphanedTrades);
+            recovered += acc.orphanedTrades.length;
+            delete acc.orphanedTrades;
+        }
+    });
+
+    if (recovered > 0) {
+        saveAccountsState();
+        renderSidebarAccount();
+        showSettingsStatus('settings-fix-trades-status', `Recovered ${recovered} trade(s).`, 'success');
+    } else {
+        showSettingsStatus('settings-fix-trades-status', 'No missing trades found.', '');
+    }
+}
+
+function deleteJournalData() {
+    const active = getActiveAccount();
+    if (!confirm(`Delete ALL journal data (trades, tags, notes) in "${active.name}"? This can't be undone.`)) return;
+
+    active.trades = [];
+    active.tagDefs = [];
+    active.dayNotes = [];
+    saveAccountsState();
+    renderSidebarAccount();
+    if (currentSettingsTab === 'tags') renderTagTable();
+    alert('Journal data deleted.');
+}
+
+function deleteUserAccount() {
+    const user = auth.currentUser;
+    if (!user) {
+        alert('You are not logged in.');
+        return;
+    }
+    if (!confirm('This will PERMANENTLY delete your account and all its data. This cannot be undone. Continue?')) return;
+
+    db.collection('users').doc(user.uid).delete()
+        .then(() => user.delete())
+        .then(() => { window.location.href = 'login.html'; })
+        .catch(err => {
+            if (err.code === 'auth/requires-recent-login') {
+                alert('For security, please log out and log back in, then try deleting your account again.');
+            } else {
+                alert('Could not delete account: ' + err.message);
+            }
+        });
+}
