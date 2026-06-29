@@ -181,6 +181,21 @@ body {
     text-decoration: underline;
 }
 
+.auth-skip-link {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.auth-skip-link:hover {
+    color: var(--text-light);
+    text-decoration: underline;
+}
+
 .auth-error {
     display: none;
     background: rgba(246, 70, 93, 0.1);

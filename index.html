@@ -43,7 +43,7 @@
             <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
             <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
-            <a href="#" class="nav-link" onclick="logOut()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
+            <a href="#" class="nav-link" id="nav-logout-link" onclick="logOut()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
         </nav>
 
         <div class="sidebar-actions">
@@ -53,6 +53,23 @@
             <button class="btn-action btn-gold">
                 <i class="fa-solid fa-bookmark"></i> New Note
             </button>
+        </div>
+
+        <!-- 4. Logged-in User Profile Circle -->
+        <div class="sidebar-profile-wrap">
+            <div class="sidebar-profile" onclick="toggleProfileMenu()">
+                <img id="sidebar-avatar" class="profile-avatar" alt="Profile" style="display: none;">
+                <i id="sidebar-avatar-fallback" class="fa-solid fa-circle-user profile-avatar-fallback"></i>
+                <span class="profile-name" id="sidebar-username">Account</span>
+            </div>
+            <div class="sidebar-profile-menu" id="sidebar-profile-menu" style="display: none;">
+                <button class="btn-action btn-blue" id="sidebar-login-btn" onclick="window.location.href='login.html'">
+                    <i class="fa-solid fa-right-to-bracket"></i> Log In
+                </button>
+                <button class="btn-action btn-gold" id="sidebar-logout-btn" onclick="logOut()" style="display: none;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Log Out
+                </button>
+            </div>
         </div>
     </aside>
 
@@ -255,7 +272,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
-    <script>requireAuth();</script>
+    <script>requireAuth(); renderSidebarProfile();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="app.js?v=10"></script>
