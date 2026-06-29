@@ -183,8 +183,44 @@
         <!-- ========================================== -->
         <!-- 2. STATS PAGE VIEW (Hidden by Default) -->
         <!-- ========================================== -->
-        <div id="page-stats" class="view-section" style="display: none;">
-            <h2 style="color: #d1d4dc; font-family: sans-serif;">Performance Stats Analytics Dashboard</h2>
+        <div id="page-stats" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+            <div class="stats-metrics-row" id="stats-metrics-row-1"></div>
+            <div class="stats-metrics-row" id="stats-metrics-row-2"></div>
+
+            <div class="stats-panel">
+                <div class="stats-panel-title">EQUITY CURVE</div>
+                <div id="stats-equity-chart" class="stats-equity-chart"></div>
+            </div>
+
+            <div class="stats-charts-row">
+                <div class="stats-panel stats-panel-half">
+                    <div class="stats-panel-title">PERFORMANCE BY DAY OF WEEK</div>
+                    <div id="stats-day-chart" class="stats-bar-chart"></div>
+                </div>
+                <div class="stats-panel stats-panel-half">
+                    <div class="stats-panel-title">PERFORMANCE BY HOUR</div>
+                    <div id="stats-hour-chart" class="stats-bar-chart"></div>
+                </div>
+            </div>
+
+            <div class="stats-charts-row">
+                <div class="stats-panel stats-panel-half">
+                    <table class="stats-table">
+                        <thead>
+                            <tr><th>Tag</th><th>Trades</th><th>PnL</th><th>PnL %</th><th>PnL Contribution %</th></tr>
+                        </thead>
+                        <tbody id="stats-tag-table-body"></tbody>
+                    </table>
+                </div>
+                <div class="stats-panel stats-panel-half">
+                    <table class="stats-table">
+                        <thead>
+                            <tr><th>Symbol</th><th>Trades</th><th>PnL</th><th>PnL %</th><th>PnL Contribution %</th></tr>
+                        </thead>
+                        <tbody id="stats-symbol-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- ========================================== -->
@@ -279,6 +315,12 @@
         </div>
 
     </main>
+
+    <!-- Shared per-row "..." menu for the dashboard trade log (positioned via JS, see toggleTradeRowMenu) -->
+    <div id="trade-row-menu" class="trade-row-menu" style="display: none;">
+        <button class="trade-row-menu-item" onclick="handleMarkAsWashClick(event)"><i class="fa-solid fa-scale-balanced"></i> Mark as Wash</button>
+        <button class="trade-row-menu-item danger" onclick="handleDeleteTradeClick(event)"><i class="fa-solid fa-xmark"></i> Delete Trade</button>
+    </div>
 
     <!-- New Trade Modal -->
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
@@ -446,6 +488,7 @@
     <script src="auth.js"></script>
     <script src="accounts.js"></script>
     <script src="trades.js"></script>
+    <script src="stats.js"></script>
     <script>requireAuth(); renderSidebarProfile(); initAccounts();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>

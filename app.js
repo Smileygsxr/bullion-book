@@ -135,6 +135,9 @@ function showPage(pageId, clickedElement) {
     if (pageId === 'page-news') {
         window.setTimeout(function () { initCpiChart(); }, 150);
     }
+    if (pageId === 'page-stats') {
+        window.setTimeout(function () { renderStatsPage(); }, 50);
+    }
 }
 
 const XAUUSD_FILENAME_PATTERN = /^XAU-USD_5Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;

@@ -261,18 +261,47 @@ function updateSortHeaderIcons() {
 }
 
 // ---- Per-row "..." menu: Mark as Wash / Delete Trade ----
+// A single shared menu, fixed-positioned via JS next to whichever row's "..." was
+// clicked. Avoids nesting a dropdown inside each row, which got clipped/blocked by
+// neighboring rows' stacking context and couldn't reliably receive clicks.
 function toggleTradeRowMenu(event, tradeId) {
     event.stopPropagation();
-    document.querySelectorAll('.trade-row-menu').forEach(menu => {
-        if (menu.dataset.tradeId !== tradeId) menu.style.display = 'none';
-    });
-    const menu = document.getElementById(`trade-row-menu-${tradeId}`);
-    if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    const menu = document.getElementById('trade-row-menu');
+    if (menu.style.display === 'block' && menu.dataset.tradeId === tradeId) {
+        closeTradeRowMenu();
+        return;
+    }
+
+    menu.dataset.tradeId = tradeId;
+    menu.style.display = 'block';
+
+    const btnRect = event.currentTarget.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    const left = Math.max(8, btnRect.right - menuRect.width);
+    menu.style.top = `${btnRect.bottom + 4}px`;
+    menu.style.left = `${left}px`;
 }
 
-document.addEventListener('click', () => {
-    document.querySelectorAll('.trade-row-menu').forEach(menu => { menu.style.display = 'none'; });
-});
+function closeTradeRowMenu() {
+    const menu = document.getElementById('trade-row-menu');
+    if (menu) menu.style.display = 'none';
+}
+
+document.addEventListener('click', closeTradeRowMenu);
+
+function handleMarkAsWashClick(event) {
+    event.stopPropagation();
+    const tradeId = document.getElementById('trade-row-menu').dataset.tradeId;
+    closeTradeRowMenu();
+    markTradeAsWash(tradeId);
+}
+
+function handleDeleteTradeClick(event) {
+    event.stopPropagation();
+    const tradeId = document.getElementById('trade-row-menu').dataset.tradeId;
+    closeTradeRowMenu();
+    deleteTrade(tradeId);
+}
 
 function markTradeAsWash(tradeId) {
     const account = getActiveAccount();
@@ -387,10 +416,6 @@ function renderTradeLog() {
             <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
             <div class="trade-row-menu-wrap">
                 <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
-                <div class="trade-row-menu" id="trade-row-menu-${row.id}" data-trade-id="${row.id}" style="display: none;">
-                    <button class="trade-row-menu-item" onclick="event.stopPropagation(); markTradeAsWash('${row.id}')"><i class="fa-solid fa-scale-balanced"></i> Mark as Wash</button>
-                    <button class="trade-row-menu-item danger" onclick="event.stopPropagation(); deleteTrade('${row.id}')"><i class="fa-solid fa-xmark"></i> Delete Trade</button>
-                </div>
             </div>
         </div>`;
     }).join('');
@@ -409,8 +434,12 @@ function ensureEquityChart() {
         height: container.clientHeight || 110,
         layout: { background: { color: 'transparent' }, textColor: '#647080', attributionLogo: false },
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
-        rightPriceScale: { visible: false, scaleMargins: { top: 0.05, bottom: 0 } },
-        timeScale: { visible: false },
+        rightPriceScale: {
+            visible: true,
+            scaleMargins: { top: 0.15, bottom: 0 },
+            localization: { priceFormatter: price => `$${price.toFixed(2)}` }
+        },
+        timeScale: { visible: true, borderColor: '#2a2e39' },
         handleScroll: false,
         handleScale: false
     });
@@ -421,8 +450,7 @@ function ensureEquityChart() {
         bottomColor: 'rgba(41, 121, 255, 0.08)',
         lineWidth: 2,
         priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false
+        lastValueVisible: false
     });
 
     window.addEventListener('resize', () => {
@@ -439,12 +467,18 @@ function renderEquityChart(rows) {
         .slice()
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    // One point per day so hovering shows the real close date, with same-day
+    // trades collapsed into that day's running total (matches the Stats page chart).
+    const byDay = new Map();
     let cumulative = 0;
-    // Fake, evenly-spaced time axis (one "day" per trade) since the axis is hidden
-    // and all that matters is the chronological order trades closed in.
-    const data = closed.map((r, i) => {
+    closed.forEach(r => {
         cumulative += r.returnAmount;
-        return { time: i * 86400, value: cumulative };
+        byDay.set(r.date.slice(0, 10), cumulative);
+    });
+
+    const data = Array.from(byDay.entries()).map(([day, value]) => {
+        const [y, m, d] = day.split('-').map(Number);
+        return { time: Date.UTC(y, m - 1, d) / 1000, value };
     });
 
     equitySeriesInstance.setData(data.length > 0 ? data : [{ time: 0, value: 0 }]);
