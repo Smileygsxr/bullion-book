@@ -489,6 +489,55 @@ body {
 }
 .col-head.sortable i { font-size: 0.7rem; color: #848e9c; }
 
+/* Dashboard trade log rows (mirrors .table-header-row's equal-width flex columns) */
+.table-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.82rem;
+}
+
+.table-cell {
+    flex: 1;
+    text-align: left;
+    color: var(--text-light);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 30px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-pill::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-win { background: rgba(46, 189, 133, 0.12); color: #2ebd85; }
+.status-loss { background: rgba(246, 70, 93, 0.12); color: #f6465d; }
+.status-open { background: rgba(41, 121, 255, 0.12); color: #2979ff; }
+.status-wash { background: rgba(132, 142, 156, 0.12); color: #848e9c; }
+
+.value-positive { color: #2ebd85; font-weight: 600; }
+.value-negative { color: #f6465d; font-weight: 600; }
+
 /*.design-fix {
     width: 240px;          
     height: 10px;         
@@ -994,5 +1043,53 @@ body {
 
 .btn-danger {
     background-color: #f6465d;
+}
+
+/* New Trade Modal */
+.trade-modal-card {
+    max-width: 760px;
+}
+
+.trade-modal-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.trade-modal-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 12px 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.trade-modal-tab.active {
+    color: #ffffff;
+    border-bottom-color: var(--accent-blue);
+}
+
+.leg-action-toggle {
+    border: none;
+    border-radius: 30px;
+    padding: 4px 14px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.leg-action-toggle.buy { background: #2ebd85; }
+.leg-action-toggle.sell { background: #f6465d; }
+
+.trade-journal-textarea {
+    width: 100%;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
 }
 

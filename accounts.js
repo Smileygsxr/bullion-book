@@ -98,6 +98,9 @@ function renderSidebarAccount() {
             .map(acc => `<option value="${acc.id}" ${acc.id === accountsState.activeAccountId ? 'selected' : ''}>${escapeHtml(acc.name)}</option>`)
             .join('');
     }
+
+    // trades.js renders the dashboard trade log for whichever account is now active
+    if (typeof renderTradeLog === 'function') renderTradeLog();
 }
 
 function switchActiveAccount(accountId) {
