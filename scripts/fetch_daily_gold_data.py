@@ -1,25 +1,26 @@
 """
-Fetches the previous trading day's XAUUSD candles (1m, 5m, 15m) from Twelve Data
-and saves them into /data using the filename pattern the app already discovers:
-XAU-USD_<N>Minute_BID_<date>_00_00-23_59_Africa_Johannesburg.csv
+Fetches the previous trading day's XAUUSD candles (1m, 5m, 15m) from OANDA's
+v20 API and saves them into /data using the filename pattern the app already
+discovers: XAU-USD_<N>Minute_BID_<date>_00_00-23_59_Africa_Johannesburg.csv
 
 Run daily by .github/workflows/fetch-daily-gold-data.yml - skips weekends since
 the forex market is closed, so there's nothing to fetch. Requires the
-TWELVE_DATA_API_KEY environment variable (set from a GitHub repo secret) -
-Dukascopy scraping (the previous approach) blocks/rate-limits cloud datacenter
-IPs like GitHub Actions runners, which is why this switched to a real API.
+OANDA_API_KEY environment variable (a Personal Access Token, from a GitHub
+repo secret). Works with a free OANDA practice account - practice accounts get
+the same real market data as live accounts, just no real money behind trades.
 """
 import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-INTERVALS = {"1": "1min", "5": "5min", "15": "15min"}
-API_URL = "https://api.twelvedata.com/time_series"
+INTERVALS = {"1": "M1", "5": "M5", "15": "M15"}
+JOHANNESBURG = ZoneInfo("Africa/Johannesburg")
 
 
 def get_target_date():
@@ -29,47 +30,52 @@ def get_target_date():
     return yesterday
 
 
-def fetch_interval(api_key, date, interval_label, td_interval):
+def get_api_base():
+    env = os.environ.get("OANDA_ENVIRONMENT", "practice").strip().lower()
+    return "https://api-fxtrade.oanda.com" if env == "live" else "https://api-fxpractice.oanda.com"
+
+
+def fetch_interval(api_key, date, interval_label, granularity):
     date_str = date.strftime("%Y-%m-%d")
 
+    start_local = datetime(date.year, date.month, date.day, 0, 0, 0, tzinfo=JOHANNESBURG)
+    end_local = datetime(date.year, date.month, date.day, 23, 59, 59, tzinfo=JOHANNESBURG)
+
+    url = f"{get_api_base()}/v3/instruments/XAU_USD/candles"
     params = {
-        "symbol": "XAU/USD",
-        "interval": td_interval,
-        "start_date": f"{date_str} 00:00:00",
-        "end_date": f"{date_str} 23:59:59",
-        "timezone": "Africa/Johannesburg",
-        "outputsize": 5000,
-        "apikey": api_key,
+        "price": "B",  # Bid prices, matching the existing "_BID_" filenames
+        "granularity": granularity,
+        "from": start_local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "to": end_local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    headers = {"Authorization": f"Bearer {api_key}"}
 
-    response = requests.get(API_URL, params=params, timeout=30)
-    payload = response.json()
-
-    if payload.get("status") == "error" or "values" not in payload:
-        print(f"  -> No data returned for {td_interval} {date_str}: {payload.get('message', payload)}")
+    response = requests.get(url, params=params, headers=headers, timeout=30)
+    if response.status_code != 200:
+        print(f"  -> No data returned for {granularity} {date_str}: HTTP {response.status_code} {response.text[:300]}")
         return False
 
-    values = payload["values"]
-    if not values:
-        print(f"  -> No data returned for {td_interval} {date_str} (empty result)")
+    candles = response.json().get("candles", [])
+    rows = []
+    for c in candles:
+        if not c.get("complete", True):
+            continue
+        bid = c.get("bid")
+        if not bid:
+            continue
+        utc_time = datetime.strptime(c["time"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        local_time = utc_time.astimezone(JOHANNESBURG)
+        rows.append({
+            "Africa/Johannesburg": local_time.strftime("%Y-%m-%dT%H:%M:%S") + "+02:00",
+            "Open": bid["o"], "High": bid["h"], "Low": bid["l"], "Close": bid["c"],
+            "Volume": c.get("volume", 0)
+        })
+
+    if not rows:
+        print(f"  -> No data returned for {granularity} {date_str} (empty result)")
         return False
 
-    df = pd.DataFrame(values)
-    df = df.rename(columns={
-        "datetime": "Africa/Johannesburg", "open": "Open", "high": "High",
-        "low": "Low", "close": "Close", "volume": "Volume"
-    })
-    if "Volume" not in df.columns:
-        df["Volume"] = 0
-
-    # Twelve Data already returns timestamps in the requested timezone (fixed
-    # UTC+2, South Africa has no DST), so just append the offset as a string.
-    df["Africa/Johannesburg"] = pd.to_datetime(df["Africa/Johannesburg"])
-    df = df.sort_values("Africa/Johannesburg")
-    df["Africa/Johannesburg"] = df["Africa/Johannesburg"].dt.strftime("%Y-%m-%dT%H:%M:%S") + "+02:00"
-
-    df = df[["Africa/Johannesburg", "Open", "High", "Low", "Close", "Volume"]]
-
+    df = pd.DataFrame(rows)
     os.makedirs(DATA_DIR, exist_ok=True)
     out_name = f"XAU-USD_{interval_label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
     df.to_csv(os.path.join(DATA_DIR, out_name), index=False)
@@ -79,9 +85,9 @@ def fetch_interval(api_key, date, interval_label, td_interval):
 
 
 def main():
-    api_key = os.environ.get("TWELVE_DATA_API_KEY")
+    api_key = os.environ.get("OANDA_API_KEY")
     if not api_key:
-        print("TWELVE_DATA_API_KEY environment variable is not set.")
+        print("OANDA_API_KEY environment variable is not set.")
         sys.exit(1)
 
     target = get_target_date()
@@ -91,11 +97,11 @@ def main():
 
     print(f"Fetching XAUUSD data for {target.strftime('%Y-%m-%d')}...")
     any_saved = False
-    for interval_label, td_interval in INTERVALS.items():
-        print(f"-> {td_interval}")
-        if fetch_interval(api_key, target, interval_label, td_interval):
+    for interval_label, granularity in INTERVALS.items():
+        print(f"-> {granularity}")
+        if fetch_interval(api_key, target, interval_label, granularity):
             any_saved = True
-        time.sleep(2.0)
+        time.sleep(1.0)
 
     if not any_saved:
         print("No data was retrieved for any interval.")

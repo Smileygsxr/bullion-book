@@ -3,7 +3,7 @@ name: Fetch Daily XAUUSD Data
 on:
   schedule:
     # 02:00 UTC daily - script itself skips weekends and exits cleanly if
-    # Twelve Data has nothing for the target date yet.
+    # OANDA has nothing for the target date yet.
     - cron: '0 2 * * *'
   workflow_dispatch: {}
 
@@ -23,11 +23,11 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas requests
+        run: pip install pandas requests tzdata
 
       - name: Fetch previous trading day (1m, 5m, 15m)
         env:
-          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          OANDA_API_KEY: ${{ secrets.OANDA_API_KEY }}
         run: python scripts/fetch_daily_gold_data.py
 
       - name: Commit and push new data
