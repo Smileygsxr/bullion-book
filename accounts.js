@@ -16,11 +16,18 @@ function makeDefaultAccount(name) {
     return { id, name: name || 'Primary Live', transactions: [] };
 }
 
+// Balance = deposits/withdrawals (account.transactions) +/- realized trade P&L.
+// Uses computeTradeReturnAmount (trades.js), not computeTradeSummary, to avoid an
+// infinite loop - see the comment on computeTradeReturnAmount for why.
 function computeAccountBalance(account) {
-    return (account.transactions || []).reduce((sum, t) => {
+    const transactionTotal = (account.transactions || []).reduce((sum, t) => {
         const amount = parseFloat(t.amount) || 0;
         return sum + (t.type === 'withdraw' ? -amount : amount);
     }, 0);
+
+    const tradePnlTotal = (account.trades || []).reduce((sum, trade) => sum + computeTradeReturnAmount(trade), 0);
+
+    return transactionTotal + tradePnlTotal;
 }
 
 function formatCurrency(amount) {
@@ -87,7 +94,10 @@ function getActiveAccount() {
 }
 
 // ---- Sidebar: balance display + primary-account switcher ----
-function renderSidebarAccount() {
+// Split from renderSidebarAccount so trades.js can refresh just the balance after
+// saving/deleting a trade (balance now includes trade P&L) without looping back
+// into renderTradeLog, which renderSidebarAccount itself triggers below.
+function updateSidebarBalanceDisplay() {
     const balanceEl = document.getElementById('sidebar-account-balance');
     const switcherEl = document.getElementById('account-switcher-select');
     const active = getActiveAccount();
@@ -98,6 +108,10 @@ function renderSidebarAccount() {
             .map(acc => `<option value="${acc.id}" ${acc.id === accountsState.activeAccountId ? 'selected' : ''}>${escapeHtml(acc.name)}</option>`)
             .join('');
     }
+}
+
+function renderSidebarAccount() {
+    updateSidebarBalanceDisplay();
 
     // trades.js renders the dashboard trade log (and merges in day notes by date)
     // for whichever account is now active

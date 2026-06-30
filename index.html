@@ -139,14 +139,14 @@
                             <span class="lbl-muted">AVG W</span>
                             <span class="val-green" id="stat-avg-win">$0</span>
                         </div>
-                        <div class="progress-ring ring-green" data-pct="0%"></div>
+                        <div class="progress-ring ring-green" id="stat-avg-win-ring" data-pct="0%"></div>
                     </div>
                     <div class="dash-card design-fix">
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG L</span>
                             <span class="val-red" id="stat-avg-loss">-$0</span>
                         </div>
-                        <div class="progress-ring ring-red" data-pct="-0%"></div>
+                        <div class="progress-ring ring-red" id="stat-avg-loss-ring" data-pct="-0%"></div>
                     </div>
                 </div>
 
@@ -529,8 +529,23 @@
 
     <!-- Shared per-row "..." menu for the dashboard trade log (positioned via JS, see toggleTradeRowMenu) -->
     <div id="trade-row-menu" class="trade-row-menu" style="display: none;">
-        <button class="trade-row-menu-item" onclick="handleMarkAsWashClick(event)"><i class="fa-solid fa-scale-balanced"></i> Mark as Wash</button>
+        <button class="trade-row-menu-item" onclick="handleWashToggleClick(event)">
+            <i class="fa-solid fa-scale-balanced"></i> <span id="trade-row-menu-wash-label">Mark as Wash</span>
+        </button>
         <button class="trade-row-menu-item danger" onclick="handleDeleteTradeClick(event)"><i class="fa-solid fa-xmark"></i> Delete Trade</button>
+    </div>
+
+    <!-- Delete Trade confirmation -->
+    <div id="delete-trade-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card confirm-modal-card">
+            <div class="confirm-modal-icon"><i class="fa-solid fa-exclamation"></i></div>
+            <h3 class="confirm-modal-title">Delete Trade?</h3>
+            <p class="confirm-modal-body">Are you sure you want to delete <strong id="delete-trade-modal-symbol"></strong>? This action cannot be undone.</p>
+            <div class="confirm-modal-actions">
+                <button class="btn-action btn-danger" onclick="closeDeleteTradeModal()">Cancel</button>
+                <button class="btn-action btn-blue" onclick="confirmDeleteTrade()">Yes, delete it</button>
+            </div>
+        </div>
     </div>
 
     <!-- New Trade Modal -->

@@ -141,11 +141,42 @@ function saveTradeModal() {
     }
 
     saveAccountsState();
+    updateSidebarBalanceDisplay();
     renderTradeLog();
     closeTradeModal();
 }
 
 // ---- Calculations: turns a trade's buy/sell legs into one summarized row ----
+// Just the dollar P&L for one trade - no percentage, no account-balance lookup.
+// Kept separate from computeTradeSummary so computeAccountBalance (accounts.js)
+// can sum trade P&L into the balance without an infinite loop: computeTradeSummary's
+// "Return on Account Balance" mode calls computeAccountBalance, which would call
+// back into computeTradeSummary for every trade if it used that function instead.
+function computeTradeReturnAmount(trade) {
+    const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const direction = legs[0].action === 'sell' ? 'short' : 'long';
+    const entryAction = direction === 'long' ? 'buy' : 'sell';
+    const exitAction = direction === 'long' ? 'sell' : 'buy';
+
+    const entryLegs = legs.filter(l => l.action === entryAction);
+    const exitLegs = legs.filter(l => l.action === exitAction);
+
+    const entryQty = entryLegs.reduce((sum, l) => sum + parseFloat(l.quantity), 0);
+    const exitQty = exitLegs.reduce((sum, l) => sum + parseFloat(l.quantity), 0);
+    const entTot = entryLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
+    const extTot = exitLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
+    const totalFees = legs.reduce((sum, l) => sum + (parseFloat(l.fee) || 0), 0);
+
+    const entryPrice = entryQty > 0 ? entTot / entryQty : 0;
+    const exitPrice = exitQty > 0 ? extTot / exitQty : 0;
+    const closedQty = Math.min(entryQty, exitQty);
+    const directionSign = direction === 'long' ? 1 : -1;
+
+    return closedQty > 0
+        ? (exitPrice * closedQty - entryPrice * closedQty) * directionSign - totalFees
+        : 0;
+}
+
 function computeTradeSummary(trade) {
     const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
     const direction = legs[0].action === 'sell' ? 'short' : 'long';
@@ -207,7 +238,8 @@ function computeTradeSummary(trade) {
         pos: remainingQty,
         holdSeconds: Math.max(0, (lastTime - firstTime) / 1000),
         returnAmount,
-        returnPct
+        returnPct,
+        forceWash: !!trade.forceWash
     };
 }
 
@@ -288,7 +320,7 @@ function updateSortHeaderIcons() {
     });
 }
 
-// ---- Per-row "..." menu: Mark as Wash / Delete Trade ----
+// ---- Per-row "..." menu: Mark/Unmark Wash, Delete Trade ----
 // A single shared menu, fixed-positioned via JS next to whichever row's "..." was
 // clicked. Avoids nesting a dropdown inside each row, which got clipped/blocked by
 // neighboring rows' stacking context and couldn't reliably receive clicks.
@@ -301,6 +333,11 @@ function toggleTradeRowMenu(event, tradeId) {
     }
 
     menu.dataset.tradeId = tradeId;
+
+    const account = getActiveAccount();
+    const trade = (account.trades || []).find(t => t.id === tradeId);
+    document.getElementById('trade-row-menu-wash-label').textContent = (trade && trade.forceWash) ? 'Unmark Wash' : 'Mark as Wash';
+
     menu.style.display = 'block';
 
     const btnRect = event.currentTarget.getBoundingClientRect();
@@ -317,11 +354,13 @@ function closeTradeRowMenu() {
 
 document.addEventListener('click', closeTradeRowMenu);
 
-function handleMarkAsWashClick(event) {
+function handleWashToggleClick(event) {
     event.stopPropagation();
     const tradeId = document.getElementById('trade-row-menu').dataset.tradeId;
+    const isCurrentlyWashed = document.getElementById('trade-row-menu-wash-label').textContent === 'Unmark Wash';
     closeTradeRowMenu();
-    markTradeAsWash(tradeId);
+    if (isCurrentlyWashed) unmarkTradeAsWash(tradeId);
+    else markTradeAsWash(tradeId);
 }
 
 function handleDeleteTradeClick(event) {
@@ -340,12 +379,41 @@ function markTradeAsWash(tradeId) {
     renderTradeLog();
 }
 
-function deleteTrade(tradeId) {
-    if (!confirm("Delete this trade? This can't be undone.")) return;
+function unmarkTradeAsWash(tradeId) {
     const account = getActiveAccount();
-    account.trades = (account.trades || []).filter(t => t.id !== tradeId);
+    const trade = (account.trades || []).find(t => t.id === tradeId);
+    if (!trade) return;
+    delete trade.forceWash;
     saveAccountsState();
     renderTradeLog();
+}
+
+// ---- Delete Trade confirmation modal ----
+let pendingDeleteTradeId = null;
+
+function deleteTrade(tradeId) {
+    const account = getActiveAccount();
+    const trade = (account.trades || []).find(t => t.id === tradeId);
+    if (!trade) return;
+
+    pendingDeleteTradeId = tradeId;
+    document.getElementById('delete-trade-modal-symbol').textContent = trade.symbol;
+    document.getElementById('delete-trade-modal-overlay').style.display = 'flex';
+}
+
+function closeDeleteTradeModal() {
+    document.getElementById('delete-trade-modal-overlay').style.display = 'none';
+    pendingDeleteTradeId = null;
+}
+
+function confirmDeleteTrade() {
+    if (!pendingDeleteTradeId) return;
+    const account = getActiveAccount();
+    account.trades = (account.trades || []).filter(t => t.id !== pendingDeleteTradeId);
+    saveAccountsState();
+    updateSidebarBalanceDisplay();
+    renderTradeLog();
+    closeDeleteTradeModal();
 }
 
 // ---- Trade View modal (click a row): read-only summary + an Edit button ----
@@ -428,6 +496,7 @@ function buildTradeRowHtml(row) {
         <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
         <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
         <div class="trade-row-menu-wrap">
+            ${row.forceWash ? '<i class="fa-solid fa-scale-balanced trade-wash-badge" title="Marked as Wash"></i>' : ''}
             <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
         </div>
     </div>`;
@@ -583,6 +652,11 @@ function renderDashboardStats(rows) {
     const avgLoss = losses.length > 0 ? losses.reduce((sum, r) => sum + r.returnAmount, 0) / losses.length : 0;
     setText('stat-avg-win', formatTotal(avgWin));
     setText('stat-avg-loss', formatTotal(avgLoss));
+
+    const avgWinPct = wins.length > 0 ? wins.reduce((sum, r) => sum + r.returnPct, 0) / wins.length : 0;
+    const avgLossPct = losses.length > 0 ? losses.reduce((sum, r) => sum + r.returnPct, 0) / losses.length : 0;
+    setAttr('stat-avg-win-ring', 'data-pct', `${avgWinPct >= 0 ? '' : '-'}${Math.round(Math.abs(avgWinPct))}%`);
+    setAttr('stat-avg-loss-ring', 'data-pct', `${avgLossPct >= 0 ? '' : '-'}${Math.round(Math.abs(avgLossPct))}%`);
 
     const closedRows = rows.filter(r => r.returnAmount !== null);
     const totalPnl = closedRows.reduce((sum, r) => sum + r.returnAmount, 0);
