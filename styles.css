@@ -966,6 +966,80 @@ body {
     line-height: 1.4;
 }
 
+/* Trade Levels overlay: entry/target/stop-loss zones drawn on a chart for any
+   trade entered that day (uses the Target/Stop-Loss fields from the New Trade
+   modal), toggled via the "Trade Levels" button above the chart list. */
+.trade-overlay-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.trade-overlay-box {
+    position: absolute;
+}
+
+.trade-overlay-box.profit {
+    background: rgba(46, 189, 133, 0.16);
+    border-top: 1px dashed rgba(46, 189, 133, 0.6);
+    border-bottom: 1px dashed rgba(46, 189, 133, 0.6);
+    box-sizing: border-box;
+}
+
+.trade-overlay-box.risk {
+    background: rgba(246, 70, 93, 0.16);
+    border-top: 1px dashed rgba(246, 70, 93, 0.6);
+    border-bottom: 1px dashed rgba(246, 70, 93, 0.6);
+    box-sizing: border-box;
+}
+
+.trade-overlay-entry-line {
+    position: absolute;
+    height: 0;
+    border-top: 1px dotted rgba(255, 255, 255, 0.5);
+}
+
+.trade-overlay-exit-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px dashed rgba(255, 255, 255, 0.4);
+}
+
+.trade-overlay-label {
+    position: absolute;
+    background: rgba(15, 18, 32, 0.9);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.trade-overlay-label.profit-label {
+    color: #2ebd85;
+}
+
+.trade-overlay-label.risk-label {
+    color: #f6465d;
+}
+
+/* Positioned outside the zone's box, on whichever edge faces away from entry -
+   independent of profit/risk color, since either can land above or below entry
+   depending on whether the trade is long or short. */
+.trade-overlay-label.above {
+    transform: translateY(-100%);
+}
+
+.trade-overlay-label.below {
+    transform: translateY(0);
+}
+
 /* Stats Page */
 .stats-metrics-row {
     display: flex;

@@ -196,9 +196,10 @@ function initCpiChart() {
 
     window.onresize = function () {
         requestAnimationFrame(() => {
-            cpiChartInstances.forEach(({ chart, container: chartContainer }) => {
+            cpiChartInstances.forEach(({ chart, container: chartContainer }, dateString) => {
                 chart.resize(chartContainer.clientWidth, 520);
                 chart.timeScale().fitContent();
+                applyTradeOverlays(dateString);
             });
         });
     };
@@ -378,6 +379,180 @@ function applyNewsTimeMarkers(dateString) {
     );
 }
 
+// ---- TRADE LEVELS: draws entry/target/stop-loss zones (from the New Trade
+// modal's Target/Stop-Loss fields) over the chart for any trade entered that
+// day, similar to TradingView's Long/Short Position tool but read-only.
+let tradeOverlaysEnabled = false;
+
+function toggleTradeOverlays() {
+    tradeOverlaysEnabled = !tradeOverlaysEnabled;
+    document.getElementById('trade-overlays-toggle').classList.toggle('active', tradeOverlaysEnabled);
+    // Always re-run (not the gated refreshAllTradeOverlays helper below) - applyTradeOverlays
+    // clears each chart's layer first regardless of state, which is what actually removes
+    // the boxes when turning this off.
+    cpiChartInstances.forEach((_, dateString) => applyTradeOverlays(dateString));
+}
+
+// Called from trades.js whenever a trade is saved/edited/deleted, so a chart
+// already open in the News tab updates immediately rather than on next load.
+function refreshAllTradeOverlays() {
+    if (!tradeOverlaysEnabled) return;
+    cpiChartInstances.forEach((_, dateString) => applyTradeOverlays(dateString));
+}
+
+// Panning/zooming can fire the visible-range-change event many times within a
+// single frame; rebuilding the overlay DOM on every one of those ticks is what
+// caused the flicker/glitch. Collapse repeated calls into a single rebuild per
+// animation frame instead.
+const tradeOverlayFrameRequests = new Map(); // dateString -> requestAnimationFrame id
+
+function scheduleTradeOverlayUpdate(dateString) {
+    if (tradeOverlayFrameRequests.has(dateString)) return;
+    const frameId = requestAnimationFrame(() => {
+        tradeOverlayFrameRequests.delete(dateString);
+        applyTradeOverlays(dateString);
+    });
+    tradeOverlayFrameRequests.set(dateString, frameId);
+}
+
+function ensureTradeOverlayLayer(container) {
+    let layer = container.querySelector('.trade-overlay-layer');
+    if (!layer) {
+        container.style.position = 'relative';
+        layer = document.createElement('div');
+        layer.className = 'trade-overlay-layer';
+        container.appendChild(layer);
+    }
+    return layer;
+}
+
+// "YYYY-MM-DDTHH:MM" (ignoring any offset) -> epoch seconds, matching how candle
+// timestamps are parsed elsewhere so the overlay lines up with the right bar.
+function parseLegEpoch(datetimeStr) {
+    const stamp = datetimeStr && datetimeStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!stamp) return null;
+    return Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], 0) / 1000;
+}
+
+// timeToCoordinate only resolves timestamps that exactly match an existing bar.
+// A trade entered at e.g. 07:32 lines up with a real 1m bar but not with 5m/15m
+// bars (which only land on :00/:05/:10... or :00/:15/:30...), so snap to
+// whichever loaded bar is closest instead of requiring an exact match - that's
+// what made overlays disappear when switching timeframes.
+function nearestBarTime(data, targetEpoch) {
+    if (!data || data.length === 0) return null;
+    let nearest = data[0].time;
+    let bestDiff = Math.abs(data[0].time - targetEpoch);
+    for (let i = 1; i < data.length; i++) {
+        const diff = Math.abs(data[i].time - targetEpoch);
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            nearest = data[i].time;
+        }
+    }
+    return nearest;
+}
+
+function applyTradeOverlays(dateString) {
+    const instance = cpiChartInstances.get(dateString);
+    if (!instance) return;
+
+    const layer = ensureTradeOverlayLayer(instance.container);
+    layer.innerHTML = '';
+    if (!tradeOverlaysEnabled || typeof getActiveAccount !== 'function') return;
+
+    const account = getActiveAccount();
+    const trades = ((account && account.trades) || []).filter(trade => {
+        const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+        return legs[0] && legs[0].datetime.slice(0, 10) === dateString;
+    });
+
+    trades.forEach(trade => renderTradeOverlay(instance, trade));
+}
+
+function renderTradeOverlay(instance, trade) {
+    const target = parseFloat(trade.target);
+    const stopLoss = parseFloat(trade.stopLoss);
+    if (isNaN(target) && isNaN(stopLoss)) return; // nothing meaningful to draw
+
+    const { chart, series, container } = instance;
+    const summary = computeTradeSummary(trade);
+
+    const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const entryEpoch = parseLegEpoch(legs[0].datetime);
+    const exitEpoch = parseLegEpoch(legs[legs.length - 1].datetime);
+    if (entryEpoch === null) return;
+
+    const timeScale = chart.timeScale();
+    const entryBarTime = nearestBarTime(instance.data, entryEpoch);
+    const entryX = entryBarTime !== null ? timeScale.timeToCoordinate(entryBarTime) : null;
+    if (entryX === null) return;
+
+    const exitBarTime = exitEpoch !== null ? nearestBarTime(instance.data, exitEpoch) : null;
+    let exitX = exitBarTime !== null ? timeScale.timeToCoordinate(exitBarTime) : null;
+    if (exitX === null) exitX = container.clientWidth;
+
+    const entryY = series.priceToCoordinate(summary.entryPrice);
+    if (entryY === null) return;
+
+    const layer = ensureTradeOverlayLayer(container);
+    const left = Math.min(entryX, exitX);
+    const width = Math.max(2, Math.abs(exitX - entryX));
+    const isLong = summary.direction !== 'short';
+
+    // Colors by which side of entry is actually favorable for THIS trade's
+    // direction (long profits above entry, short profits below it) - not by
+    // which field the price came from, so a long and a short render as mirror
+    // images of each other instead of always putting "Target" on top.
+    function drawZone(price) {
+        if (isNaN(price)) return;
+
+        // priceToCoordinate returns null when the price falls outside the chart's
+        // auto-scaled visible range (e.g. a stop-loss well beyond the candles shown).
+        // Clamp to the container edge instead of skipping, so the zone still shows
+        // (cut off) rather than silently vanishing.
+        let y = series.priceToCoordinate(price);
+        if (y === null) y = price > summary.entryPrice ? 0 : container.clientHeight;
+
+        const isProfitSide = isLong ? price > summary.entryPrice : price < summary.entryPrice;
+        const amount = Math.abs(price - summary.entryPrice) * summary.qty;
+        const pct = summary.entryPrice !== 0 ? (Math.abs(price - summary.entryPrice) / summary.entryPrice) * 100 : 0;
+        const top = Math.min(entryY, y);
+        const height = Math.abs(y - entryY);
+        const isAboveEntry = y < entryY;
+
+        const box = document.createElement('div');
+        box.className = `trade-overlay-box ${isProfitSide ? 'profit' : 'risk'}`;
+        box.style.left = `${left}px`;
+        box.style.width = `${width}px`;
+        box.style.top = `${top}px`;
+        box.style.height = `${height}px`;
+        layer.appendChild(box);
+
+        const label = document.createElement('div');
+        label.className = `trade-overlay-label ${isProfitSide ? 'profit-label' : 'risk-label'} ${isAboveEntry ? 'above' : 'below'}`;
+        label.style.left = `${left}px`;
+        label.style.top = `${isAboveEntry ? top : top + height}px`;
+        label.textContent = `${isProfitSide ? '+' : '-'}${formatTotal(amount)} (${pct.toFixed(2)}%)`;
+        layer.appendChild(label);
+    }
+
+    drawZone(target);
+    drawZone(stopLoss);
+
+    const entryLine = document.createElement('div');
+    entryLine.className = 'trade-overlay-entry-line';
+    entryLine.style.left = `${left}px`;
+    entryLine.style.width = `${width}px`;
+    entryLine.style.top = `${entryY}px`;
+    layer.appendChild(entryLine);
+
+    const exitLine = document.createElement('div');
+    exitLine.className = 'trade-overlay-exit-line';
+    exitLine.style.left = `${Math.max(entryX, exitX)}px`;
+    layer.appendChild(exitLine);
+}
+
 // Populates (or hides) the USD events strip above a chart block for its date
 function renderEventsForDate(block, date, eventsByDate) {
     const miniData = block.querySelector('.cpi-mini-data');
@@ -476,6 +651,9 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
         filesByInterval, currentInterval: null
     });
 
+    // Trade Levels overlay needs repositioning whenever the visible range pans/zooms
+    chart.timeScale().subscribeVisibleTimeRangeChange(() => scheduleTradeOverlayUpdate(dateString));
+
     loadChartInterval(dateString, defaultInterval);
 }
 
@@ -532,6 +710,7 @@ function loadChartInterval(dateString, interval) {
                 chart.timeScale().fitContent();
                 instance.data = cleanData;
                 applyNewsTimeMarkers(dateString);
+                applyTradeOverlays(dateString);
             } else {
                 throw new Error("No readable rows found.");
             }

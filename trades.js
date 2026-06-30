@@ -464,6 +464,9 @@ function renderTradeLog() {
     body.innerHTML = entries
         .map(entry => entry.type === 'note' ? buildNoteRowHtml(entry.note) : buildTradeRowHtml(entry.row))
         .join('');
+
+    // Updates the News tab's Trade Levels overlay if a chart for an affected date is open
+    if (typeof refreshAllTradeOverlays === 'function') refreshAllTradeOverlays();
 }
 
 // Same calendar day: notes always rank above trades, and among notes the most
