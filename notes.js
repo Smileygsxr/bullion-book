@@ -107,20 +107,40 @@ function saveNoteModal() {
     closeNoteModal();
 }
 
+// Closes the note editor and opens a styled "Delete Note?" confirmation in its
+// place (matches the Delete Trade confirmation), instead of stacking confirm()
+// on top of an open modal.
+let pendingDeleteNoteId = null;
+
 function deleteNoteModal() {
     const account = getActiveAccount();
     const notesArr = getDayNotesArray(account);
-    const index = notesArr.findIndex(n => n.id === draftNoteId);
-    if (index === -1) {
+    const exists = notesArr.some(n => n.id === draftNoteId);
+    if (!exists) {
         closeNoteModal();
         return;
     }
-    if (!confirm('Delete this note?')) return;
 
-    notesArr.splice(index, 1);
+    pendingDeleteNoteId = draftNoteId;
+    closeNoteModal();
+    document.getElementById('delete-note-modal-overlay').style.display = 'flex';
+}
+
+function closeDeleteNoteModal() {
+    document.getElementById('delete-note-modal-overlay').style.display = 'none';
+    pendingDeleteNoteId = null;
+}
+
+function confirmDeleteNote() {
+    if (!pendingDeleteNoteId) return;
+    const account = getActiveAccount();
+    const notesArr = getDayNotesArray(account);
+    const index = notesArr.findIndex(n => n.id === pendingDeleteNoteId);
+    if (index !== -1) notesArr.splice(index, 1);
+
     saveAccountsState();
     renderTradeLog();
-    closeNoteModal();
+    closeDeleteNoteModal();
 }
 
 // ---- Dashboard row ----

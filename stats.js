@@ -150,22 +150,60 @@ function renderStatsEquityChart(closed) {
             borderColor: '#2a2e39',
             localization: { priceFormatter: price => `$${price.toFixed(2)}` }
         },
-        timeScale: { borderColor: '#2a2e39', timeVisible: false },
+        timeScale: { borderColor: '#2a2e39', timeVisible: false, fixLeftEdge: true, fixRightEdge: true, rightOffset: 0 },
+        // Native crosshair labels are plain canvas rectangles with no rounded-corner
+        // option - hidden here in favor of custom DOM "pill" badges (see
+        // attachCrosshairPillLabels in trades.js).
+        crosshair: {
+            vertLine: { color: 'rgba(41, 121, 255, 0.5)', labelVisible: false },
+            horzLine: { color: 'rgba(41, 121, 255, 0.5)', labelVisible: false }
+        },
         handleScroll: false,
         handleScale: false
     });
 
-    const series = statsEquityChartInstance.addSeries(LightweightCharts.AreaSeries, {
-        lineColor: '#2979ff',
-        topColor: 'rgba(41, 121, 255, 0.35)',
-        bottomColor: 'rgba(41, 121, 255, 0.02)',
+    // Baseline series instead of a flat area fill: equity above $0 shades green,
+    // below shades red, with a smooth curved line - reads like an actual
+    // profit/drawdown view instead of one plain blue blob.
+    const series = statsEquityChartInstance.addSeries(LightweightCharts.BaselineSeries, {
+        baseValue: { type: 'price', price: 0 },
+        topLineColor: '#2ebd85',
+        topFillColor1: 'rgba(46, 189, 133, 0.4)',
+        topFillColor2: 'rgba(46, 189, 133, 0.02)',
+        bottomLineColor: '#f6465d',
+        bottomFillColor1: 'rgba(246, 70, 93, 0.02)',
+        bottomFillColor2: 'rgba(246, 70, 93, 0.4)',
         lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false
+        lineType: LightweightCharts.LineType.Curved,
+        // A persistent dashed line at the latest equity value - the floating
+        // "$X.XX" badge that sits on top of it is custom (built in trades.js),
+        // since Lightweight Charts' own last-value label can't be positioned
+        // mid-chart.
+        priceLineVisible: true,
+        priceLineColor: 'rgba(255, 255, 255, 0.5)',
+        priceLineWidth: 1,
+        priceLineStyle: LightweightCharts.LineStyle.Dashed,
+        lastValueVisible: false,
+        // Highlights the exact point on the curve under the cursor (color left
+        // unset so it auto-matches green/red depending on which side of the
+        // baseline that point falls on).
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 5,
+        crosshairMarkerBorderColor: '#ffffff',
+        crosshairMarkerBorderWidth: 2
     });
 
-    series.setData(data.length > 0 ? data : [{ time: 0, value: 0 }]);
-    statsEquityChartInstance.timeScale().fitContent();
+    const finalData = data.length > 0 ? data : [{ time: 0, value: 0 }];
+    series.setData(finalData);
+    // Force the exact pixels-per-point spacing needed to span the full width,
+    // rather than relying on fitContent()'s default margin/logical-range math.
+    const chartWidth = container.clientWidth || 600;
+    const barSpacing = finalData.length > 1 ? chartWidth / (finalData.length - 1) : chartWidth;
+    statsEquityChartInstance.timeScale().applyOptions({ barSpacing });
+    statsEquityChartInstance.timeScale().setVisibleLogicalRange({ from: 0.5, to: finalData.length - 0.5 });
+    const labelControls = attachCrosshairPillLabels(statsEquityChartInstance, series, container, getCurrencySymbol());
+    const lastPoint = finalData[finalData.length - 1];
+    labelControls.setDefaultValue(lastPoint.time, lastPoint.value);
 }
 
 // ---- Diverging (positive/negative) horizontal bar charts ----

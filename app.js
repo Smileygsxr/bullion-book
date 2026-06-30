@@ -629,7 +629,14 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
             fixLeftEdge: true,
             fixRightEdge: true
         },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+            // Native crosshair labels are plain canvas rectangles with no rounded-corner
+            // option - hidden here in favor of custom DOM "pill" badges (see
+            // attachCrosshairPillLabels in trades.js).
+            vertLine: { labelVisible: false },
+            horzLine: { labelVisible: false }
+        },
         // Locked by default so wheel/drag scrolls the page, not the chart, between stacked charts
         handleScroll: false,
         handleScale: false
@@ -644,6 +651,7 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
 
     attachLockToggle(chart, chartContainer);
     attachMeasureTool(chart, series, chartContainer, dateString);
+    attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true });
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
     cpiChartInstances.set(dateString, {

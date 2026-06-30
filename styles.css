@@ -386,6 +386,46 @@ body {
     height: 100%;
 }
 
+/* Modern rounded crosshair "pill" labels for the equity curve charts (replaces
+   the chart library's native plain-rectangle labels, which can't be rounded). */
+.equity-crosshair-label {
+    position: absolute;
+    display: none;
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(41, 121, 255, 0.45);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 5;
+}
+
+.equity-crosshair-label.price,
+.equity-crosshair-label.date {
+    transform: translateX(-50%);
+}
+
+.equity-crosshair-label.price {
+    top: 4px;
+}
+
+.equity-crosshair-label.date {
+    bottom: 2px;
+}
+
+/* The "current total" badge (shown when not hovering) is styled distinctly from
+   the hover pill - a dark outlined box rather than a solid blue fill - so it
+   reads as a persistent reference value, not a tooltip. */
+.equity-crosshair-label.current {
+    background: rgba(15, 18, 32, 0.92);
+    color: var(--accent-blue);
+    border: 1px solid rgba(41, 121, 255, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 /* Metric Pill Double Stacks */
 .metrics-group {
     display: flex;
@@ -488,7 +528,8 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding-right: 30px;
+    padding-right: 60px;
+    box-sizing: border-box;
 }
 
 .col-head {
@@ -521,6 +562,7 @@ body {
     align-items: center;
     width: 100%;
     padding: 12px 60px 12px 0;
+    box-sizing: border-box;
     border-top: 1px solid var(--border-color);
     font-size: 0.82rem;
     cursor: pointer;
@@ -1794,6 +1836,30 @@ body {
     max-width: 760px;
 }
 
+/* Inline validation: a banner explaining what's missing, plus a red ring around
+   the specific field(s) that need it - replaces alert() popups. */
+.modal-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(246, 70, 93, 0.12);
+    border: 1px solid rgba(246, 70, 93, 0.4);
+    color: #f6465d;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 16px;
+}
+
+.modal-error-banner i {
+    font-size: 0.9rem;
+}
+
+.modal-input.field-invalid {
+    border-color: #f6465d;
+    box-shadow: 0 0 0 3px rgba(246, 70, 93, 0.25);
+}
+
 .trade-modal-tabs {
     display: flex;
     gap: 8px;
@@ -1930,7 +1996,9 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 30px 12px 0;
+    width: 100%;
+    padding: 12px 60px 12px 0;
+    box-sizing: border-box;
     border-top: 1px solid var(--border-color);
     cursor: pointer;
     font-size: 0.82rem;

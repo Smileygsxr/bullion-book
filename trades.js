@@ -50,8 +50,34 @@ function openTradeModal(tradeId) {
     populateTradeTagSelect(draftTrade.tagId || '');
     switchTradeModalTab('general');
     renderTradeLegs();
+    clearTradeModalValidation();
 
     document.getElementById('trade-modal-overlay').style.display = 'flex';
+}
+
+// ---- Inline validation (replaces alert() popups with a banner + a red ring
+// around whichever fields are actually missing) ----
+function clearFieldInvalid(el) {
+    if (el) el.classList.remove('field-invalid');
+}
+
+function clearTradeModalValidation() {
+    const errorBox = document.getElementById('trade-modal-error');
+    if (errorBox) {
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+    }
+    document.querySelectorAll('#trade-modal-overlay .field-invalid').forEach(el => el.classList.remove('field-invalid'));
+}
+
+function showTradeModalError(message) {
+    const errorBox = document.getElementById('trade-modal-error');
+    if (!errorBox) {
+        alert(message);
+        return;
+    }
+    errorBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${message}`;
+    errorBox.style.display = 'flex';
 }
 
 function populateTradeTagSelect(selectedTagId) {
@@ -84,9 +110,9 @@ function renderTradeLegs() {
         <tr>
             <td><button class="txn-remove-btn" onclick="removeTradeLeg('${leg.id}')" title="Remove"><i class="fa-solid fa-circle-xmark"></i></button></td>
             <td><button class="leg-action-toggle ${leg.action}" onclick="toggleLegAction('${leg.id}')">${leg.action.toUpperCase()}</button></td>
-            <td><input type="datetime-local" class="modal-input" value="${leg.datetime}" onchange="updateTradeLeg('${leg.id}','datetime',this.value)"></td>
-            <td><input type="number" step="0.0001" class="modal-input" value="${leg.quantity}" onchange="updateTradeLeg('${leg.id}','quantity',this.value)"></td>
-            <td><input type="number" step="0.0001" class="modal-input" value="${leg.price}" onchange="updateTradeLeg('${leg.id}','price',this.value)"></td>
+            <td><input type="datetime-local" id="leg-datetime-${leg.id}" class="modal-input" value="${leg.datetime}" onchange="updateTradeLeg('${leg.id}','datetime',this.value); clearFieldInvalid(this);"></td>
+            <td><input type="number" step="0.0001" id="leg-quantity-${leg.id}" class="modal-input" value="${leg.quantity}" onchange="updateTradeLeg('${leg.id}','quantity',this.value); clearFieldInvalid(this);"></td>
+            <td><input type="number" step="0.0001" id="leg-price-${leg.id}" class="modal-input" value="${leg.price}" onchange="updateTradeLeg('${leg.id}','price',this.value); clearFieldInvalid(this);"></td>
             <td><input type="number" step="0.01" class="modal-input" value="${leg.fee}" onchange="updateTradeLeg('${leg.id}','fee',this.value)"></td>
         </tr>
     `).join('');
@@ -116,6 +142,8 @@ function updateTradeLeg(id, field, value) {
 
 // ---- Save ----
 function saveTradeModal() {
+    clearTradeModalValidation();
+
     draftTrade.symbol = (document.getElementById('trade-modal-symbol').value || '').trim().toUpperCase();
     draftTrade.target = document.getElementById('trade-modal-target').value;
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
@@ -123,10 +151,32 @@ function saveTradeModal() {
     draftTrade.tagId = document.getElementById('trade-modal-tag').value;
 
     const validLegs = draftTrade.legs.filter(leg => parseFloat(leg.quantity) > 0 && leg.price !== '' && leg.datetime);
-    if (!draftTrade.symbol || validLegs.length === 0) {
-        alert('Enter a symbol and at least one action with a quantity, price and date/time.');
+    const symbolMissing = !draftTrade.symbol;
+    const legsMissing = validLegs.length === 0;
+
+    if (symbolMissing || legsMissing) {
+        if (symbolMissing) {
+            document.getElementById('trade-modal-symbol').classList.add('field-invalid');
+        }
+        if (legsMissing) {
+            draftTrade.legs.forEach(leg => {
+                if (!(parseFloat(leg.quantity) > 0)) document.getElementById(`leg-quantity-${leg.id}`)?.classList.add('field-invalid');
+                if (leg.price === '' || isNaN(parseFloat(leg.price))) document.getElementById(`leg-price-${leg.id}`)?.classList.add('field-invalid');
+                if (!leg.datetime) document.getElementById(`leg-datetime-${leg.id}`)?.classList.add('field-invalid');
+            });
+            switchTradeModalTab('general');
+        }
+
+        showTradeModalError(
+            symbolMissing && legsMissing
+                ? 'Enter a symbol, and fill in quantity, price and date/time for at least one action below.'
+                : symbolMissing
+                    ? 'Symbol is required.'
+                    : 'Fill in quantity, price and date/time for at least one action below.'
+        );
         return;
     }
+
     draftTrade.legs = validLegs;
 
     const account = getActiveAccount();
@@ -558,6 +608,7 @@ function mergeNoteAndTradeEntries(tradeEntries, noteEntries, dir) {
 // ---- Top-left dashboard card: cumulative PnL across closed trades, in the order they closed ----
 let equityChartInstance = null;
 let equitySeriesInstance = null;
+let equityLabelControls = null;
 
 function ensureEquityChart() {
     const container = document.getElementById('equity-curve-chart');
@@ -573,23 +624,158 @@ function ensureEquityChart() {
             scaleMargins: { top: 0.15, bottom: 0 },
             localization: { priceFormatter: price => `$${price.toFixed(2)}` }
         },
-        timeScale: { visible: true, borderColor: '#2a2e39' },
+        timeScale: { visible: true, borderColor: '#2a2e39', fixLeftEdge: true, fixRightEdge: true, rightOffset: 0 },
+        // Native crosshair labels are plain canvas rectangles with no rounded-corner
+        // option - hidden here in favor of custom DOM "pill" badges below.
+        crosshair: {
+            vertLine: { color: 'rgba(41, 121, 255, 0.5)', labelVisible: false },
+            horzLine: { color: 'rgba(41, 121, 255, 0.5)', labelVisible: false }
+        },
         handleScroll: false,
         handleScale: false
     });
 
-    equitySeriesInstance = equityChartInstance.addSeries(LightweightCharts.AreaSeries, {
-        lineColor: '#2979ff',
-        topColor: 'rgba(41, 121, 255, 0.55)',
-        bottomColor: 'rgba(41, 121, 255, 0.08)',
+    // Baseline series instead of a flat area fill: equity above $0 shades green,
+    // below shades red, with a smooth curved line - reads like an actual
+    // profit/drawdown view instead of one plain blue blob.
+    equitySeriesInstance = equityChartInstance.addSeries(LightweightCharts.BaselineSeries, {
+        baseValue: { type: 'price', price: 0 },
+        topLineColor: '#2ebd85',
+        topFillColor1: 'rgba(46, 189, 133, 0.45)',
+        topFillColor2: 'rgba(46, 189, 133, 0.02)',
+        bottomLineColor: '#f6465d',
+        bottomFillColor1: 'rgba(246, 70, 93, 0.02)',
+        bottomFillColor2: 'rgba(246, 70, 93, 0.45)',
         lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: false
+        lineType: LightweightCharts.LineType.Curved,
+        // A persistent dashed line at the latest equity value - the floating
+        // "$X.XX" badge that sits on top of it is custom (built below), since
+        // Lightweight Charts' own last-value label can't be positioned mid-chart.
+        priceLineVisible: true,
+        priceLineColor: 'rgba(255, 255, 255, 0.5)',
+        priceLineWidth: 1,
+        priceLineStyle: LightweightCharts.LineStyle.Dashed,
+        lastValueVisible: false,
+        // Highlights the exact point on the curve under the cursor (color left
+        // unset so it auto-matches green/red depending on which side of the
+        // baseline that point falls on).
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 5,
+        crosshairMarkerBorderColor: '#ffffff',
+        crosshairMarkerBorderWidth: 2
     });
+
+    equityLabelControls = attachCrosshairPillLabels(equityChartInstance, equitySeriesInstance, container, '$');
 
     window.addEventListener('resize', () => {
         if (equityChartInstance) equityChartInstance.resize(container.clientWidth, container.clientHeight);
     });
+}
+
+// Modern rounded "pill" crosshair labels: a price badge pinned near the top and
+// a date badge pinned near the bottom, both centered on the same X position -
+// positioned via the same coordinate-conversion technique as the measure tool
+// and Trade Levels overlay elsewhere in this file/app.js.
+//
+// Two states: while hovering, both badges track the cursor's X position (the
+// actual point on the curve is shown by the series' crosshairMarker dot). When
+// not hovering, the price badge falls back to the latest value (set via the
+// returned object's setDefaultValue), centered above that point instead.
+function attachCrosshairPillLabels(chart, series, container, currencySymbol, options) {
+    options = options || {};
+    container.style.position = 'relative';
+
+    // Reuse existing labels if this container already has them (e.g. the Stats
+    // page equity chart fully recreates itself on every render) instead of
+    // stacking duplicate elements in each time.
+    let priceLabel = container.querySelector(':scope > .equity-crosshair-label.price');
+    let dateLabel = container.querySelector(':scope > .equity-crosshair-label.date');
+    if (!priceLabel) {
+        priceLabel = document.createElement('div');
+        priceLabel.className = 'equity-crosshair-label price';
+        container.appendChild(priceLabel);
+    }
+    if (!dateLabel) {
+        dateLabel = document.createElement('div');
+        dateLabel.className = 'equity-crosshair-label date';
+        container.appendChild(dateLabel);
+    }
+
+    let defaultPoint = null; // { time, value }
+
+    function showDefault() {
+        dateLabel.style.display = 'none';
+
+        if (!defaultPoint) {
+            priceLabel.style.display = 'none';
+            return;
+        }
+        const x = chart.timeScale().timeToCoordinate(defaultPoint.time);
+        if (x === null) {
+            priceLabel.style.display = 'none';
+            return;
+        }
+        priceLabel.textContent = `${currencySymbol}${defaultPoint.value.toFixed(2)}`;
+        priceLabel.classList.add('current');
+        // Explicitly reset right/top/bottom - an earlier version of this code set
+        // them inline, and since the Stats chart reuses this same element across
+        // re-renders (without a full page reload) instead of recreating it, a
+        // stale inline value could otherwise keep fighting the CSS-driven position.
+        priceLabel.style.left = `${x}px`;
+        priceLabel.style.right = 'auto';
+        priceLabel.style.top = '';
+        priceLabel.style.bottom = 'auto';
+        priceLabel.style.display = 'block';
+    }
+
+    chart.subscribeCrosshairMove(param => {
+        if (!param.point || param.time === undefined) {
+            showDefault();
+            return;
+        }
+
+        // Read the actual data point's value at this bar (param.seriesData), not
+        // whatever continuous price happens to sit under the mouse's exact pixel
+        // (coordinateToPrice) - the label should show the real value for the day,
+        // not drift as the cursor moves up/down between bars.
+        const seriesPoint = param.seriesData && param.seriesData.get(series);
+        const price = seriesPoint ? (seriesPoint.value !== undefined ? seriesPoint.value : seriesPoint.close) : null;
+        // Snap to the bar's exact x position instead of the raw mouse pixel, so the
+        // badges and vertical line line up exactly with the bar, not the cursor.
+        const x = chart.timeScale().timeToCoordinate(param.time);
+
+        if (price !== undefined && price !== null && x !== null) {
+            priceLabel.textContent = `${currencySymbol}${price.toFixed(2)}`;
+            priceLabel.classList.remove('current');
+            priceLabel.style.left = `${x}px`;
+            priceLabel.style.right = 'auto';
+            priceLabel.style.top = '';
+            priceLabel.style.bottom = 'auto';
+            priceLabel.style.display = 'block';
+        }
+
+        // timeZone: 'UTC' matters here - candle/equity epochs in this app encode
+        // literal wall-clock digits as if they were UTC (avoiding a double timezone
+        // conversion, see loadChartInterval), and Lightweight Charts' own time axis
+        // reads them the same way. Formatting in the browser's local zone instead
+        // would make this label disagree with the chart's native axis labels.
+        const date = new Date(param.time * 1000);
+        const datePart = date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'UTC' });
+        dateLabel.textContent = options.showTime
+            ? `${datePart} ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}`
+            : datePart;
+        dateLabel.style.left = x !== null ? `${x}px` : `${param.point.x}px`;
+        dateLabel.style.display = 'block';
+    });
+
+    showDefault();
+
+    return {
+        setDefaultValue(time, value) {
+            defaultPoint = { time, value };
+            showDefault();
+        }
+    };
 }
 
 function renderEquityChart(rows) {
@@ -615,8 +801,17 @@ function renderEquityChart(rows) {
         return { time: Date.UTC(y, m - 1, d) / 1000, value };
     });
 
-    equitySeriesInstance.setData(data.length > 0 ? data : [{ time: 0, value: 0 }]);
-    equityChartInstance.timeScale().fitContent();
+    const finalData = data.length > 0 ? data : [{ time: 0, value: 0 }];
+    equitySeriesInstance.setData(finalData);
+    // Force the exact pixels-per-point spacing needed to span the full width,
+    // rather than relying on fitContent()'s default margin/logical-range math.
+    const equityContainer = document.getElementById('equity-curve-chart');
+    const chartWidth = (equityContainer && equityContainer.clientWidth) || 300;
+    const barSpacing = finalData.length > 1 ? chartWidth / (finalData.length - 1) : chartWidth;
+    equityChartInstance.timeScale().applyOptions({ barSpacing });
+    equityChartInstance.timeScale().setVisibleLogicalRange({ from: 0.5, to: finalData.length - 0.5 });
+    const lastPoint = finalData[finalData.length - 1];
+    if (equityLabelControls) equityLabelControls.setDefaultValue(lastPoint.time, lastPoint.value);
 
     setText('equity-trade-count', rows.length);
 }
@@ -653,10 +848,15 @@ function renderDashboardStats(rows) {
     setText('stat-avg-win', formatTotal(avgWin));
     setText('stat-avg-loss', formatTotal(avgLoss));
 
-    const avgWinPct = wins.length > 0 ? wins.reduce((sum, r) => sum + r.returnPct, 0) / wins.length : 0;
-    const avgLossPct = losses.length > 0 ? losses.reduce((sum, r) => sum + r.returnPct, 0) / losses.length : 0;
-    setAttr('stat-avg-win-ring', 'data-pct', `${avgWinPct >= 0 ? '' : '-'}${Math.round(Math.abs(avgWinPct))}%`);
-    setAttr('stat-avg-loss-ring', 'data-pct', `${avgLossPct >= 0 ? '' : '-'}${Math.round(Math.abs(avgLossPct))}%`);
+    // Ring % = each one's share of (avg win magnitude + avg loss magnitude), e.g.
+    // avg win $27.49 vs avg loss $19.33 -> 27.49/(27.49+19.33) = 58.71% win side.
+    const avgWinAbs = Math.abs(avgWin);
+    const avgLossAbs = Math.abs(avgLoss);
+    const avgCombined = avgWinAbs + avgLossAbs;
+    const avgWinRingPct = avgCombined > 0 ? Math.round((avgWinAbs / avgCombined) * 100) : 0;
+    const avgLossRingPct = avgCombined > 0 ? Math.round((avgLossAbs / avgCombined) * 100) : 0;
+    setAttr('stat-avg-win-ring', 'data-pct', `${avgWinRingPct}%`);
+    setAttr('stat-avg-loss-ring', 'data-pct', `-${avgLossRingPct}%`);
 
     const closedRows = rows.filter(r => r.returnAmount !== null);
     const totalPnl = closedRows.reduce((sum, r) => sum + r.returnAmount, 0);
