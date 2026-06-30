@@ -31,11 +31,15 @@ def fetch_interval(date, interval_label, candle_code):
 
     os.makedirs(".duka", exist_ok=True)
     command = f"duka XAUUSD -s {date_str} -e {date_str} -c {candle_code}"
-    subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
     expected_file = os.path.join(".duka", f"XAUUSD-{candle_code}-{date_underscore}-{date_underscore}.csv")
     if not os.path.exists(expected_file):
-        print(f"  -> No data returned for {candle_code} {date_str}")
+        print(f"  -> No data returned for {candle_code} {date_str} (exit code {result.returncode})")
+        if result.stdout.strip():
+            print(f"     stdout: {result.stdout.strip()[-500:]}")
+        if result.stderr.strip():
+            print(f"     stderr: {result.stderr.strip()[-500:]}")
         return False
 
     df = pd.read_csv(expected_file)
