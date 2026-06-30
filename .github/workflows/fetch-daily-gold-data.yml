@@ -1,0 +1,41 @@
+name: Fetch Daily XAUUSD Data
+
+on:
+  schedule:
+    # 02:00 UTC daily - script itself skips weekends and exits cleanly if
+    # Dukascopy has nothing for the target date yet.
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install duka pandas
+
+      - name: Fetch previous trading day (1m, 5m, 15m)
+        run: python scripts/fetch_daily_gold_data.py
+
+      - name: Commit and push new data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add XAUUSD chart data"
+            git push
+          else
+            echo "No new data to commit."
+          fi

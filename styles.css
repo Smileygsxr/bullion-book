@@ -857,6 +857,45 @@ body {
     font-size: 0.8rem;
 }
 
+.interval-toggle-set {
+    display: flex;
+    margin-top: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.interval-toggle-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-right: 1px solid var(--border-color);
+    color: #848e9c;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    cursor: pointer;
+}
+
+.interval-toggle-set .interval-toggle-btn:last-child {
+    border-right: none;
+}
+
+.interval-toggle-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #d1d4dc;
+}
+
+.interval-toggle-btn.active {
+    background: #2979ff;
+    color: #ffffff;
+}
+
+.interval-toggle-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 .cpi-chart-caption {
     color: #848e9c;
     font-size: 0.85rem;

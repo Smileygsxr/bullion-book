@@ -288,7 +288,11 @@
                             <div class="cpi-chart-toolbar-left">
                                 <div>
                                     <p class="cpi-chart-title">XAUUSD</p>
-                                    <p class="cpi-chart-subtitle">5m</p>
+                                    <div class="interval-toggle-set" data-role="interval-toggle">
+                                        <button type="button" class="interval-toggle-btn" data-interval="1" onclick="switchChartInterval(this)">1m</button>
+                                        <button type="button" class="interval-toggle-btn active" data-interval="5" onclick="switchChartInterval(this)">5m</button>
+                                        <button type="button" class="interval-toggle-btn" data-interval="15" onclick="switchChartInterval(this)">15m</button>
+                                    </div>
                                 </div>
 
                                 <div class="cpi-mini-data" style="display: none;">

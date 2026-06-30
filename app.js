@@ -1,5 +1,6 @@
 // 1. GLOBAL STATE TRACKERS
-const cpiChartInstances = new Map(); // date string -> { chart, series, container }
+// date string -> { chart, series, container, markersApi, events, data, filesByInterval, currentInterval }
+const cpiChartInstances = new Map();
 
 // Re-upload/replace this file in /data whenever new economic events come in.
 const ECONOMIC_EVENTS_CSV_PATH = './data/EconomicEvents.csv';
@@ -146,7 +147,7 @@ function showPage(pageId, clickedElement) {
     }
 }
 
-const XAUUSD_FILENAME_PATTERN = /^XAU-USD_5Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
+const XAUUSD_FILENAME_PATTERN = /^XAU-USD_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
 // Chart blocks are heavy (CSV fetch + chart instance each), so load them in
 // batches of CHART_BLOCKS_BATCH_SIZE instead of rendering every date up front.
@@ -235,7 +236,7 @@ function resetChartBatches(container, template) {
     if (allChartFiles.length === 0) {
         container.innerHTML = `
             <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
-                No XAUUSD 5m chart data found in /data.
+                No XAUUSD chart data found in /data.
             </div>`;
     } else {
         loadNextChartBatch(container, template);
@@ -247,14 +248,16 @@ function resetChartBatches(container, template) {
 // a directory-listing response (e.g. `python -m http.server` for local dev).
 function discoverChartFiles() {
     function namesToDatedFiles(filenames) {
-        const filesByDate = new Map(); // date -> filename (first match wins)
+        const filesByDate = new Map(); // date -> { '1': filename, '5': filename, '15': filename }
         filenames.forEach(filename => {
             const match = filename.match(XAUUSD_FILENAME_PATTERN);
-            if (match && !filesByDate.has(match[1])) {
-                filesByDate.set(match[1], filename);
-            }
+            if (!match) return;
+            const interval = match[1];
+            const date = match[2];
+            if (!filesByDate.has(date)) filesByDate.set(date, {});
+            if (!filesByDate.get(date)[interval]) filesByDate.get(date)[interval] = filename;
         });
-        return Array.from(filesByDate, ([date, filename]) => ({ date, filename }));
+        return Array.from(filesByDate, ([date, files]) => ({ date, files }));
     }
 
     return fetch('/api/data-files')
@@ -281,8 +284,8 @@ function discoverChartFiles() {
 }
 
 // 3. APPEND ONE CHART BLOCK PER CSV FILE IN THIS BATCH
-function renderChartBlocks(files, container, template, eventsByDate) {
-    files.forEach(({ date, filename }) => {
+function renderChartBlocks(fileEntries, container, template, eventsByDate) {
+    fileEntries.forEach(({ date, files }) => {
         const block = template.content.firstElementChild.cloneNode(true);
 
         const caption = block.querySelector('.cpi-chart-caption');
@@ -296,9 +299,26 @@ function renderChartBlocks(files, container, template, eventsByDate) {
         block.dataset.eventNames = events.map(({ name }) => name).join('|');
         renderEventsForDate(block, date, eventsByDate);
 
+        const defaultInterval = files['5'] ? '5' : (files['1'] ? '1' : '15');
+        block.querySelectorAll('.interval-toggle-btn').forEach(btn => {
+            const available = !!files[btn.dataset.interval];
+            btn.disabled = !available;
+            btn.classList.toggle('active', available && btn.dataset.interval === defaultInterval);
+        });
+
         container.appendChild(block);
-        createOneDayChart(date, filename, chartContainer, events);
+        createOneDayChart(date, files, chartContainer, events, defaultInterval);
     });
+}
+
+// Click handler for the 1m/5m/15m pills on a chart block
+function switchChartInterval(buttonEl) {
+    if (buttonEl.disabled) return;
+    const block = buttonEl.closest('.xauusd-chart-panel');
+    const dateString = block.querySelector('.cpi-chart-caption').textContent.trim();
+
+    block.querySelectorAll('.interval-toggle-btn').forEach(btn => btn.classList.toggle('active', btn === buttonEl));
+    loadChartInterval(dateString, buttonEl.dataset.interval);
 }
 
 // ---- NEWS TIME MARKERS: a toggle that drops one arrow-below-bar marker per
@@ -412,7 +432,7 @@ function getActualColorClass(name, actual, forecast) {
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
-function createOneDayChart(dateString, filename, chartContainer, events) {
+function createOneDayChart(dateString, filesByInterval, chartContainer, events, defaultInterval) {
     if (!chartContainer) return;
 
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -448,10 +468,27 @@ function createOneDayChart(dateString, filename, chartContainer, events) {
     });
 
     attachLockToggle(chart, chartContainer);
+    attachMeasureTool(chart, series, chartContainer, dateString);
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
-    cpiChartInstances.set(dateString, { chart, series, container: chartContainer, events: events || [], markersApi });
+    cpiChartInstances.set(dateString, {
+        chart, series, container: chartContainer, events: events || [], markersApi,
+        filesByInterval, currentInterval: null
+    });
 
+    loadChartInterval(dateString, defaultInterval);
+}
+
+// Fetches and renders one interval's CSV into an already-created chart/series -
+// used both for the initial render and whenever the 1m/5m/15m toggle is clicked.
+function loadChartInterval(dateString, interval) {
+    const instance = cpiChartInstances.get(dateString);
+    if (!instance) return;
+    const filename = instance.filesByInterval[interval];
+    if (!filename) return;
+
+    instance.currentInterval = interval;
+    const { chart, series, container: chartContainer } = instance;
     const targetPath = `./data/${filename}`;
 
     fetch(targetPath)
@@ -493,9 +530,7 @@ function createOneDayChart(dateString, filename, chartContainer, events) {
             if (cleanData.length > 0) {
                 series.setData(cleanData);
                 chart.timeScale().fitContent();
-                const instance = cpiChartInstances.get(dateString);
-                if (instance) instance.data = cleanData;
-                attachMeasureTool(chart, series, chartContainer, dateString);
+                instance.data = cleanData;
                 applyNewsTimeMarkers(dateString);
             } else {
                 throw new Error("No readable rows found.");
