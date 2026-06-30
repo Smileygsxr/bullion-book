@@ -485,6 +485,7 @@ body {
 
 .ring-green { border-top-color: #2ebd85; border-right-color: #2ebd85; }
 .ring-red { border-bottom-color: #f6465d; }
+.ring-grey { border-top-color: var(--text-muted); border-right-color: var(--text-muted); }
 
 /* Right PnL Profile Card Styling */
 .pnl-card {
@@ -528,7 +529,7 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding-right: 60px;
+    padding-right: 90px;
     box-sizing: border-box;
 }
 
@@ -561,7 +562,7 @@ body {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 12px 60px 12px 0;
+    padding: 12px 90px 12px 0;
     box-sizing: border-box;
     border-top: 1px solid var(--border-color);
     font-size: 0.82rem;
@@ -592,6 +593,48 @@ body {
 .trade-wash-badge {
     color: #dfb15b;
     font-size: 0.8rem;
+}
+
+/* Tag icon next to the "..." dots - hover reveals the actual tag chip(s) */
+.trade-tag-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.trade-tag-icon {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.trade-tag-tooltip {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-right: 8px;
+    display: none;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.trade-tag-indicator:hover .trade-tag-tooltip {
+    display: flex;
+}
+
+.tag-chip-static {
+    display: inline-flex;
+    align-items: center;
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .trade-row-menu-btn {
@@ -1903,6 +1946,59 @@ body {
     box-sizing: border-box;
 }
 
+/* Multi-tag chip input on the New Trade modal's Journal tab */
+.tag-chip-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    cursor: text;
+}
+
+#trade-tag-chips {
+    display: contents;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 8px 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.tag-chip button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.tag-chip-text-input {
+    flex: 1;
+    min-width: 100px;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    outline: none;
+}
+
 /* Edit Day Note Modal */
 .note-modal-card {
     max-width: 820px;
@@ -1997,7 +2093,7 @@ body {
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 12px 60px 12px 0;
+    padding: 12px 90px 12px 0;
     box-sizing: border-box;
     border-top: 1px solid var(--border-color);
     cursor: pointer;

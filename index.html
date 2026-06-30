@@ -121,14 +121,14 @@
                             <span class="lbl-muted">OPEN</span>
                             <span class="val-muted" id="stat-open">0</span>
                         </div>
-                        <div class="progress-ring ring-red" id="stat-open-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-grey" id="stat-open-ring" data-pct="0%"></div>
                     </div>
                     <div class="dash-card design-fix">
                         <div class="card-text-group">
                             <span class="lbl-muted">WASH</span>
                             <span class="val-muted" id="stat-wash">0</span>
                         </div>
-                        <div class="progress-ring ring-red" id="stat-wash-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-grey" id="stat-wash-ring" data-pct="0%"></div>
                     </div>
                 </div>
 
@@ -591,10 +591,6 @@
                             <label class="modal-label">Stop-Loss</label>
                             <input type="number" step="0.001" id="trade-modal-stoploss" class="modal-input">
                         </div>
-                        <div class="modal-field">
-                            <label class="modal-label">Tag</label>
-                            <select id="trade-modal-tag" class="modal-input"></select>
-                        </div>
                     </div>
 
                     <table class="modal-transactions-table">
@@ -617,6 +613,14 @@
                 </div>
 
                 <div id="trade-tab-panel-journal" style="display: none;">
+                    <div class="modal-field">
+                        <label class="modal-label">Tags</label>
+                        <div class="tag-chip-box" id="trade-tag-chip-box" onclick="document.getElementById('trade-tag-input').focus()">
+                            <span id="trade-tag-chips"></span>
+                            <input type="text" id="trade-tag-input" class="tag-chip-text-input" placeholder="Add a tag..." onkeydown="handleTagInputKeydown(event)">
+                        </div>
+                    </div>
+
                     <div class="modal-field">
                         <label class="modal-label">Notes</label>
                         <textarea id="trade-modal-journal" class="modal-input trade-journal-textarea" rows="8" placeholder="What was your setup, reasoning, lessons learned?"></textarea>

@@ -284,11 +284,16 @@ function renderStatsTagTable(closed) {
     const tagDefs = (getActiveAccount().tagDefs) || [];
     const tagNameById = new Map(tagDefs.map(t => [t.id, t.name]));
 
+    // A trade can carry multiple tags now, so it's counted once per tag it has
+    // (not split proportionally) - contribution % across tags won't sum to 100%
+    // when trades carry more than one tag, same as a typical "filter by tag" view.
     const byTag = new Map();
     closed.forEach(r => {
-        const key = r.tagId || '';
-        if (!byTag.has(key)) byTag.set(key, []);
-        byTag.get(key).push(r);
+        const keys = (r.tagIds && r.tagIds.length > 0) ? r.tagIds : [''];
+        keys.forEach(key => {
+            if (!byTag.has(key)) byTag.set(key, []);
+            byTag.get(key).push(r);
+        });
     });
 
     const totalPnl = closed.reduce((sum, r) => sum + r.returnAmount, 0);

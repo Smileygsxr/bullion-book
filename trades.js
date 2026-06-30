@@ -38,16 +38,22 @@ function openTradeModal(tradeId) {
             target: '',
             stopLoss: '',
             journal: '',
-            tagId: defaults.defaultTagId || '',
+            tagIds: defaults.defaultTagId ? [defaults.defaultTagId] : [],
             legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
         };
+
+    // Older trades stored a single tagId - migrate to the tagIds array in place.
+    if (!draftTrade.tagIds) {
+        draftTrade.tagIds = draftTrade.tagId ? [draftTrade.tagId] : [];
+    }
 
     document.getElementById('trade-modal-title').textContent = editingTradeId ? 'Edit Trade' : 'New Trade';
     document.getElementById('trade-modal-symbol').value = draftTrade.symbol || '';
     document.getElementById('trade-modal-target').value = draftTrade.target || '';
     document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
     document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
-    populateTradeTagSelect(draftTrade.tagId || '');
+    document.getElementById('trade-tag-input').value = '';
+    renderTradeTagChips();
     switchTradeModalTab('general');
     renderTradeLegs();
     clearTradeModalValidation();
@@ -80,12 +86,54 @@ function showTradeModalError(message) {
     errorBox.style.display = 'flex';
 }
 
-function populateTradeTagSelect(selectedTagId) {
-    const select = document.getElementById('trade-modal-tag');
-    if (!select) return;
+// ---- Multi-tag chip input (Journal tab) ----
+function renderTradeTagChips() {
+    const container = document.getElementById('trade-tag-chips');
+    if (!container) return;
+
     const tagDefs = (getActiveAccount().tagDefs) || [];
-    select.innerHTML = '<option value="">No Tag</option>' +
-        tagDefs.map(t => `<option value="${t.id}" ${t.id === selectedTagId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+    const tagsById = new Map(tagDefs.map(t => [t.id, t]));
+
+    container.innerHTML = (draftTrade.tagIds || []).map(tagId => {
+        const tag = tagsById.get(tagId);
+        if (!tag) return '';
+        return `<span class="tag-chip">${escapeHtml(tag.name)}<button type="button" onclick="event.stopPropagation(); removeDraftTradeTag('${tagId}')">&times;</button></span>`;
+    }).join('');
+}
+
+function removeDraftTradeTag(tagId) {
+    draftTrade.tagIds = (draftTrade.tagIds || []).filter(id => id !== tagId);
+    renderTradeTagChips();
+}
+
+// Enter or comma commits the typed text as a tag - reusing an existing tag
+// (case-insensitive match) or creating a new one in account.tagDefs on the fly,
+// the same tag store Settings > Tag Management and the Stats page read from.
+function handleTagInputKeydown(event) {
+    if (event.key !== 'Enter' && event.key !== ',') return;
+    event.preventDefault();
+    commitPendingTagInput(event.target);
+}
+
+function commitPendingTagInput(inputEl) {
+    const name = (inputEl.value || '').trim();
+    if (!name) return;
+
+    const account = getActiveAccount();
+    if (!account.tagDefs) account.tagDefs = [];
+
+    let tag = account.tagDefs.find(t => t.name.toLowerCase() === name.toLowerCase());
+    if (!tag) {
+        tag = { id: genId(), name, category: '', description: '' };
+        account.tagDefs.push(tag);
+        saveAccountsState();
+    }
+
+    if (!draftTrade.tagIds) draftTrade.tagIds = [];
+    if (!draftTrade.tagIds.includes(tag.id)) draftTrade.tagIds.push(tag.id);
+
+    inputEl.value = '';
+    renderTradeTagChips();
 }
 
 function closeTradeModal() {
@@ -148,7 +196,8 @@ function saveTradeModal() {
     draftTrade.target = document.getElementById('trade-modal-target').value;
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
     draftTrade.journal = document.getElementById('trade-modal-journal').value;
-    draftTrade.tagId = document.getElementById('trade-modal-tag').value;
+    commitPendingTagInput(document.getElementById('trade-tag-input')); // catches a typed tag that wasn't Enter-committed
+    delete draftTrade.tagId; // fully migrated to tagIds now
 
     const validLegs = draftTrade.legs.filter(leg => parseFloat(leg.quantity) > 0 && leg.price !== '' && leg.datetime);
     const symbolMissing = !draftTrade.symbol;
@@ -279,7 +328,7 @@ function computeTradeSummary(trade) {
         date: legs[0].datetime,
         direction,
         status,
-        tagId: trade.tagId || '',
+        tagIds: trade.tagIds || (trade.tagId ? [trade.tagId] : []),
         qty: entryQty,
         entryPrice,
         exitPrice,
@@ -530,6 +579,17 @@ function buildTradeRowHtml(row) {
         : '<i class="fa-solid fa-arrow-trend-down" style="color:#f6465d;"></i>';
     const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
 
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+    const tagsById = new Map(tagDefs.map(t => [t.id, t.name]));
+    const tagNames = (row.tagIds || []).map(id => tagsById.get(id)).filter(Boolean);
+    const tagIndicator = tagNames.length > 0 ? `
+        <div class="trade-tag-indicator">
+            <i class="fa-solid fa-tag trade-tag-icon"></i>
+            <div class="trade-tag-tooltip">
+                ${tagNames.map(name => `<span class="tag-chip-static">${escapeHtml(name)}</span>`).join('')}
+            </div>
+        </div>` : '';
+
     return `
     <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
         <div class="table-cell">${formatTradeDate(row.date)}</div>
@@ -547,6 +607,7 @@ function buildTradeRowHtml(row) {
         <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
         <div class="trade-row-menu-wrap">
             ${row.forceWash ? '<i class="fa-solid fa-scale-balanced trade-wash-badge" title="Marked as Wash"></i>' : ''}
+            ${tagIndicator}
             <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
         </div>
     </div>`;
@@ -842,6 +903,8 @@ function renderDashboardStats(rows) {
     setAttr('stat-losses-ring', 'data-pct', `${lossesPct}%`);
     setAttr('stat-open-ring', 'data-pct', `${openPct}%`);
     setAttr('stat-wash-ring', 'data-pct', `${washPct}%`);
+    setRingColorState('stat-open-ring', open.length > 0);
+    setRingColorState('stat-wash-ring', wash.length > 0);
 
     const avgWin = wins.length > 0 ? wins.reduce((sum, r) => sum + r.returnAmount, 0) / wins.length : 0;
     const avgLoss = losses.length > 0 ? losses.reduce((sum, r) => sum + r.returnAmount, 0) / losses.length : 0;
@@ -879,4 +942,12 @@ function renderDashboardStats(rows) {
 function setAttr(id, attr, value) {
     const el = document.getElementById(id);
     if (el) el.setAttribute(attr, value);
+}
+
+// OPEN/WASH rings are green when there are entries, plain grey when there are none
+function setRingColorState(id, hasEntries) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('ring-green', 'ring-red', 'ring-grey');
+    el.classList.add(hasEntries ? 'ring-green' : 'ring-grey');
 }
