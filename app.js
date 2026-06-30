@@ -147,6 +147,19 @@ function showPage(pageId, clickedElement) {
     }
 }
 
+// Help page search: hides whole topic sections whose text doesn't match, and
+// hides the quick-links row while actively searching (it's redundant once
+// sections are already filtered).
+function filterHelpSections(query) {
+    const normalized = query.trim().toLowerCase();
+    document.querySelectorAll('.help-section').forEach(section => {
+        const matches = !normalized || section.textContent.toLowerCase().includes(normalized);
+        section.classList.toggle('help-hidden', !matches);
+    });
+    const quicklinks = document.getElementById('help-quicklinks');
+    if (quicklinks) quicklinks.style.display = normalized ? 'none' : 'flex';
+}
+
 const XAUUSD_FILENAME_PATTERN = /^XAU-USD_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
 // Chart blocks are heavy (CSV fetch + chart instance each), so load them in

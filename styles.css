@@ -327,7 +327,7 @@ body {
 .dashboard-main {
     flex: 1;
     height: 100vh;
-    padding: 24px;
+    padding: 0 24px 24px 24px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -339,6 +339,14 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    padding-top: 24px;
+}
+
+/* The date-range bar sits flush at the very top of these two pages instead -
+   no extra inset above it. */
+#page-dashboard,
+#page-stats {
+    padding-top: 0;
 }
 
 #page-news {
@@ -455,37 +463,51 @@ body {
 .val-muted { color: #d1d4dc; }
 .pct-muted { color: #647080; font-size: 0.75rem; }
 
-/* Mini Progress Percent Indicators */
+/* Mini Progress Percent Indicators - real SVG radial progress (proportional arc),
+   not the old CSS-border trick (which only ever drew a static quarter-circle
+   regardless of the actual percentage). */
 .progress-ring {
     position: relative;
-    
-    /* FIX: Swaps percentage height for an explicit container variable tracking height */
-    height: 32px;         /* Forces a stable, flat height baseline */
-    width: 32px;          /* Matches height perfectly to guarantee a round shape */
-    
-    border-style: solid;
-    border-width: 3.5px;  /* Clean, proportionate thickness for a flat design */
-    border-color: rgba(255, 255, 255, 0.05); 
-    border-radius: 50%;   
-    
-    flex-shrink: 0;       /* Locks dimensions horizontally so it never skews */
-    box-sizing: border-box; 
+    height: 36px;
+    width: 36px;
+    flex-shrink: 0;
 }
 
-.progress-ring::after {
-    content: attr(data-pct);
+.progress-ring-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg); /* so the arc starts at 12 o'clock, not 3 o'clock */
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 3;
+}
+
+.progress-ring-fg {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 97.39; /* 2 * PI * r(15.5) */
+    stroke-dashoffset: 97.39;
+    transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+}
+
+.progress-ring-label {
     position: absolute;
-    font-size: 0.55rem;
-    color: #848e9c;
-    top: 50%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    white-space: nowrap;  /* Prevents text from wrapping into a broken line stack */
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.56rem;
+    font-weight: 700;
+    color: var(--text-light);
 }
 
-.ring-green { border-top-color: #2ebd85; border-right-color: #2ebd85; }
-.ring-red { border-bottom-color: #f6465d; }
-.ring-grey { border-top-color: var(--text-muted); border-right-color: var(--text-muted); }
+.ring-green .progress-ring-fg { stroke: #2ebd85; }
+.ring-red .progress-ring-fg { stroke: #f6465d; }
+.ring-grey .progress-ring-fg { stroke: var(--text-muted); }
 
 /* Right PnL Profile Card Styling */
 .pnl-card {
@@ -724,13 +746,21 @@ body {
 }*/
 /* Custom utility to size and layout the updated cards */
 .design-fix {
-    width: 240px;          
+    width: 240px;
     height: 65px;          /* Increased slightly from 55px to give text vertical breathing room */
     display: flex;         /* Ensures horizontal layout distribution */
     align-items: center;   /* Perfectly centers text stack and circle vertically */
     justify-content: space-between; /* Pushes text to the left, ring to the right */
-    padding: 10px 16px;    
-    box-sizing: border-box; 
+    padding: 10px 16px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.design-fix:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 /* Groups the label and value vertically on the left side */
@@ -1962,7 +1992,9 @@ body {
     cursor: text;
 }
 
-#trade-tag-chips {
+#trade-tag-chips,
+#filter-tag-chips,
+#filter-symbol-chips {
     display: contents;
 }
 
@@ -2336,5 +2368,414 @@ body {
     flex: 1;
     height: 2px;
     background: var(--accent-blue);
+}
+
+/* Help Page */
+.help-page {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    width: 100%;
+    padding-bottom: 40px;
+}
+
+.help-hero {
+    text-align: center;
+    padding: 40px 20px 10px;
+}
+
+.help-hero-icon {
+    font-size: 2.2rem;
+    color: var(--accent-gold);
+    margin-bottom: 12px;
+}
+
+.help-hero h1 {
+    margin: 0 0 8px;
+    font-size: 1.8rem;
+    color: #ffffff;
+}
+
+.help-hero p {
+    margin: 0 0 22px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.help-search-wrap {
+    position: relative;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.help-search-wrap i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.help-search-wrap input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 12px 14px 12px 40px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.help-search-wrap input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.help-quicklinks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.help-quicklink {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.help-quicklink:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    transform: translateY(-2px);
+}
+
+.help-quicklink i {
+    color: var(--accent-blue);
+}
+
+.help-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 28px;
+    scroll-margin-top: 20px;
+}
+
+.help-section.help-hidden {
+    display: none;
+}
+
+.help-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.help-section-header i {
+    font-size: 1.1rem;
+    color: var(--accent-gold);
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(223, 177, 91, 0.12);
+    border-radius: 8px;
+}
+
+.help-section-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #ffffff;
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.help-tile {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.help-tile:hover {
+    border-color: rgba(41, 121, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.help-tile i {
+    font-size: 1.1rem;
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.help-tile h3 {
+    margin: 0 0 6px;
+    font-size: 0.92rem;
+    color: var(--text-light);
+}
+
+.help-tile p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.help-tile-danger i {
+    color: #f6465d;
+}
+
+.help-faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.help-faq-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+
+.help-faq-item summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.88rem;
+    list-style: none;
+}
+
+.help-faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.help-faq-item summary::before {
+    content: '+';
+    display: inline-block;
+    width: 18px;
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
+.help-faq-item[open] summary::before {
+    content: '\2212';
+}
+
+.help-faq-item p {
+    margin: 10px 0 0 18px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+/* Sidebar toolbar: privacy blur toggle + trade filter trigger */
+.sidebar-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: -8px;
+}
+
+.sidebar-icon-btn {
+    width: 24px;
+    height: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    transition: all 0.15s ease;
+}
+
+.sidebar-icon-btn:hover {
+    color: var(--text-light);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-icon-btn.active {
+    background: rgba(41, 121, 255, 0.15);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+/* Quick date-range filter bar: one compact row above Dashboard/Stats content */
+.page-date-range-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+.date-range-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.date-range-btn:hover {
+    color: var(--text-light);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.date-range-btn.active {
+    background: rgba(41, 121, 255, 0.15);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.date-range-btn.date-range-reset {
+    color: #f6465d;
+}
+
+.date-range-btn.date-range-reset:hover {
+    border-color: #f6465d;
+}
+
+/* Privacy mode: blur every $ figure app-wide */
+body.privacy-mode .value-positive,
+body.privacy-mode .value-negative,
+body.privacy-mode .sensitive-value,
+body.privacy-mode #sidebar-account-balance,
+body.privacy-mode #stat-pnl-value,
+body.privacy-mode #stat-pnl-pct,
+body.privacy-mode #stat-avg-win,
+body.privacy-mode #stat-avg-loss,
+body.privacy-mode .equity-crosshair-label.price {
+    filter: blur(6px);
+    user-select: none;
+    transition: filter 0.2s ease;
+}
+
+/* Dashboard trade filter flyout */
+.trade-filter-panel {
+    position: fixed;
+    top: 70px;
+    left: 16px;
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    z-index: 300;
+    box-sizing: border-box;
+}
+
+.trade-filter-counter {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 16px;
+}
+
+.trade-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.trade-filter-grid .modal-field {
+    min-width: 0;
+}
+
+.filter-chip-box {
+    position: relative;
+    min-height: 40px;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.filter-chip-box .tag-chip-text-input {
+    min-width: 40px;
+}
+
+.filter-suggest-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    z-index: 10;
+    display: none;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+}
+
+.filter-suggest-item {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.filter-suggest-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Theme the native <select> popup list (Chromium/Firefox honor option styling) */
+.modal-input option,
+.modal-select option {
+    background-color: var(--bg-card);
+    color: var(--text-light);
+}
+
+.trade-filter-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.trade-filter-actions .btn-action {
+    width: auto;
+    margin-top: 0;
 }
 

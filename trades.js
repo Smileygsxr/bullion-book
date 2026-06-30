@@ -252,6 +252,8 @@ function saveTradeModal() {
 // "Return on Account Balance" mode calls computeAccountBalance, which would call
 // back into computeTradeSummary for every trade if it used that function instead.
 function computeTradeReturnAmount(trade) {
+    if (trade.forceWash) return 0; // marked as wash = breakeven, no P&L impact
+
     const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
     const direction = legs[0].action === 'sell' ? 'short' : 'long';
     const entryAction = direction === 'long' ? 'buy' : 'sell';
@@ -299,9 +301,14 @@ function computeTradeSummary(trade) {
     const directionSign = direction === 'long' ? 1 : -1;
     const closedEntryValue = entryPrice * closedQty;
     const closedExitValue = exitPrice * closedQty;
-    const returnAmount = closedQty > 0
+    let returnAmount = closedQty > 0
         ? (closedExitValue - closedEntryValue) * directionSign - totalFees
         : null;
+
+    // Marked as wash = treated as breakeven, not a real win/loss - zero out its
+    // P&L impact everywhere (PnL totals, Balance, equity curve), not just the
+    // status label.
+    if (trade.forceWash && closedQty > 0) returnAmount = 0;
 
     // PnL % is normally "return on invested capital" (this trade's own entry value).
     // The Settings > Account Settings page can switch it to "return on account balance" instead.
@@ -475,6 +482,7 @@ function markTradeAsWash(tradeId) {
     if (!trade) return;
     trade.forceWash = true;
     saveAccountsState();
+    updateSidebarBalanceDisplay();
     renderTradeLog();
 }
 
@@ -484,6 +492,7 @@ function unmarkTradeAsWash(tradeId) {
     if (!trade) return;
     delete trade.forceWash;
     saveAccountsState();
+    updateSidebarBalanceDisplay();
     renderTradeLog();
 }
 
@@ -597,10 +606,10 @@ function buildTradeRowHtml(row) {
         <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
         <div class="table-cell">${sideIcon}</div>
         <div class="table-cell">${row.qty}</div>
-        <div class="table-cell">${formatPrice(row.entryPrice)}</div>
-        <div class="table-cell">${row.exitPrice ? formatPrice(row.exitPrice) : '-'}</div>
-        <div class="table-cell">${formatTotal(row.entTot)}</div>
-        <div class="table-cell">${row.extTot ? formatTotal(row.extTot) : '-'}</div>
+        <div class="table-cell sensitive-value">${formatPrice(row.entryPrice)}</div>
+        <div class="table-cell sensitive-value">${row.exitPrice ? formatPrice(row.exitPrice) : '-'}</div>
+        <div class="table-cell sensitive-value">${formatTotal(row.entTot)}</div>
+        <div class="table-cell sensitive-value">${row.extTot ? formatTotal(row.extTot) : '-'}</div>
         <div class="table-cell">${row.pos > 0 ? row.pos : '-'}</div>
         <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
         <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
@@ -620,9 +629,16 @@ function renderTradeLog() {
     const account = getActiveAccount();
     const trades = (account && account.trades) || [];
 
-    const rows = trades
+    let rows = trades
         .map(computeTradeSummary)
         .sort((a, b) => compareTradeRows(a, b, tradeSortKey, tradeSortDir));
+
+    // Tags/Symbol/Direction/Status filter panel (filters.js) - applied here so
+    // it narrows the whole dashboard view (stats cards + equity chart + table),
+    // not just the table rows.
+    if (typeof tradeLogFilters !== 'undefined' && typeof tradeRowMatchesFilters === 'function') {
+        rows = rows.filter(row => tradeRowMatchesFilters(row, tradeLogFilters));
+    }
 
     renderDashboardStats(rows);
     renderEquityChart(rows);
@@ -899,10 +915,10 @@ function renderDashboardStats(rows) {
     const lossesPct = closedCount > 0 ? Math.round((losses.length / closedCount) * 100) : 0;
     const openPct = rows.length > 0 ? Math.round((open.length / rows.length) * 100) : 0;
     const washPct = rows.length > 0 ? Math.round((wash.length / rows.length) * 100) : 0;
-    setAttr('stat-wins-ring', 'data-pct', `${winsPct}%`);
-    setAttr('stat-losses-ring', 'data-pct', `${lossesPct}%`);
-    setAttr('stat-open-ring', 'data-pct', `${openPct}%`);
-    setAttr('stat-wash-ring', 'data-pct', `${washPct}%`);
+    setRingProgress('stat-wins-ring', winsPct);
+    setRingProgress('stat-losses-ring', lossesPct);
+    setRingProgress('stat-open-ring', openPct);
+    setRingProgress('stat-wash-ring', washPct);
     setRingColorState('stat-open-ring', open.length > 0);
     setRingColorState('stat-wash-ring', wash.length > 0);
 
@@ -918,8 +934,8 @@ function renderDashboardStats(rows) {
     const avgCombined = avgWinAbs + avgLossAbs;
     const avgWinRingPct = avgCombined > 0 ? Math.round((avgWinAbs / avgCombined) * 100) : 0;
     const avgLossRingPct = avgCombined > 0 ? Math.round((avgLossAbs / avgCombined) * 100) : 0;
-    setAttr('stat-avg-win-ring', 'data-pct', `${avgWinRingPct}%`);
-    setAttr('stat-avg-loss-ring', 'data-pct', `-${avgLossRingPct}%`);
+    setRingProgress('stat-avg-win-ring', avgWinRingPct);
+    setRingProgress('stat-avg-loss-ring', -avgLossRingPct);
 
     const closedRows = rows.filter(r => r.returnAmount !== null);
     const totalPnl = closedRows.reduce((sum, r) => sum + r.returnAmount, 0);
@@ -950,4 +966,23 @@ function setRingColorState(id, hasEntries) {
     if (!el) return;
     el.classList.remove('ring-green', 'ring-red', 'ring-grey');
     el.classList.add(hasEntries ? 'ring-green' : 'ring-grey');
+}
+
+// Drives the real SVG radial progress ring: pct can be negative (e.g. AVG L's
+// ring), the arc fill always reflects the magnitude while the label keeps the sign.
+const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 15.5;
+
+function setRingProgress(id, pct) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const circle = el.querySelector('.progress-ring-fg');
+    const label = el.querySelector('.progress-ring-label');
+
+    const clamped = Math.max(0, Math.min(100, Math.abs(pct)));
+    if (circle) {
+        circle.style.strokeDashoffset = String(PROGRESS_RING_CIRCUMFERENCE - (clamped / 100) * PROGRESS_RING_CIRCUMFERENCE);
+    }
+    if (label) {
+        label.textContent = `${pct < 0 ? '-' : ''}${Math.round(clamped)}%`;
+    }
 }

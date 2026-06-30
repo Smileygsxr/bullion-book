@@ -18,7 +18,17 @@
               <h1>Bullion Book</h1>
             </a>
         </div>
-        
+
+        <!-- Privacy blur toggle + dashboard trade filter -->
+        <div class="sidebar-toolbar">
+            <button class="sidebar-icon-btn" id="privacy-toggle-btn" onclick="togglePrivacyMode()" title="Hide sensitive values">
+                <i class="fa-solid fa-eye"></i>
+            </button>
+            <button class="sidebar-icon-btn" id="filter-toggle-btn" onclick="toggleTradeFilterPanel()" title="Filter trades">
+                <i class="fa-solid fa-sliders"></i>
+            </button>
+        </div>
+
         <!-- 2. Primary Account Switcher -->
         <div class="account-switcher">
             <label class="account-switcher-label">Primary Account</label>
@@ -86,7 +96,21 @@
         <!-- 1. DASHBOARD PAGE VIEW (Visible by Default) -->
         <!-- ========================================== -->
         <div id="page-dashboard" class="view-section" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
-            
+
+            <!-- Quick date-range filter (applies to Dashboard + Stats) -->
+            <div class="page-date-range-bar">
+                <button class="date-range-btn" data-range-key="today" onclick="applyDateRangePreset('today')">Today</button>
+                <button class="date-range-btn" data-range-key="yesterday" onclick="applyDateRangePreset('yesterday')">Yesterday</button>
+                <button class="date-range-btn" data-range-key="thisWeek" onclick="applyDateRangePreset('thisWeek')">This week</button>
+                <button class="date-range-btn" data-range-key="lastWeek" onclick="applyDateRangePreset('lastWeek')">Last week</button>
+                <button class="date-range-btn" data-range-key="thisMonth" onclick="applyDateRangePreset('thisMonth')">This month</button>
+                <button class="date-range-btn" data-range-key="lastMonth" onclick="applyDateRangePreset('lastMonth')">Last month</button>
+                <button class="date-range-btn" data-range-key="last3Months" onclick="applyDateRangePreset('last3Months')">Last 3 months</button>
+                <button class="date-range-btn" data-range-key="thisYear" onclick="applyDateRangePreset('thisYear')">This year</button>
+                <button class="date-range-btn" data-range-key="lastYear" onclick="applyDateRangePreset('lastYear')">Last year</button>
+                <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
+            </div>
+
             <!-- Top Dashboard Stats Overview Section -->
             <section class="stats-row">
                 
@@ -103,14 +127,26 @@
                             <span class="lbl-muted">WINS</span>
                             <span class="val-green" id="stat-wins">0</span>
                         </div>
-                        <div class="progress-ring ring-green" id="stat-wins-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-green" id="stat-wins-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                     <div class="dash-card design-fix">
                         <div class="card-text-group">
                             <span class="lbl-muted">LOSSES</span>
                             <span class="val-red" id="stat-losses">0</span>
                         </div>
-                        <div class="progress-ring ring-red" id="stat-losses-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-red" id="stat-losses-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                 </div>
 
@@ -121,14 +157,26 @@
                             <span class="lbl-muted">OPEN</span>
                             <span class="val-muted" id="stat-open">0</span>
                         </div>
-                        <div class="progress-ring ring-grey" id="stat-open-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-grey" id="stat-open-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                     <div class="dash-card design-fix">
                         <div class="card-text-group">
                             <span class="lbl-muted">WASH</span>
                             <span class="val-muted" id="stat-wash">0</span>
                         </div>
-                        <div class="progress-ring ring-grey" id="stat-wash-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-grey" id="stat-wash-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                 </div>
 
@@ -139,14 +187,26 @@
                             <span class="lbl-muted">AVG W</span>
                             <span class="val-green" id="stat-avg-win">$0</span>
                         </div>
-                        <div class="progress-ring ring-green" id="stat-avg-win-ring" data-pct="0%"></div>
+                        <div class="progress-ring ring-green" id="stat-avg-win-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                     <div class="dash-card design-fix">
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG L</span>
                             <span class="val-red" id="stat-avg-loss">-$0</span>
                         </div>
-                        <div class="progress-ring ring-red" id="stat-avg-loss-ring" data-pct="-0%"></div>
+                        <div class="progress-ring ring-red" id="stat-avg-loss-ring">
+                            <svg viewBox="0 0 36 36" class="progress-ring-svg">
+                                <circle class="progress-ring-bg" cx="18" cy="18" r="15.5"></circle>
+                                <circle class="progress-ring-fg" cx="18" cy="18" r="15.5"></circle>
+                            </svg>
+                            <span class="progress-ring-label">0%</span>
+                        </div>
                     </div>
                 </div>
 
@@ -184,6 +244,21 @@
         <!-- 2. STATS PAGE VIEW (Hidden by Default) -->
         <!-- ========================================== -->
         <div id="page-stats" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+
+            <!-- Quick date-range filter (applies to Dashboard + Stats) -->
+            <div class="page-date-range-bar">
+                <button class="date-range-btn" data-range-key="today" onclick="applyDateRangePreset('today')">Today</button>
+                <button class="date-range-btn" data-range-key="yesterday" onclick="applyDateRangePreset('yesterday')">Yesterday</button>
+                <button class="date-range-btn" data-range-key="thisWeek" onclick="applyDateRangePreset('thisWeek')">This week</button>
+                <button class="date-range-btn" data-range-key="lastWeek" onclick="applyDateRangePreset('lastWeek')">Last week</button>
+                <button class="date-range-btn" data-range-key="thisMonth" onclick="applyDateRangePreset('thisMonth')">This month</button>
+                <button class="date-range-btn" data-range-key="lastMonth" onclick="applyDateRangePreset('lastMonth')">Last month</button>
+                <button class="date-range-btn" data-range-key="last3Months" onclick="applyDateRangePreset('last3Months')">Last 3 months</button>
+                <button class="date-range-btn" data-range-key="thisYear" onclick="applyDateRangePreset('thisYear')">This year</button>
+                <button class="date-range-btn" data-range-key="lastYear" onclick="applyDateRangePreset('lastYear')">Last year</button>
+                <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
+            </div>
+
             <div class="stats-metrics-row" id="stats-metrics-row-1"></div>
             <div class="stats-metrics-row" id="stats-metrics-row-2"></div>
 
@@ -521,8 +596,361 @@
         <!-- ========================================== -->
         <!-- 6. HELP PAGE VIEW (Hidden by Default) -->
         <!-- ========================================== -->
-        <div id="page-help" class="view-section" style="display: none;">
-            <h2 style="color: #d1d4dc; font-family: sans-serif;">Documentation & Platform Support Helpdesk</h2>
+        <div id="page-help" class="view-section help-page" style="display: none;">
+            <!-- Hero -->
+            <div class="help-hero">
+                <i class="fa-solid fa-coins help-hero-icon"></i>
+                <h1>How can we help?</h1>
+                <p>Everything Bullion Book can do, in one place. Search or jump to a topic below.</p>
+                <div class="help-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="help-search-input" placeholder="Search help topics..." oninput="filterHelpSections(this.value)">
+                </div>
+            </div>
+
+            <!-- Quick links -->
+            <div class="help-quicklinks" id="help-quicklinks">
+                <a href="#help-dashboard" class="help-quicklink"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+                <a href="#help-trades" class="help-quicklink"><i class="fa-solid fa-square-plus"></i> Trades</a>
+                <a href="#help-tags" class="help-quicklink"><i class="fa-solid fa-tag"></i> Tags</a>
+                <a href="#help-accounts" class="help-quicklink"><i class="fa-solid fa-wallet"></i> Accounts</a>
+                <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
+                <a href="#help-calendar" class="help-quicklink"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+                <a href="#help-stats" class="help-quicklink"><i class="fa-solid fa-chart-simple"></i> Stats</a>
+                <a href="#help-news" class="help-quicklink"><i class="fa-solid fa-newspaper"></i> News & Charts</a>
+                <a href="#help-settings" class="help-quicklink"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#help-account-access" class="help-quicklink"><i class="fa-solid fa-right-to-bracket"></i> Login & Guest Mode</a>
+            </div>
+
+            <!-- Dashboard -->
+            <section class="help-section" id="help-dashboard">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-border-all"></i>
+                    <h2>Dashboard</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-area"></i>
+                        <h3>Equity Curve</h3>
+                        <p>A live chart of your cumulative trade P&amp;L. Green above $0, red below. Hover to see the exact value for any day; the badge on top always shows your current total.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
+                        <h3>Performance Rings</h3>
+                        <p>WINS, LOSSES, OPEN, WASH, AVG&nbsp;W and AVG&nbsp;L update live as you log trades. Each ring's fill is proportional to the real percentage.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-table-list"></i>
+                        <h3>Trade Log</h3>
+                        <p>Click any column header to sort. Click a row to view full trade details. Use the <strong>⋯</strong> menu on a row to mark it as a wash or delete it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                        <h3>Account Balance</h3>
+                        <p>Shown top-left of the sidebar. It's your deposits minus withdrawals, automatically adjusted by realized trade P&amp;L - click the pencil icon to manage it.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Trades -->
+            <section class="help-section" id="help-trades">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-square-plus"></i>
+                    <h2>Logging Trades</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <h3>New Trade</h3>
+                        <p>Click <strong>New Trade</strong> in the sidebar. Set a Symbol, optional Target/Stop-Loss, then add one or more Buy/Sell actions with quantity, price, fee and date/time.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <h3>Long &amp; Short</h3>
+                        <p>If your first action is a Buy, the trade is treated as Long. If it's a Sell first, it's Short - profit/loss and Trade Levels colors flip accordingly.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <h3>Mark as Wash</h3>
+                        <p>From a row's <strong>⋯</strong> menu, mark a trade as wash to treat it as breakeven - it stops counting as a win or loss anywhere, including your balance.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-trash"></i>
+                        <h3>Edit &amp; Delete</h3>
+                        <p>Click a trade row to open its read-only summary, then hit Edit to change anything. Deleting always asks for confirmation first.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tags -->
+            <section class="help-section" id="help-tags">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-tag"></i>
+                    <h2>Tags</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-keyboard"></i>
+                        <h3>Adding Tags</h3>
+                        <p>On the New Trade modal's Journal tab, type a tag name and press Enter. A new tag is created automatically the first time you use it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-eye"></i>
+                        <h3>Spotting Tags</h3>
+                        <p>A small tag icon appears next to a row's <strong>⋯</strong> menu when it has tags - hover it to see which ones.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-list-check"></i>
+                        <h3>Managing Tags</h3>
+                        <p>Settings → Tag Management lets you rename, categorize, describe or delete any tag across your account.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <h3>Tag Performance</h3>
+                        <p>The Stats page breaks down trades, P&amp;L and contribution % per tag - great for spotting which setups actually work.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Accounts -->
+            <section class="help-section" id="help-accounts">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-wallet"></i>
+                    <h2>Accounts</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-shuffle"></i>
+                        <h3>Multiple Accounts</h3>
+                        <p>Use the Primary Account dropdown at the top of the sidebar to switch between accounts - the Dashboard, Stats, Calendar and balance all follow whichever is active.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                        <h3>Deposits &amp; Withdrawals</h3>
+                        <p>Click the pencil next to Account Balance to add, edit or remove transactions - they're combined with trade P&amp;L to compute your balance.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-plus"></i>
+                        <h3>New Account</h3>
+                        <p>Create as many accounts as you like from the same modal - useful for separating a live account from a demo, or tracking multiple strategies.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <h3>Deleting an Account</h3>
+                        <p>This permanently removes that account and every trade, note and transaction inside it. It cannot be undone.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Day Notes -->
+            <section class="help-section" id="help-notes">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-bookmark"></i>
+                    <h2>Day Notes</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-face-smile"></i>
+                        <h3>Mood &amp; Conditions</h3>
+                        <p>Click <strong>New Note</strong> to log your mood, the market condition (up/range/down) and volatility for any date, plus free-form notes.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-table-list"></i>
+                        <h3>Inline With Trades</h3>
+                        <p>Notes appear right inside the Dashboard trade log, sorted by date alongside your trades - not hidden in a separate list.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-pen"></i>
+                        <h3>Multiple Per Day</h3>
+                        <p>Each "New Note" creates a fresh entry - there's no limit to how many you can log for the same day.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar -->
+            <section class="help-section" id="help-calendar">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <h2>Calendar</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-table-cells"></i>
+                        <h3>Month Grid</h3>
+                        <p>Every day shows that day's total P&amp;L and trade count, colored green or red. Use the arrows or the month/year dropdowns to navigate.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-calendar-week"></i>
+                        <h3>Weekly Summary</h3>
+                        <p>The right-hand rail totals each visible week's P&amp;L, win rate and win/loss count at a glance.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-list"></i>
+                        <h3>Day Drill-Down</h3>
+                        <p>Click the "X Trades" link on any day to open a list of every trade placed that day - click one to view its full details.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats -->
+            <section class="help-section" id="help-stats">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-chart-simple"></i>
+                    <h2>Stats</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-percent"></i>
+                        <h3>Key Metrics</h3>
+                        <p>Win Rate, Expectancy, Profit Factor, Avg Hold times, Win/Loss Streaks, Top Win/Loss, Avg Daily Volume and Avg Size, all computed from your real trades.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-area"></i>
+                        <h3>Equity Curve</h3>
+                        <p>The same style of equity chart as the Dashboard, sized larger with a visible price/date axis.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-bar"></i>
+                        <h3>Day &amp; Hour Breakdown</h3>
+                        <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-table"></i>
+                        <h3>Tag &amp; Symbol Tables</h3>
+                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag and per symbol you've actually traded.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- News & Charts -->
+            <section class="help-section" id="help-news">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-newspaper"></i>
+                    <h2>News &amp; Charts</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-candlestick"></i>
+                        <h3>Daily XAUUSD Charts</h3>
+                        <p>One interactive candlestick chart per trading day, updated automatically every night - no manual downloads needed.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-clock"></i>
+                        <h3>1m / 5m / 15m</h3>
+                        <p>Each chart has a timeframe toggle. Any interval not available for a given day is simply greyed out.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <h3>Trade Levels</h3>
+                        <p>Toggle "Trade Levels" to overlay your Target/Stop-Loss zones on the chart for any trade entered that day - green for the favorable side, red for risk.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        <h3>News Time Markers</h3>
+                        <p>Toggle this to drop a marker on each chart at the exact time of that day's USD economic news events.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-ruler"></i>
+                        <h3>Measuring</h3>
+                        <p>Shift+drag on any chart to measure price, percent, bar count, time and volume between two points.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>Lock / Unlock</h3>
+                        <p>Charts are locked by default so scrolling the page doesn't accidentally pan a chart. Click the lock icon (bottom-right of a chart) to interact with it directly.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings -->
+            <section class="help-section" id="help-settings">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-gear"></i>
+                    <h2>Settings</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-id-badge"></i>
+                        <h3>Personal Info</h3>
+                        <p>Update your display name and profile photo.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-sliders"></i>
+                        <h3>Account Settings</h3>
+                        <p>Set your currency symbol, default Symbol/Qty/Fee for new trades, and whether Return % is based on a trade's own capital or your full account balance.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-link"></i>
+                        <h3>Share Your Journal</h3>
+                        <p>Generate a public link with a snapshot of your last 100 trades - no login required to view it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <h3>Password &amp; Security</h3>
+                        <p>Change your password here. If it fails, log out and back in first - this is a security requirement for sensitive changes.</p>
+                    </div>
+                    <div class="help-tile help-tile-danger">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <h3>Danger Zone</h3>
+                        <p>Fix Missing Trades, wipe all journal data for an account, or permanently delete your user account. All destructive actions ask for confirmation.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Login & Guest Mode -->
+            <section class="help-section" id="help-account-access">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <h2>Login &amp; Guest Mode</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-brands fa-google"></i>
+                        <h3>Signing In</h3>
+                        <p>Log in with email/password or Google. Your data syncs to your account and follows you across devices.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-user-large-slash"></i>
+                        <h3>Skip Login</h3>
+                        <p>Try the app without an account - your data is saved locally to this browser only and won't sync anywhere else.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <h3>Logging Out</h3>
+                        <p>Click your profile circle at the bottom of the sidebar, or use Log Out in the nav menu.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="help-section" id="help-faq">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <h2>Frequently Asked Questions</h2>
+                </div>
+                <div class="help-faq-list">
+                    <details class="help-faq-item">
+                        <summary>Where does chart data come from, and how often does it update?</summary>
+                        <p>Charts are fetched automatically every night from a market data provider and added to the News tab - you don't need to download or upload anything yourself.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>Is my data private?</summary>
+                        <p>Yes. If you're logged in, your data is scoped to your account and only accessible by you. Guest mode keeps everything local to your browser only.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>What happens to my data if I delete an account?</summary>
+                        <p>Everything tied to that account - trades, notes, tags and transactions - is permanently removed. This can't be undone, so the app always asks you to confirm first.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>Can multiple trades share the same tag?</summary>
+                        <p>Yes - tags work like labels. A trade can have several tags at once, and each tag's Stats breakdown includes every trade that carries it.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>Why does Return % look different on a trade than I expected?</summary>
+                        <p>Check Settings → Account Settings → "PnL % Calculation Type". It can be set to return-on-the-trade's-own-capital, or return-on-your-full-account-balance, which gives very different percentages for the same dollar result.</p>
+                    </details>
+                </div>
+            </section>
         </div>
 
     </main>
@@ -631,6 +1059,58 @@
             <div class="modal-card-footer">
                 <button class="btn-action btn-blue" onclick="saveTradeModal()">Save</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Dashboard trade filter flyout (toggled from the sidebar sliders icon) -->
+    <div id="trade-filter-panel" class="trade-filter-panel" style="display: none;">
+        <div class="trade-filter-counter" id="trade-filter-counter">Total: 0 | Displaying: 0</div>
+
+        <div class="trade-filter-grid">
+            <div class="modal-field">
+                <label class="modal-label">Tags</label>
+                <div class="tag-chip-box filter-chip-box" id="filter-tag-chip-box" onclick="document.getElementById('filter-tag-input').focus()">
+                    <span id="filter-tag-chips"></span>
+                    <input type="text" id="filter-tag-input" class="tag-chip-text-input" placeholder="Search & Select"
+                        oninput="renderFilterTagSuggestions(this.value)" onfocus="renderFilterTagSuggestions(this.value)">
+                    <div class="filter-suggest-list" id="filter-tag-suggestions"></div>
+                </div>
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label">Symbol</label>
+                <div class="tag-chip-box filter-chip-box" id="filter-symbol-chip-box" onclick="document.getElementById('filter-symbol-input').focus()">
+                    <span id="filter-symbol-chips"></span>
+                    <input type="text" id="filter-symbol-input" class="tag-chip-text-input" placeholder="Search & Select"
+                        oninput="renderFilterSymbolSuggestions(this.value)" onfocus="renderFilterSymbolSuggestions(this.value)">
+                    <div class="filter-suggest-list" id="filter-symbol-suggestions"></div>
+                </div>
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label">Direction</label>
+                <select id="filter-direction-select" class="modal-input" onchange="updateTradeFilterCounter()">
+                    <option value="">All</option>
+                    <option value="long">Long</option>
+                    <option value="short">Short</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label">Status</label>
+                <select id="filter-status-select" class="modal-input" onchange="updateTradeFilterCounter()">
+                    <option value="">All</option>
+                    <option value="WIN">Win</option>
+                    <option value="LOSS">Loss</option>
+                    <option value="OPEN">Open</option>
+                    <option value="WASH">Wash</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="trade-filter-actions">
+            <button class="btn-action btn-danger" onclick="resetTradeFilters()">RESET</button>
+            <button class="btn-action btn-blue" onclick="applyTradeFilters()">APPLY</button>
         </div>
     </div>
 
@@ -824,6 +1304,7 @@
     <script src="calendar.js"></script>
     <script src="settings.js"></script>
     <script src="notes.js"></script>
+    <script src="filters.js"></script>
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>

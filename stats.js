@@ -3,7 +3,15 @@
 function getAllTradeRows() {
     const account = getActiveAccount();
     const trades = (account && account.trades) || [];
-    return trades.map(computeTradeSummary);
+    let rows = trades.map(computeTradeSummary);
+
+    // Same Tags/Symbol/Direction/Status filter panel as the Dashboard (filters.js)
+    // - keeps Stats in sync with whatever's currently filtered there.
+    if (typeof tradeLogFilters !== 'undefined' && typeof tradeRowMatchesFilters === 'function') {
+        rows = rows.filter(row => tradeRowMatchesFilters(row, tradeLogFilters));
+    }
+
+    return rows;
 }
 
 function renderStatsPage() {
@@ -82,29 +90,29 @@ function renderStatsMetricCards(rows, closed, wins, losses) {
 
     setHtml('stats-metrics-row-1', [
         ['Win Rate', `${winRate.toFixed(0)}%`],
-        ['Expectancy', expectancy.toFixed(0)],
+        ['Expectancy', expectancy.toFixed(0), true],
         ['Profit Factor', profitFactor === null ? '-' : profitFactor.toFixed(2)],
         ['Avg Win Hold', wins.length > 0 ? formatAvgHold(average(wins.map(r => r.holdSeconds))) : '-'],
         ['Avg Loss Hold', losses.length > 0 ? formatAvgHold(average(losses.map(r => r.holdSeconds))) : '-'],
-        ['Avg Loss', losses.length > 0 ? `${formatTotal(avgLossAmount)} (${avgLossPct.toFixed(1)}%)` : '-'],
-        ['Avg Win', wins.length > 0 ? `${formatTotal(avgWinAmount)} (${avgWinPct.toFixed(1)}%)` : '-']
+        ['Avg Loss', losses.length > 0 ? `${formatTotal(avgLossAmount)} (${avgLossPct.toFixed(1)}%)` : '-', true],
+        ['Avg Win', wins.length > 0 ? `${formatTotal(avgWinAmount)} (${avgWinPct.toFixed(1)}%)` : '-', true]
     ].map(renderStatsMetricCard).join(''));
 
     setHtml('stats-metrics-row-2', [
         ['Win Streak', winStreak],
         ['Loss Streak', lossStreak],
-        ['Top Loss', topLoss ? `${formatTotal(topLoss.returnAmount)} (${topLoss.returnPct.toFixed(1)}%)` : '-'],
-        ['Top Win', topWin ? `${formatTotal(topWin.returnAmount)} (${topWin.returnPct.toFixed(1)}%)` : '-'],
+        ['Top Loss', topLoss ? `${formatTotal(topLoss.returnAmount)} (${topLoss.returnPct.toFixed(1)}%)` : '-', true],
+        ['Top Win', topWin ? `${formatTotal(topWin.returnAmount)} (${topWin.returnPct.toFixed(1)}%)` : '-', true],
         ['Avg Daily Vol', avgDailyVol.toFixed(0)],
         ['Avg Size', avgSize.toFixed(0)]
     ].map(renderStatsMetricCard).join(''));
 }
 
-function renderStatsMetricCard([label, value]) {
+function renderStatsMetricCard([label, value, sensitive]) {
     return `
         <div class="stats-metric-card">
             <div class="stats-metric-label">${escapeHtml(label)}</div>
-            <div class="stats-metric-value">${value}</div>
+            <div class="stats-metric-value${sensitive ? ' sensitive-value' : ''}">${value}</div>
         </div>`;
 }
 
@@ -236,7 +244,7 @@ function renderDivergingBarChart(containerId, items) {
     const ticksHtml = `
         <div class="stats-bar-row">
             <div class="stats-bar-row-label"></div>
-            <div class="stats-bar-row-track">
+            <div class="stats-bar-row-track sensitive-value">
                 <div class="stats-bar-ticks-half">
                     <span>-${Math.round(maxAbs)}</span><span>-${Math.round(step)}</span><span>0</span>
                 </div>
