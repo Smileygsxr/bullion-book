@@ -234,6 +234,7 @@
             <section class="table-container">
                 <div class="table-header-row">
                     <div class="col-head sortable" onclick="sortTradeLog('date')">Date <i class="fa-solid fa-sort" id="sort-icon-date"></i></div>
+                    <div class="col-head">Time</div>
                     <div class="col-head sortable" onclick="sortTradeLog('symbol')">Symbol <i class="fa-solid fa-sort" id="sort-icon-symbol"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('status')">Status <i class="fa-solid fa-sort" id="sort-icon-status"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('direction')">Side <i class="fa-solid fa-sort" id="sort-icon-direction"></i></div>
@@ -723,6 +724,7 @@
             <div class="help-quicklinks" id="help-quicklinks">
                 <a href="#help-dashboard" class="help-quicklink"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="#help-trades" class="help-quicklink"><i class="fa-solid fa-square-plus"></i> Trades</a>
+                <a href="#help-import" class="help-quicklink"><i class="fa-solid fa-file-csv"></i> Importing Trades</a>
                 <a href="#help-tags" class="help-quicklink"><i class="fa-solid fa-tag"></i> Tags</a>
                 <a href="#help-accounts" class="help-quicklink"><i class="fa-solid fa-wallet"></i> Accounts</a>
                 <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
@@ -731,6 +733,7 @@
                 <a href="#help-news" class="help-quicklink"><i class="fa-solid fa-newspaper"></i> News & Charts</a>
                 <a href="#help-settings" class="help-quicklink"><i class="fa-solid fa-gear"></i> Settings</a>
                 <a href="#help-account-access" class="help-quicklink"><i class="fa-solid fa-right-to-bracket"></i> Login & Guest Mode</a>
+                <a href="#help-contact" class="help-quicklink"><i class="fa-solid fa-envelope"></i> Contact & Feedback</a>
             </div>
 
             <!-- Dashboard -->
@@ -753,12 +756,27 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-table-list"></i>
                         <h3>Trade Log</h3>
-                        <p>Click any column header to sort. Click a row to view full trade details. Use the <strong>⋯</strong> menu on a row to mark it as a wash or delete it.</p>
+                        <p>Click any column header to sort, including Confidence. Click a row to view full trade details. Use the <strong>⋯</strong> menu on a row to mark it as a wash or delete it.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-sack-dollar"></i>
                         <h3>Account Balance</h3>
                         <p>Shown top-left of the sidebar. It's your deposits minus withdrawals, automatically adjusted by realized trade P&amp;L - click the pencil icon to manage it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-eye"></i>
+                        <h3>Privacy Blur</h3>
+                        <p>The eye icon (top of the sidebar) blurs every $ figure across the whole app - handy for screen-sharing or streaming without exposing your P&amp;L.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-sliders"></i>
+                        <h3>Trade Filter</h3>
+                        <p>The sliders icon opens a panel to narrow the Dashboard by Tags, Symbol, Direction or Status - it also affects Stats and CSV exports while active.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-calendar"></i>
+                        <h3>Quick Date Range</h3>
+                        <p>The row of buttons above the stats cards (Today, Yesterday, This Week, etc) instantly narrows the Dashboard and Stats to that period. Click the active button again, or Reset, to clear it.</p>
                     </div>
                 </div>
             </section>
@@ -781,6 +799,21 @@
                         <p>If your first action is a Buy, the trade is treated as Long. If it's a Sell first, it's Short - profit/loss and Trade Levels colors flip accordingly.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-circle-plus"></i>
+                        <h3>Adding Actions</h3>
+                        <p>Click <strong>+</strong> to add another leg - it defaults to the opposite action of the last one (Buy → Sell, Sell → Buy) and copies its quantity, since closing out the same size is the common case.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <h3>Confidence Score</h3>
+                        <p>On the Journal tab, rate how confident you felt about a trade from 0-10. It colors from red to green and shows as its own sortable Dashboard column.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-image"></i>
+                        <h3>Screenshots</h3>
+                        <p>Upload one or more chart screenshots per trade from the Journal tab. View them alongside a trade's details, or click one to open it full-size.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
                         <h3>Mark as Wash</h3>
                         <p>From a row's <strong>⋯</strong> menu, mark a trade as wash to treat it as breakeven - it stops counting as a win or loss anywhere, including your balance.</p>
@@ -789,6 +822,36 @@
                         <i class="fa-solid fa-trash"></i>
                         <h3>Edit &amp; Delete</h3>
                         <p>Click a trade row to open its read-only summary, then hit Edit to change anything. Deleting always asks for confirmation first.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Importing Trades -->
+            <section class="help-section" id="help-import">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-file-csv"></i>
+                    <h2>Importing Trades</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-upload"></i>
+                        <h3>Broker CSV Import</h3>
+                        <p>Settings → Import Trades lets you upload a closed-trades export (e.g. Exness, MT4/MT5) - each row becomes a trade with real entry/exit legs and your broker's own reported P&amp;L.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-clock"></i>
+                        <h3>Time Adjustment</h3>
+                        <p>Set how many hours to add to your CSV's raw times so they match the chart data (fixed at GMT+2) - changing it retroactively re-times every already-imported trade too.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-rotate"></i>
+                        <h3>Re-Uploading</h3>
+                        <p>Uploading a new file replaces the previous import, but any tags, journal notes or wash-flags you added to those trades carry over automatically (matched by ticket number).</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <h3>Exporting</h3>
+                        <p>Settings → Account Settings → "Export as CSV" downloads your full trade history - it respects whatever filter is currently active on the Dashboard.</p>
                     </div>
                 </div>
             </section>
@@ -868,7 +931,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-table-list"></i>
                         <h3>Inline With Trades</h3>
-                        <p>Notes appear right inside the Dashboard trade log, sorted by date alongside your trades - not hidden in a separate list.</p>
+                        <p>Notes appear right inside the Dashboard trade log, interleaved by recency alongside your trades - not hidden in a separate list. A note naturally sinks down as newer trades or notes come in.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-thumbtack"></i>
+                        <h3>Pinning a Note</h3>
+                        <p>Click the pin icon on a note row to keep it fixed at the very top of the log regardless of date - useful for an announcement or reminder you always want visible.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-pen"></i>
@@ -913,7 +981,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-percent"></i>
                         <h3>Key Metrics</h3>
-                        <p>Win Rate, Expectancy, Profit Factor, Avg Hold times, Win/Loss Streaks, Top Win/Loss, Avg Daily Volume and Avg Size, all computed from your real trades.</p>
+                        <p>Win Rate, Expectancy, Profit Factor, Avg Hold times, Win/Loss Streaks, Top Win/Loss, Avg Daily Volume and Avg Size, all computed from your real trades. Click any card for a short explanation of what it means.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-area"></i>
@@ -923,12 +991,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-bar"></i>
                         <h3>Day &amp; Hour Breakdown</h3>
-                        <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you.</p>
+                        <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you - hover a bar to see its exact P&amp;L.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
                         <h3>Tag &amp; Symbol Tables</h3>
-                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag and per symbol you've actually traded.</p>
+                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag and per symbol you've actually traded - click any column header to sort either table.</p>
                     </div>
                 </div>
             </section>
@@ -988,12 +1056,32 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-sliders"></i>
                         <h3>Account Settings</h3>
-                        <p>Set your currency symbol, default Symbol/Qty/Fee for new trades, and whether Return % is based on a trade's own capital or your full account balance.</p>
+                        <p>Set your currency symbol, default Symbol/Qty/Fee for new trades, whether Return % is based on a trade's own capital or your full balance, and how new-leg dates/the Dashboard's date column behave. Hover or click the <strong>?</strong> next to any field for a quick explanation.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <h3>Contract Sizes</h3>
+                        <p>Fixes P&amp;L math for lot-based instruments - e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10. This is separate from leverage, which only affects margin. XAUUSD is built in; add others you trade.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-tag"></i>
+                        <h3>Tag Management</h3>
+                        <p>Rename, categorize, describe or delete any tag across your account.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <h3>Import Trades</h3>
+                        <p>Upload a broker CSV export to bulk-journal your trade history, with a timezone offset to line times up with the chart data. See the Importing Trades section above for details.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-link"></i>
                         <h3>Share Your Journal</h3>
                         <p>Generate a public link with a snapshot of your last 100 trades - no login required to view it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <h3>Export Trade History</h3>
+                        <p>Download your full trade history as a CSV, matching whatever's currently filtered on the Dashboard.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-shield-halved"></i>
@@ -1060,7 +1148,44 @@
                         <summary>Why does Return % look different on a trade than I expected?</summary>
                         <p>Check Settings → Account Settings → "PnL % Calculation Type". It can be set to return-on-the-trade's-own-capital, or return-on-your-full-account-balance, which gives very different percentages for the same dollar result.</p>
                     </details>
+                    <details class="help-faq-item">
+                        <summary>My manually-entered P&amp;L looks wrong for gold/forex - what's happening?</summary>
+                        <p>A price move only equals real dollars once it's scaled by the instrument's contract size (e.g. Gold is 100oz per lot). Check Settings → Contract Sizes and make sure the symbol you're trading is listed with the right value - this doesn't affect CSV-imported trades, which already use your broker's own reported P&amp;L.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>Can I bulk-import my trade history instead of entering trades one by one?</summary>
+                        <p>Yes - Settings → Import Trades accepts a closed-trades CSV export from brokers like Exness (MT4/MT5-style reports). Re-uploading a newer export replaces the previous import but keeps any tags/notes you added.</p>
+                    </details>
                 </div>
+            </section>
+
+            <!-- Contact & Feedback -->
+            <section class="help-section" id="help-contact">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-envelope"></i>
+                    <h2>Contact &amp; Feedback</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <h3>Suggest a Feature</h3>
+                        <p>Got an idea that would make Bullion Book better? Send it over to <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a>.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-bug"></i>
+                        <h3>Report a Bug</h3>
+                        <p>Something not working as expected? Email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> with what happened and which page you were on.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Disclaimer -->
+            <section class="help-section help-disclaimer" id="help-disclaimer">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <h2>Disclaimer</h2>
+                </div>
+                <p>Bullion Book is a personal trade-journaling tool for tracking and reviewing your own trades. It does not provide financial, investment, or trading advice, and nothing in this app should be interpreted as a recommendation to buy, sell, or hold any financial instrument. All statistics, charts, and figures are calculated from data you enter or import and may contain errors - always verify important numbers against your broker's own records. Past performance shown here does not guarantee future results. Trading leveraged products such as forex and CFDs carries a high level of risk and may not be suitable for all investors; you could lose more than your initial deposit. Always do your own research and consult a licensed financial advisor before making trading decisions.</p>
             </section>
         </div>
 

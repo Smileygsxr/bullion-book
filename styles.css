@@ -2940,8 +2940,25 @@ body {
     line-height: 1.5;
 }
 
+.help-tile p a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.help-tile p a:hover {
+    text-decoration: underline;
+}
+
 .help-tile-danger i {
     color: #f6465d;
+}
+
+.help-disclaimer p {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    margin: 0;
 }
 
 .help-faq-list {

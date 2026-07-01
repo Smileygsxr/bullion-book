@@ -10,76 +10,114 @@
 </head>
 <body>
 
-    <!-- Purely decorative brand texture flanking the signup card - hidden on narrow screens (see auth.css) -->
-    <svg class="auth-side-art auth-side-art-left" viewBox="0 0 110 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <line x1="15" y1="460" x2="15" y2="520" stroke="#f6465d" stroke-width="2"/>
-        <rect x="8" y="475" width="14" height="30" fill="#f6465d"/>
-        <line x1="32" y1="400" x2="32" y2="470" stroke="#2ebd85" stroke-width="2"/>
-        <rect x="25" y="415" width="14" height="35" fill="#2ebd85"/>
-        <line x1="49" y1="350" x2="49" y2="410" stroke="#2ebd85" stroke-width="2"/>
-        <rect x="42" y="362" width="14" height="30" fill="#2ebd85"/>
-        <line x1="66" y1="280" x2="66" y2="360" stroke="#f6465d" stroke-width="2"/>
-        <rect x="59" y="295" width="14" height="42" fill="#f6465d"/>
-        <line x1="83" y1="210" x2="83" y2="290" stroke="#2ebd85" stroke-width="2"/>
-        <rect x="76" y="225" width="14" height="38" fill="#2ebd85"/>
-        <line x1="100" y1="140" x2="100" y2="220" stroke="#2ebd85" stroke-width="2"/>
-        <rect x="93" y="155" width="14" height="40" fill="#2ebd85"/>
-    </svg>
-    <svg class="auth-side-art auth-side-art-right" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M70 40 L130 40 L150 70 L50 70 Z" fill="#f0d9a8"/>
-        <path d="M50 70 L150 70 L170 220 L30 220 Z" fill="#dfb15b"/>
-        <path d="M150 70 L170 220 L150 220 L130 70 Z" fill="#b8903f"/>
-    </svg>
-
-    <div class="auth-card">
-        <div class="auth-brand">
-            <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
-                <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
-                <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
-                <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
-                <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
-                <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
-                <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
-            </svg>
-            <span>Bullion Book</span>
-        </div>
-
-        <h1 class="auth-title">Create Your Account</h1>
-        <p class="auth-subtitle">Start tracking your trades in minutes.</p>
-
-        <div class="auth-error" id="auth-error"></div>
-
-        <button class="auth-btn-google" onclick="loginWithGoogle()">
-            <i class="fa-brands fa-google"></i> Sign up with Google
-        </button>
-
-        <div class="auth-divider">Or</div>
-
-        <form id="signup-form">
-            <div class="auth-field">
-                <label class="auth-label" for="signup-email">Email</label>
-                <input class="auth-input" type="email" id="signup-email" required>
+    <div class="auth-left">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <svg class="logo-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
+                    <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
+                    <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
+                    <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
+                    <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
+                    <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                </svg>
+                <span>Bullion Book</span>
             </div>
 
-            <div class="auth-field">
-                <label class="auth-label" for="signup-password">Password</label>
-                <input class="auth-input" type="password" id="signup-password" minlength="6" required>
-            </div>
+            <h1 class="auth-title">Create Your Account</h1>
+            <p class="auth-subtitle">Start tracking your trades in minutes.</p>
 
-            <div class="auth-field">
-                <label class="auth-label" for="signup-confirm-password">Confirm Password</label>
-                <input class="auth-input" type="password" id="signup-confirm-password" minlength="6" required>
-            </div>
+            <div class="auth-error" id="auth-error"></div>
 
-            <button class="auth-btn-submit" type="submit">
-                <i class="fa-solid fa-user-plus"></i> Sign Up
+            <button class="auth-btn-google" onclick="loginWithGoogle()">
+                <i class="fa-brands fa-google"></i> Sign up with Google
             </button>
-        </form>
 
-        <p class="auth-footer">Already have an account? <a href="login.html">Log In</a></p>
+            <div class="auth-divider">Or</div>
+
+            <form id="signup-form">
+                <div class="auth-field">
+                    <label class="auth-label" for="signup-email">Email</label>
+                    <input class="auth-input" type="email" id="signup-email" required>
+                </div>
+
+                <div class="auth-field">
+                    <label class="auth-label" for="signup-password">Password</label>
+                    <input class="auth-input" type="password" id="signup-password" minlength="6" required>
+                </div>
+
+                <div class="auth-field">
+                    <label class="auth-label" for="signup-confirm-password">Confirm Password</label>
+                    <input class="auth-input" type="password" id="signup-confirm-password" minlength="6" required>
+                </div>
+
+                <button class="auth-btn-submit" type="submit">
+                    <i class="fa-solid fa-user-plus"></i> Sign Up
+                </button>
+            </form>
+
+            <p class="auth-footer">Already have an account? <a href="login.html">Log In</a></p>
+        </div>
+    </div>
+
+    <div class="auth-right">
+        <svg class="auth-right-art auth-right-art-candles" viewBox="0 0 110 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="15" y1="460" x2="15" y2="520" stroke="#f6465d" stroke-width="2"/>
+            <rect x="8" y="475" width="14" height="30" fill="#f6465d"/>
+            <line x1="32" y1="400" x2="32" y2="470" stroke="#2ebd85" stroke-width="2"/>
+            <rect x="25" y="415" width="14" height="35" fill="#2ebd85"/>
+            <line x1="49" y1="350" x2="49" y2="410" stroke="#2ebd85" stroke-width="2"/>
+            <rect x="42" y="362" width="14" height="30" fill="#2ebd85"/>
+            <line x1="66" y1="280" x2="66" y2="360" stroke="#f6465d" stroke-width="2"/>
+            <rect x="59" y="295" width="14" height="42" fill="#f6465d"/>
+            <line x1="83" y1="210" x2="83" y2="290" stroke="#2ebd85" stroke-width="2"/>
+            <rect x="76" y="225" width="14" height="38" fill="#2ebd85"/>
+            <line x1="100" y1="140" x2="100" y2="220" stroke="#2ebd85" stroke-width="2"/>
+            <rect x="93" y="155" width="14" height="40" fill="#2ebd85"/>
+        </svg>
+        <svg class="auth-right-art auth-right-art-bar" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M70 40 L130 40 L150 70 L50 70 Z" fill="#f0d9a8"/>
+            <path d="M50 70 L150 70 L170 220 L30 220 Z" fill="#dfb15b"/>
+            <path d="M150 70 L170 220 L150 220 L130 70 Z" fill="#b8903f"/>
+        </svg>
+
+        <div class="auth-marketing">
+            <h2>Trade with <span>clarity</span>, not guesswork.</h2>
+            <p>Bullion Book turns your raw trade history into a real edge - log every entry and exit, see exactly what's working, and journal the psychology behind each decision.</p>
+            <ul class="auth-feature-list">
+                <li>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-chart-candlestick"></i></span>
+                    <span>
+                        <span class="auth-feature-title">Visual Trade Journal</span>
+                        <span class="auth-feature-desc">Entry/exit overlays on real charts, screenshots, and a confidence score per trade.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-file-csv"></i></span>
+                    <span>
+                        <span class="auth-feature-title">One-Click Broker Import</span>
+                        <span class="auth-feature-desc">Drop in a CSV from Exness, MT4 or MT5 and your history is journaled instantly.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-chart-pie"></i></span>
+                    <span>
+                        <span class="auth-feature-title">Deep Performance Analytics</span>
+                        <span class="auth-feature-desc">Win rate, expectancy, profit factor, and more - broken down by tag, symbol, day and hour.</span>
+                    </span>
+                </li>
+                <li>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span>
+                        <span class="auth-feature-title">Calendar &amp; Daily Notes</span>
+                        <span class="auth-feature-desc">See your P&amp;L by day and journal your mindset and market conditions.</span>
+                    </span>
+                </li>
+            </ul>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

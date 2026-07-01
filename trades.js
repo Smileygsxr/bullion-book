@@ -511,6 +511,11 @@ function formatTradeDate(isoLike) {
     return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+function formatTradeTime(isoLike) {
+    const d = new Date(isoLike);
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 function formatTradeDateTime(isoLike) {
     const d = new Date(isoLike);
     const datePart = d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: '2-digit' });
@@ -781,6 +786,7 @@ function buildTradeRowHtml(row) {
     return `
     <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
         <div class="table-cell">${formatTradeDate(row.date)}</div>
+        <div class="table-cell">${formatTradeTime(row.date)}</div>
         <div class="table-cell">${escapeHtml(row.symbol)}</div>
         <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
         <div class="table-cell">${sideIcon}</div>
