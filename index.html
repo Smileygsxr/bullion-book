@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -247,6 +247,7 @@
                     <div class="col-head sortable" onclick="sortTradeLog('holdSeconds')">Hold <i class="fa-solid fa-sort" id="sort-icon-holdSeconds"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('returnAmount')">Return <i class="fa-solid fa-sort" id="sort-icon-returnAmount"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('returnPct')">Return % <i class="fa-solid fa-sort" id="sort-icon-returnPct"></i></div>
+                    <div class="col-head sortable confidence-col" onclick="sortTradeLog('rMultiple')">R-Multiple <i class="fa-solid fa-sort" id="sort-icon-rMultiple"></i></div>
                     <div class="col-head sortable confidence-col" onclick="sortTradeLog('confidence')">Confidence <i class="fa-solid fa-sort" id="sort-icon-confidence"></i></div>
                 </div>
                 <div class="table-body" id="trade-log-body"></div>
@@ -275,6 +276,37 @@
             <div class="stats-metrics-row" id="stats-metrics-row-1"></div>
             <div class="stats-metrics-row" id="stats-metrics-row-2"></div>
 
+            <div class="stats-charts-row">
+                <div class="stats-panel stats-panel-half">
+                    <div class="pro-score-title-row">
+                        <span class="stats-panel-title" style="margin-bottom: 0;">PRO SCORE</span>
+                        <button type="button" class="settings-info-btn" data-tooltip="Pro Score averages 6 normalized metrics (each scored out of 100): Win %, Profit Factor, Avg Win/Loss ratio, Recovery Factor, Max Drawdown, and Consistency (how much of your profit came from a single best day)." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                    </div>
+                    <div id="pro-score-radar" class="pro-score-radar"></div>
+                    <div class="pro-score-summary">
+                        <div class="pro-score-label">Your Pro Score</div>
+                        <div class="pro-score-value" id="pro-score-value">-</div>
+                        <div class="pro-score-gradient-bar">
+                            <div class="pro-score-marker" id="pro-score-marker" style="left: 0%;"></div>
+                        </div>
+                        <div class="pro-score-scale-labels">
+                            <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-panel-half stats-stack-col">
+                    <div class="stats-panel">
+                        <div class="stats-panel-title">WINS VS LOSSES</div>
+                        <div class="wl-compare" id="wins-losses-compare"></div>
+                    </div>
+                    <div class="stats-panel">
+                        <div class="stats-panel-title">MAE / MFE (XAUUSD, SAME-DAY TRADES)</div>
+                        <div class="mae-mfe-panel" id="stats-mae-mfe-result"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="stats-panel">
                 <div class="stats-panel-title">EQUITY CURVE</div>
                 <div id="stats-equity-chart" class="stats-equity-chart"></div>
@@ -297,6 +329,7 @@
                         <thead>
                             <tr>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'name')">Tag <i class="fa-solid fa-sort" id="stats-tag-sort-icon-name"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'categoryName')">Category <i class="fa-solid fa-sort" id="stats-tag-sort-icon-categoryName"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-tag-sort-icon-trades"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnl"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'pnlPct')">PnL % <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnlPct"></i></th>
@@ -320,6 +353,22 @@
                         <tbody id="stats-symbol-table-body"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stats-panel-title">PLAYBOOK PERFORMANCE</div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'name')">Playbook <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-name"></i></th>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-trades"></i></th>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'winRate')">Win Rate <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-winRate"></i></th>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-pnl"></i></th>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'contributionPct')">PnL Contribution % <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-contributionPct"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-playbook-table-body"></tbody>
+                </table>
             </div>
         </div>
 
@@ -456,6 +505,10 @@
                         <span><i class="fa-solid fa-scale-balanced"></i> Contract Sizes</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
+                    <button class="settings-subnav-item" id="settings-tab-playbooks" onclick="switchSettingsPanel('playbooks')">
+                        <span><i class="fa-solid fa-book-open"></i> Playbooks</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
                     <button class="settings-subnav-item" id="settings-tab-import" onclick="switchSettingsPanel('import')">
                         <span><i class="fa-solid fa-file-csv"></i> Import Trades</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
@@ -562,6 +615,12 @@
                                     <option value="balance">Return on Account Balance</option>
                                 </select>
                             </div>
+                            <div class="modal-field">
+                                <label class="modal-label">Breakeven Range ($)
+                                    <button type="button" class="settings-info-btn" data-tooltip="A win or loss within this $ amount is counted as a breakeven (wash) instead of a win/loss for win-rate and streak purposes. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
+                                <input type="number" step="0.01" min="0" id="settings-breakeven-range" class="modal-input" placeholder="0">
+                            </div>
                         </div>
 
                         <button class="btn-action btn-blue settings-save-btn" onclick="saveAccountSettings()">Save</button>
@@ -583,6 +642,19 @@
 
                     <!-- Tag Management -->
                     <div class="settings-panel" id="settings-panel-tags" style="display: none;">
+                        <h3 class="settings-subtitle">Tag Categories</h3>
+                        <p class="settings-share-desc">Define your own categories (e.g. Mistake, Setup, Emotion) - each tag below can be assigned to one.</p>
+                        <div class="tag-chip-box" id="tag-category-chips" style="margin-bottom: 12px;"></div>
+                        <div class="modal-field-row" style="align-items: flex-end;">
+                            <div class="modal-field" style="flex: 1;">
+                                <input type="text" id="tag-category-input" class="modal-input" placeholder="New category name..." onkeydown="if(event.key==='Enter'){addTagCategory();}">
+                            </div>
+                            <button class="btn-action btn-blue" style="width: auto;" onclick="addTagCategory()">Add Category</button>
+                        </div>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Tags</h3>
                         <button class="btn-action btn-blue settings-add-tag-btn" onclick="addTagRow()">Add Tag</button>
                         <table class="stats-table settings-tag-table">
                             <thead>
@@ -610,6 +682,18 @@
                             </thead>
                             <tbody id="settings-contract-size-table-body"></tbody>
                         </table>
+                    </div>
+
+                    <!-- Playbooks: define a strategy's rules, then assign trades to it -->
+                    <div class="settings-panel" id="settings-panel-playbooks" style="display: none;">
+                        <h2 class="settings-panel-title">Playbooks</h2>
+                        <p class="settings-share-desc">
+                            Define your trading strategies and their rules, then assign a Playbook to any
+                            trade from the New/Edit Trade modal. Stats breaks down performance per Playbook
+                            so you can see which strategies are actually working.
+                        </p>
+                        <button class="btn-action btn-blue settings-add-tag-btn" onclick="addPlaybookRow()">Add Playbook</button>
+                        <div id="settings-playbook-list"></div>
                     </div>
 
                     <!-- Import Trades (CSV, e.g. an Exness/MT4/MT5 trade history export) -->
@@ -725,6 +809,7 @@
                 <a href="#help-dashboard" class="help-quicklink"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="#help-trades" class="help-quicklink"><i class="fa-solid fa-square-plus"></i> Trades</a>
                 <a href="#help-import" class="help-quicklink"><i class="fa-solid fa-file-csv"></i> Importing Trades</a>
+                <a href="#help-playbooks" class="help-quicklink"><i class="fa-solid fa-book-open"></i> Playbooks</a>
                 <a href="#help-tags" class="help-quicklink"><i class="fa-solid fa-tag"></i> Tags</a>
                 <a href="#help-accounts" class="help-quicklink"><i class="fa-solid fa-wallet"></i> Accounts</a>
                 <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
@@ -814,6 +899,26 @@
                         <p>Upload one or more chart screenshots per trade from the Journal tab. View them alongside a trade's details, or click one to open it full-size.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                        <h3>Commissions &amp; Fees</h3>
+                        <p>Enter a fee per action/leg - it's automatically subtracted from that trade's P&amp;L. Total fees paid across all your closed trades show as a Stats card.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <h3>Breakeven Range</h3>
+                        <p>Settings → Account Settings lets you set a $ range - a win or loss within that amount counts as breakeven for win-rate/streak purposes, without touching the actual dollar P&amp;L.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <h3>R-Multiple</h3>
+                        <p>If you set a Stop-Loss, each closed trade shows its return in units of risk (R) - how many multiples of your planned risk you actually won or lost.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-book-open"></i>
+                        <h3>Playbooks</h3>
+                        <p>Assign a Playbook (Settings → Playbooks) to any trade to track which of your defined strategies it followed - see Playbooks below for details.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
                         <h3>Mark as Wash</h3>
                         <p>From a row's <strong>⋯</strong> menu, mark a trade as wash to treat it as breakeven - it stops counting as a win or loss anywhere, including your balance.</p>
@@ -822,6 +927,31 @@
                         <i class="fa-solid fa-trash"></i>
                         <h3>Edit &amp; Delete</h3>
                         <p>Click a trade row to open its read-only summary, then hit Edit to change anything. Deleting always asks for confirmation first.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Playbooks -->
+            <section class="help-section" id="help-playbooks">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-book-open"></i>
+                    <h2>Playbooks</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-plus"></i>
+                        <h3>Defining a Playbook</h3>
+                        <p>Settings → Playbooks lets you name a strategy and write out its rules - entry criteria, stop-loss/target rules, what setups qualify.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-link"></i>
+                        <h3>Assigning to a Trade</h3>
+                        <p>Pick a Playbook from the dropdown on the New/Edit Trade modal's General tab. It shows on that trade's read-only view too.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <h3>Playbook Performance</h3>
+                        <p>The Stats page breaks down trades, win rate, P&amp;L and contribution % per Playbook, so you can see which strategies are actually working.</p>
                     </div>
                 </div>
             </section>
@@ -877,6 +1007,11 @@
                         <i class="fa-solid fa-list-check"></i>
                         <h3>Managing Tags</h3>
                         <p>Settings → Tag Management lets you rename, categorize, describe or delete any tag across your account.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <h3>Custom Categories</h3>
+                        <p>Define your own categories (e.g. Mistake, Setup, Emotion) in Settings → Tag Management, then assign each tag to one from a dropdown instead of typing free text.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-pie"></i>
@@ -981,12 +1116,22 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-percent"></i>
                         <h3>Key Metrics</h3>
-                        <p>Win Rate, Expectancy, Profit Factor, Avg Hold times, Win/Loss Streaks, Top Win/Loss, Avg Daily Volume and Avg Size, all computed from your real trades. Click any card for a short explanation of what it means.</p>
+                        <p>Win Rate, Expectancy, Profit Factor, Avg Hold times, Win/Loss Streaks, Top Win/Loss, Avg Daily Volume, Avg Size, Total Fees and Avg R-Multiple, all computed from your real trades. Click any card for a short explanation of what it means.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h3>Pro Score</h3>
+                        <p>A single 0-100 score averaging 6 normalized metrics on a radar chart: Win %, Profit Factor, Avg Win/Loss, Recovery Factor, Max Drawdown and Consistency. Click the <strong>?</strong> for the exact formula.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-area"></i>
                         <h3>Equity Curve</h3>
                         <p>The same style of equity chart as the Dashboard, sized larger with a visible price/date axis.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-scale-unbalanced"></i>
+                        <h3>Wins vs. Losses</h3>
+                        <p>A side-by-side comparison of your winning and losing trades - count, total P&amp;L, average, average hold time and your largest of each.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-bar"></i>
@@ -995,8 +1140,13 @@
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
-                        <h3>Tag &amp; Symbol Tables</h3>
-                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag and per symbol you've actually traded - click any column header to sort either table.</p>
+                        <h3>Tag, Symbol &amp; Playbook Tables</h3>
+                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag, symbol and playbook - click any column header to sort a table.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-arrows-up-down"></i>
+                        <h3>MAE / MFE</h3>
+                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade. Only computable for same-day XAUUSD trades, since that's the only price history this app has.</p>
                     </div>
                 </div>
             </section>
@@ -1062,6 +1212,11 @@
                         <i class="fa-solid fa-scale-balanced"></i>
                         <h3>Contract Sizes</h3>
                         <p>Fixes P&amp;L math for lot-based instruments - e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10. This is separate from leverage, which only affects margin. XAUUSD is built in; add others you trade.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-book-open"></i>
+                        <h3>Playbooks</h3>
+                        <p>Define named strategies with their own rules, then assign one to any trade to track which setups actually perform.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-tag"></i>
@@ -1268,6 +1423,13 @@
                         <div class="modal-field">
                             <label class="modal-label">Stop-Loss</label>
                             <input type="number" step="0.001" id="trade-modal-stoploss" class="modal-input">
+                        </div>
+                    </div>
+
+                    <div class="modal-field-row">
+                        <div class="modal-field">
+                            <label class="modal-label">Playbook</label>
+                            <select id="trade-modal-playbook" class="modal-input"></select>
                         </div>
                     </div>
 
@@ -1496,6 +1658,21 @@
                         <div class="trade-view-point-time" id="trade-view-exit-time">-</div>
                         <div class="trade-view-dot exit"></div>
                         <div class="trade-view-point-detail" id="trade-view-exit-detail">-</div>
+                    </div>
+                </div>
+
+                <div class="trade-view-meta-row" id="trade-view-meta-row">
+                    <div class="trade-view-meta-item">
+                        <span class="trade-view-meta-label">Fees</span>
+                        <span class="trade-view-meta-value sensitive-value" id="trade-view-fees">-</span>
+                    </div>
+                    <div class="trade-view-meta-item">
+                        <span class="trade-view-meta-label">R-Multiple</span>
+                        <span class="trade-view-meta-value" id="trade-view-rmultiple">-</span>
+                    </div>
+                    <div class="trade-view-meta-item">
+                        <span class="trade-view-meta-label">Playbook</span>
+                        <span class="trade-view-meta-value" id="trade-view-playbook">-</span>
                     </div>
                 </div>
 

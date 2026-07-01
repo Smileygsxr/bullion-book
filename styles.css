@@ -395,6 +395,7 @@ body {
     flex: 3;
     position: relative;
     min-height: 110px;
+    flex-direction: column;
     justify-content: flex-start;
     margin-right: 15px;
 }
@@ -402,14 +403,14 @@ body {
 .chart-metric-label {
     font-size: 0.75rem;
     color: #647080;
-    position: absolute;
-    top: 10px;
-    left: 12px;
+    flex-shrink: 0;
+    margin-bottom: 4px;
 }
 
 .equity-curve-chart {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 /* Modern rounded crosshair "pill" labels for the equity curve charts (replaces
@@ -1292,6 +1293,180 @@ body {
     margin-bottom: 14px;
 }
 
+.wl-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.wl-compare-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr;
+    align-items: center;
+}
+
+.wl-compare-label {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.wl-compare-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.wl-compare-value.win {
+    text-align: right;
+    padding-right: 20px;
+    color: #2ebd85;
+}
+
+.wl-compare-value.loss {
+    text-align: left;
+    padding-left: 20px;
+    color: #f6465d;
+}
+
+.mae-mfe-panel {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
+.mae-mfe-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 0 32px;
+}
+
+.mae-mfe-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.mae-mfe-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.mae-mfe-note {
+    margin: 14px 0 0;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* Pro Score radar chart + gradient scale */
+.pro-score-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.pro-score-radar {
+    display: flex;
+    justify-content: center;
+}
+
+.pro-score-svg {
+    width: 100%;
+    max-width: 340px;
+    height: auto;
+}
+
+.pro-score-grid-ring {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1;
+}
+
+.pro-score-axis-line {
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 1;
+}
+
+.pro-score-data-polygon {
+    fill: rgba(124, 92, 255, 0.35);
+    stroke: #7c5cff;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.pro-score-vertex {
+    fill: #7c5cff;
+    stroke: #ffffff;
+    stroke-width: 1.5;
+}
+
+.pro-score-axis-label {
+    fill: var(--text-muted);
+    font-size: 8px;
+    font-weight: 600;
+}
+
+.pro-score-empty {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 40px 0;
+}
+
+.pro-score-summary {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.pro-score-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.pro-score-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.pro-score-gradient-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f6465d 0%, #dfb15b 50%, #2ebd85 100%);
+}
+
+.pro-score-marker {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--bg-card);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+    transform: translate(-50%, -50%);
+}
+
+.pro-score-scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
 .stats-equity-chart {
     width: 100%;
     height: 240px;
@@ -1306,6 +1481,30 @@ body {
 .stats-panel-half {
     flex: 1;
     min-width: 0;
+}
+
+/* Stacks two .stats-panel cards vertically inside one .stats-panel-half column
+   (e.g. Wins vs Losses above MAE/MFE). The row's default stretch makes this
+   column match Pro Score's height; the last card (MAE/MFE) grows to absorb
+   that leftover space instead of Wins vs Losses, whose row-based layout
+   wouldn't look right stretched. */
+.stats-stack-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stats-stack-col > .stats-panel:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-stack-col > .stats-panel:last-child .mae-mfe-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .stats-bar-chart {
@@ -1638,7 +1837,8 @@ body {
     margin-bottom: 18px;
 }
 
-.settings-tag-table input {
+.settings-tag-table input,
+.settings-tag-table select {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     color: var(--text-light);
@@ -1659,6 +1859,32 @@ body {
     border-radius: 10px;
     padding: 18px 20px;
     margin-bottom: 18px;
+}
+
+.playbook-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.playbook-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.playbook-name-input {
+    flex: 1;
+    font-weight: 700;
+}
+
+.playbook-rules-textarea {
+    width: 100%;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
 }
 
 .settings-danger-box-title {
@@ -2730,6 +2956,33 @@ body {
     align-items: center;
     gap: 0;
     padding: 24px 10px 8px;
+}
+
+.trade-view-meta-row {
+    display: flex;
+    gap: 24px;
+    padding: 10px 10px 18px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.trade-view-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.trade-view-meta-label {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.trade-view-meta-value {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 600;
 }
 
 .trade-view-point {

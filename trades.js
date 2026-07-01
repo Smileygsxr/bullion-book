@@ -40,6 +40,7 @@ function openTradeModal(tradeId) {
             journal: '',
             confidence: null,
             screenshots: [],
+            playbookId: null,
             tagIds: defaults.defaultTagId ? [defaults.defaultTagId] : [],
             legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
         };
@@ -62,6 +63,7 @@ function openTradeModal(tradeId) {
     // stays null until the user actually drags it - see updateTradeConfidenceLabel.
     document.getElementById('trade-modal-confidence').value = draftTrade.confidence !== null ? draftTrade.confidence : 5;
     syncTradeConfidenceLabel(draftTrade.confidence);
+    if (typeof populatePlaybookSelect === 'function') populatePlaybookSelect(draftTrade.playbookId || '');
     renderTradeTagChips();
     renderTradeScreenshotThumbs();
     switchTradeModalTab('general');
@@ -311,6 +313,7 @@ function saveTradeModal() {
     draftTrade.target = document.getElementById('trade-modal-target').value;
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
     draftTrade.journal = document.getElementById('trade-modal-journal').value;
+    draftTrade.playbookId = document.getElementById('trade-modal-playbook').value || null;
     commitPendingTagInput(document.getElementById('trade-tag-input')); // catches a typed tag that wasn't Enter-committed
     delete draftTrade.tagId; // fully migrated to tagIds now
 
@@ -464,6 +467,16 @@ function computeTradeSummary(trade) {
         else if (returnAmount < 0) status = 'LOSS';
         else status = 'WASH';
     }
+
+    // "Breakeven Range" setting: a small win/loss within this $ amount doesn't
+    // really reflect skill either way, so it's counted as a wash for win-rate/
+    // streak purposes - unlike Mark as Wash, this doesn't zero out the actual
+    // dollar P&L, it just reclassifies the status.
+    const breakevenRange = typeof appSettings !== 'undefined' ? (parseFloat(appSettings.breakevenRange) || 0) : 0;
+    if (closedQty > 0 && breakevenRange > 0 && !trade.forceWash && Math.abs(returnAmount) <= breakevenRange) {
+        status = 'WASH';
+    }
+
     if (trade.forceWash) status = 'WASH';
 
     const firstTime = new Date(legs[0].datetime).getTime();
@@ -476,6 +489,14 @@ function computeTradeSummary(trade) {
     const usesLastAction = typeof appSettings !== 'undefined' && appSettings.defaultGridDate === 'last-action';
     const gridDate = usesLastAction ? legs[legs.length - 1].datetime : legs[0].datetime;
 
+    // R-Multiple: how many "risk units" (R) this trade returned, based on the
+    // $ distance from entry to your planned Stop-Loss (Playbook/Risk tools).
+    // Null when no stop-loss was set - there's no risk unit to divide by.
+    const stopLossPrice = parseFloat(trade.stopLoss);
+    const riskPerUnit = !isNaN(stopLossPrice) && stopLossPrice !== entryPrice ? Math.abs(entryPrice - stopLossPrice) : null;
+    const riskAmount = riskPerUnit !== null ? riskPerUnit * entryQty * contractSize : null;
+    const rMultiple = (riskAmount && closedQty > 0 && returnAmount !== null) ? returnAmount / riskAmount : null;
+
     return {
         id: trade.id,
         symbol: trade.symbol,
@@ -483,6 +504,7 @@ function computeTradeSummary(trade) {
         direction,
         status,
         tagIds: trade.tagIds || (trade.tagId ? [trade.tagId] : []),
+        playbookId: trade.playbookId || null,
         qty: entryQty,
         entryPrice,
         exitPrice,
@@ -492,6 +514,8 @@ function computeTradeSummary(trade) {
         holdSeconds: Math.max(0, (lastTime - firstTime) / 1000),
         returnAmount,
         returnPct,
+        fees: totalFees,
+        rMultiple,
         confidence: typeof trade.confidence === 'number' ? trade.confidence : null,
         forceWash: !!trade.forceWash
     };
@@ -535,7 +559,7 @@ function formatTotal(value) {
 // ---- Column sorting ----
 const TRADE_SORT_KEYS = [
     'date', 'symbol', 'status', 'direction', 'qty', 'entryPrice', 'exitPrice',
-    'entTot', 'extTot', 'pos', 'holdSeconds', 'returnAmount', 'returnPct', 'confidence'
+    'entTot', 'extTot', 'pos', 'holdSeconds', 'returnAmount', 'returnPct', 'rMultiple', 'confidence'
 ];
 let tradeSortKey = 'date';
 let tradeSortDir = 'desc';
@@ -717,6 +741,16 @@ function openTradeViewModal(event, tradeId) {
     document.getElementById('trade-view-exit-detail').textContent = lastExitLeg
         ? `${lastExitLeg.quantity} @ ${formatPrice(parseFloat(lastExitLeg.price))}` : '-';
 
+    document.getElementById('trade-view-fees').textContent = formatTotal(row.fees || 0);
+
+    const rMultipleEl = document.getElementById('trade-view-rmultiple');
+    rMultipleEl.textContent = row.rMultiple !== null ? `${row.rMultiple.toFixed(2)}R` : '-';
+    rMultipleEl.className = `trade-view-meta-value ${row.rMultiple > 0 ? 'value-positive' : row.rMultiple < 0 ? 'value-negative' : ''}`;
+
+    const playbooks = account.playbooks || [];
+    const playbook = playbooks.find(p => p.id === trade.playbookId);
+    document.getElementById('trade-view-playbook').textContent = playbook ? playbook.name : '-';
+
     document.getElementById('trade-view-journal').value = trade.journal || '';
 
     const confidenceBadge = document.getElementById('trade-view-confidence');
@@ -799,6 +833,7 @@ function buildTradeRowHtml(row) {
         <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
         <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
         <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
+        <div class="table-cell confidence-col ${row.rMultiple > 0 ? 'value-positive' : row.rMultiple < 0 ? 'value-negative' : ''}">${row.rMultiple === null ? '-' : row.rMultiple.toFixed(2) + 'R'}</div>
         <div class="table-cell confidence-col" style="${row.confidence === null ? '' : `color:${getConfidenceColor(row.confidence)};`}">${row.confidence === null ? '-' : row.confidence}</div>
         <div class="trade-row-menu-wrap">
             ${row.forceWash ? '<i class="fa-solid fa-scale-balanced trade-wash-badge" title="Marked as Wash"></i>' : ''}

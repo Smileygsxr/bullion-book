@@ -16,7 +16,8 @@ let appSettings = {
     defaultQty: '',
     defaultFee: 0,
     defaultTagId: '',
-    pnlCalcType: 'capital'
+    pnlCalcType: 'capital',
+    breakevenRange: 0
 };
 
 let customAvatarDataUrl = null;
@@ -183,7 +184,7 @@ function renderSettingsPage() {
 
 function switchSettingsPanel(tab) {
     currentSettingsTab = tab;
-    ['personal', 'account', 'tags', 'contracts', 'import', 'security', 'danger'].forEach(t => {
+    ['personal', 'account', 'tags', 'contracts', 'playbooks', 'import', 'security', 'danger'].forEach(t => {
         const panel = document.getElementById(`settings-panel-${t}`);
         const navItem = document.getElementById(`settings-tab-${t}`);
         if (panel) panel.style.display = t === tab ? 'block' : 'none';
@@ -194,6 +195,7 @@ function switchSettingsPanel(tab) {
     if (tab === 'account') populateAccountSettingsPanel();
     if (tab === 'tags') renderTagTable();
     if (tab === 'contracts') renderContractSizeTable();
+    if (tab === 'playbooks') renderPlaybookList();
     if (tab === 'import') renderCsvImportMeta();
     if (tab === 'danger') {
         const nameEl = document.getElementById('settings-danger-account-name');
@@ -255,6 +257,7 @@ function populateAccountSettingsPanel() {
     document.getElementById('settings-default-qty').value = appSettings.defaultQty;
     document.getElementById('settings-default-fee').value = appSettings.defaultFee;
     document.getElementById('settings-pnl-calc-type').value = appSettings.pnlCalcType;
+    document.getElementById('settings-breakeven-range').value = appSettings.breakevenRange || 0;
     populateDefaultTagSelect();
     showSettingsStatus('settings-account-status', '');
     document.getElementById('settings-public-link-result').innerHTML = '';
@@ -277,10 +280,12 @@ function saveAccountSettings() {
     appSettings.defaultFee = document.getElementById('settings-default-fee').value;
     appSettings.defaultTagId = document.getElementById('settings-default-tag').value;
     appSettings.pnlCalcType = document.getElementById('settings-pnl-calc-type').value;
+    appSettings.breakevenRange = parseFloat(document.getElementById('settings-breakeven-range').value) || 0;
 
     saveAppSettings();
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderStatsPage === 'function') renderStatsPage();
     showSettingsStatus('settings-account-status', 'Saved.', 'success');
 }
 
@@ -383,15 +388,81 @@ function exportTradesToCsv() {
 }
 
 // ---- Tag Management ----
+// Custom Tag Categories: a managed list (account.tagCategories) instead of a
+// free-text field, so every tag picks from the same consistent set instead of
+// "Setup"/"setup"/"Setups" all meaning the same thing to you but not to a filter.
+function getTagCategoriesArray(account) {
+    if (Array.isArray(account.tagCategories)) return account.tagCategories;
+
+    // One-time migration: turn any pre-existing free-text tag.category values
+    // into real category records instead of silently discarding them.
+    const tagDefs = account.tagDefs || [];
+    const uniqueNames = Array.from(new Set(tagDefs.map(t => (t.category || '').trim()).filter(Boolean)));
+    const categories = uniqueNames.map(name => ({ id: genId(), name }));
+    const nameToId = new Map(categories.map(c => [c.name, c.id]));
+    tagDefs.forEach(t => { t.category = nameToId.get((t.category || '').trim()) || ''; });
+
+    account.tagCategories = categories;
+    if (categories.length > 0) saveAccountsState();
+    return categories;
+}
+
+function buildCategoryOptionsHtml(selectedId) {
+    const categories = getTagCategoriesArray(getActiveAccount());
+    const options = categories.map(c =>
+        `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+    );
+    return `<option value="">None</option>${options.join('')}`;
+}
+
+function renderTagCategoryChips() {
+    const container = document.getElementById('tag-category-chips');
+    if (!container) return;
+    const categories = getTagCategoriesArray(getActiveAccount());
+    container.innerHTML = categories.length > 0
+        ? categories.map(c => `
+            <span class="tag-chip">${escapeHtml(c.name)}<button type="button" onclick="deleteTagCategory('${c.id}')">&times;</button></span>`).join('')
+        : '<span class="settings-share-desc" style="margin:0;">No categories yet - add one below.</span>';
+}
+
+function addTagCategory() {
+    const input = document.getElementById('tag-category-input');
+    const name = (input.value || '').trim();
+    if (!name) return;
+
+    const account = getActiveAccount();
+    const categories = getTagCategoriesArray(account);
+    categories.push({ id: genId(), name });
+    account.tagCategories = categories;
+
+    saveAccountsState();
+    input.value = '';
+    renderTagCategoryChips();
+    renderTagTable();
+}
+
+function deleteTagCategory(categoryId) {
+    const account = getActiveAccount();
+    account.tagCategories = getTagCategoriesArray(account).filter(c => c.id !== categoryId);
+    // Tags that used this category fall back to "None" rather than pointing at
+    // a category that no longer exists.
+    (account.tagDefs || []).forEach(t => { if (t.category === categoryId) t.category = ''; });
+
+    saveAccountsState();
+    renderTagCategoryChips();
+    renderTagTable();
+}
+
 function renderTagTable() {
     const tbody = document.getElementById('settings-tag-table-body');
     if (!tbody) return;
+    renderTagCategoryChips();
     const tagDefs = (getActiveAccount().tagDefs) || [];
 
     tbody.innerHTML = tagDefs.map(t => `
         <tr>
             <td><input type="text" value="${escapeHtml(t.name)}" onchange="updateTagField('${t.id}','name',this.value)"></td>
-            <td><input type="text" value="${escapeHtml(t.category || '')}" onchange="updateTagField('${t.id}','category',this.value)"></td>
+            <td><select onchange="updateTagField('${t.id}','category',this.value)">${buildCategoryOptionsHtml(t.category || '')}</select></td>
             <td><input type="text" value="${escapeHtml(t.description || '')}" onchange="updateTagField('${t.id}','description',this.value)"></td>
             <td><button class="txn-remove-btn" onclick="deleteTagRow('${t.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button></td>
         </tr>`).join('');
@@ -418,6 +489,59 @@ function deleteTagRow(tagId) {
     account.tagDefs = (account.tagDefs || []).filter(t => t.id !== tagId);
     saveAccountsState();
     renderTagTable();
+}
+
+// ---- Playbooks (Settings > Playbooks) - define a strategy's rules, then
+// assign trades to it from the New/Edit Trade modal (see trade-modal-playbook
+// in index.html). Stats breaks down performance per playbook. ----
+function renderPlaybookList() {
+    const container = document.getElementById('settings-playbook-list');
+    if (!container) return;
+    const playbooks = (getActiveAccount().playbooks) || [];
+
+    container.innerHTML = playbooks.length > 0 ? playbooks.map(p => `
+        <div class="playbook-card">
+            <div class="playbook-card-header">
+                <input type="text" class="modal-input playbook-name-input" value="${escapeHtml(p.name)}" onchange="updatePlaybookField('${p.id}','name',this.value)">
+                <button class="txn-remove-btn" onclick="deletePlaybookRow('${p.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button>
+            </div>
+            <textarea class="modal-input playbook-rules-textarea" rows="4" placeholder="Entry criteria, stop-loss/target rules, what setups qualify..." onchange="updatePlaybookField('${p.id}','rules',this.value)">${escapeHtml(p.rules || '')}</textarea>
+        </div>`).join('') : '<p class="settings-share-desc">No playbooks yet - add one above to start defining your strategies.</p>';
+}
+
+function addPlaybookRow() {
+    const account = getActiveAccount();
+    if (!account.playbooks) account.playbooks = [];
+    account.playbooks.push({ id: genId(), name: 'New Playbook', rules: '' });
+    saveAccountsState();
+    renderPlaybookList();
+}
+
+function updatePlaybookField(playbookId, field, value) {
+    const account = getActiveAccount();
+    const playbook = (account.playbooks || []).find(p => p.id === playbookId);
+    if (!playbook) return;
+    playbook[field] = value;
+    saveAccountsState();
+}
+
+function deletePlaybookRow(playbookId) {
+    const account = getActiveAccount();
+    account.playbooks = (account.playbooks || []).filter(p => p.id !== playbookId);
+    // Trades that used this playbook fall back to "None" rather than pointing
+    // at a playbook that no longer exists.
+    (account.trades || []).forEach(t => { if (t.playbookId === playbookId) t.playbookId = null; });
+    saveAccountsState();
+    renderPlaybookList();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+}
+
+function populatePlaybookSelect(selectedId) {
+    const select = document.getElementById('trade-modal-playbook');
+    if (!select) return;
+    const playbooks = (getActiveAccount().playbooks) || [];
+    select.innerHTML = '<option value="">None</option>' +
+        playbooks.map(p => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
 }
 
 // ---- Contract Sizes (fixes P&L math for lot-based instruments - see
