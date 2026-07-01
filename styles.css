@@ -47,7 +47,7 @@ Formats the main application name in bold white text and positions a bright blue
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;            /* Keeps the spacing you set up earlier */
+    gap: 10px;             /* Tighter, logo-icon-to-wordmark spacing */
     text-decoration: none; /* Removes any default browser underline */
     width: 100%;
     cursor: pointer;       /* 👆 Ensures the mouse pointer changes to a finger */
@@ -59,13 +59,25 @@ Formats the main application name in bold white text and positions a bright blue
     opacity: 0.9;
 }
 
-/* Icon styles for the brand icon Gold icon top left */
+/* Icon styles for the brand icon Gold icon top left - sized larger than the
+   wordmark text (not matched to it) so the icon reads as its own mark, same
+   proportion as most app logos (icon noticeably taller than the label next to it). */
 .brand-icon {
-    font-size: 1.3rem;
+    font-size: 1.9rem;
     color: var(--accent-gold);
     margin-bottom: 0px;
-    gap: 12px;
-    margin-right: 12px;
+}
+
+/* The custom gold-bar + book logo (replaces the old generic FontAwesome
+   coins icon) - width/height:1em makes it obey whatever font-size its context
+   sets (.brand-icon, .help-hero-icon, etc), the same way an icon font glyph
+   would, without needing separate sizing rules per page. */
+.logo-mark {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    vertical-align: -0.15em;
+    flex-shrink: 0;
 }
 /* This styles the main application title. Bullion Book */
 .brand h1 {
@@ -625,6 +637,11 @@ body {
     flex: 1;
     text-align: left;
     color: var(--text-light);
+}
+
+.confidence-col {
+    justify-content: center;
+    text-align: center;
 }
 
 /* Per-row "..." actions menu (Mark as Wash / Delete Trade) */
@@ -1234,6 +1251,12 @@ body {
     border-radius: 8px;
     padding: 10px 14px;
     box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.stats-metric-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .stats-metric-label {
@@ -1899,6 +1922,48 @@ body {
 .modal-label {
     font-size: 0.75rem;
     color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Small "?" info button next to a setting's label - see showSettingsInfoTooltip
+   in settings.js. Hover shows the tooltip; click pins it open too (touch devices). */
+.settings-info-btn {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid var(--text-muted);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    flex-shrink: 0;
+}
+
+.settings-info-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.settings-info-tooltip {
+    position: fixed;
+    display: none;
+    max-width: 260px;
+    background: rgba(15, 18, 32, 0.97);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-light);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    z-index: 400;
 }
 
 .modal-input,
@@ -1935,6 +2000,23 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     font-weight: bold;
+}
+
+.modal-section-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.trade-view-confidence-badge {
+    align-items: center;
+    background: var(--accent-gold);
+    color: #171b26;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 3px 10px;
+    border-radius: 20px;
 }
 
 .modal-transactions-table {
@@ -2076,6 +2158,121 @@ body {
     resize: vertical;
     font-family: inherit;
     box-sizing: border-box;
+}
+
+/* Confidence slider (New/Edit Trade > Journal tab) - track/thumb styled to
+   match the app's dark theme, since range inputs have no sane default look. */
+.confidence-slider {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 8px 0 4px;
+}
+
+.confidence-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+}
+
+.confidence-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    border: 2px solid #ffffff;
+    cursor: pointer;
+}
+
+.confidence-slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+/* Screenshot upload (New/Edit Trade > Journal tab) */
+.trade-screenshot-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trade-screenshot-upload-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.trade-screenshot-upload-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.trade-screenshot-upload-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.trade-screenshot-upload-label:hover {
+    color: var(--text-light);
+}
+
+.trade-screenshot-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.trade-screenshot-thumb {
+    position: relative;
+    width: 84px;
+    height: 84px;
+}
+
+.trade-screenshot-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.trade-screenshot-remove-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--bg-dark);
+    border: none;
+    color: #f6465d;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
 }
 
 /* Multi-tag chip input on the New Trade modal's Journal tab */
@@ -2385,6 +2582,85 @@ body {
 /* Trade View Modal */
 .trade-view-card {
     max-width: 560px;
+}
+
+/* This modal's overlay holds two flex children when screenshots exist (the
+   card + the screenshots panel side by side) - other modals only ever have
+   one, so this gap is scoped here rather than to .modal-overlay generally. */
+#trade-view-modal-overlay {
+    gap: 16px;
+}
+
+.trade-view-screenshots-panel {
+    width: 380px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.trade-view-screenshots-panel::-webkit-scrollbar {
+    display: none;
+}
+
+.trade-view-screenshots-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.trade-view-screenshot-thumb {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.trade-view-screenshot-thumb:hover {
+    border-color: var(--accent-blue);
+}
+
+/* Near-fullscreen viewer opened by clicking a screenshot thumbnail */
+.screenshot-lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.screenshot-lightbox-overlay img {
+    /* width/height (not max-width/max-height) so a smaller stored image (they're
+       capped at 1000px wide on upload to save storage - see
+       resizeImageFileToDataUrl in trades.js) still scales UP to fill the
+       viewport here, not just shrinks large ones down. object-fit preserves
+       its aspect ratio either way. */
+    width: 92vw;
+    height: 92vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.screenshot-lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 28px;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1.6rem;
+    cursor: pointer;
+    z-index: 2001;
 }
 
 .trade-view-header {

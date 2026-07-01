@@ -90,7 +90,7 @@ function renderStatsMetricCards(rows, closed, wins, losses) {
 
     setHtml('stats-metrics-row-1', [
         ['Win Rate', `${winRate.toFixed(0)}%`],
-        ['Expectancy', expectancy.toFixed(0), true],
+        ['Expectancy', formatTotal(expectancy), true],
         ['Profit Factor', profitFactor === null ? '-' : profitFactor.toFixed(2)],
         ['Avg Win Hold', wins.length > 0 ? formatAvgHold(average(wins.map(r => r.holdSeconds))) : '-'],
         ['Avg Loss Hold', losses.length > 0 ? formatAvgHold(average(losses.map(r => r.holdSeconds))) : '-'],
@@ -104,17 +104,79 @@ function renderStatsMetricCards(rows, closed, wins, losses) {
         ['Top Loss', topLoss ? `${formatTotal(topLoss.returnAmount)} (${topLoss.returnPct.toFixed(1)}%)` : '-', true],
         ['Top Win', topWin ? `${formatTotal(topWin.returnAmount)} (${topWin.returnPct.toFixed(1)}%)` : '-', true],
         ['Avg Daily Vol', avgDailyVol.toFixed(0)],
-        ['Avg Size', avgSize.toFixed(0)]
+        ['Avg Size', avgSize.toFixed(2)]
     ].map(renderStatsMetricCard).join(''));
 }
 
+// Short descriptions shown when a metric card is clicked (see
+// toggleStatsMetricTooltip below) - no visible "?" hint, the whole card is
+// clickable.
+const STATS_METRIC_DESCRIPTIONS = {
+    'Win Rate': '% of closed trades that were profitable.',
+    'Expectancy': 'Average $ profit or loss you can expect per trade, across all closed trades.',
+    'Profit Factor': 'Gross profit divided by gross loss. Above 1 means your wins outweigh your losses overall.',
+    'Avg Win Hold': 'Average time a winning trade stayed open, from first entry to last exit.',
+    'Avg Loss Hold': 'Average time a losing trade stayed open, from first entry to last exit.',
+    'Avg Loss': 'Average $ and % lost per losing trade.',
+    'Avg Win': 'Average $ and % gained per winning trade.',
+    'Win Streak': 'Longest run of consecutive winning trades in a row.',
+    'Loss Streak': 'Longest run of consecutive losing trades in a row.',
+    'Top Loss': 'Your single largest losing trade.',
+    'Top Win': 'Your single largest winning trade.',
+    'Avg Daily Vol': 'Average number of trades placed per day you traded.',
+    'Avg Size': 'Average quantity (lots/shares) per trade.'
+};
+
 function renderStatsMetricCard([label, value, sensitive]) {
+    const description = (STATS_METRIC_DESCRIPTIONS[label] || '').replace(/'/g, "\\'");
     return `
-        <div class="stats-metric-card">
+        <div class="stats-metric-card" onclick="toggleStatsMetricTooltip(event, this, '${description}')">
             <div class="stats-metric-label">${escapeHtml(label)}</div>
             <div class="stats-metric-value${sensitive ? ' sensitive-value' : ''}">${value}</div>
         </div>`;
 }
+
+// Reuses the same floating tooltip box look as the Settings "?" tooltips
+// (.settings-info-tooltip in styles.css), but its own element/state since this
+// is triggered by clicking the whole card, not a small icon.
+let pinnedStatsMetricCard = null;
+
+function getStatsMetricTooltip() {
+    let el = document.getElementById('stats-metric-tooltip');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'stats-metric-tooltip';
+        el.className = 'settings-info-tooltip';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function toggleStatsMetricTooltip(event, card, description) {
+    event.stopPropagation();
+    if (!description) return;
+
+    const tooltip = getStatsMetricTooltip();
+    if (pinnedStatsMetricCard === card) {
+        pinnedStatsMetricCard = null;
+        tooltip.style.display = 'none';
+        return;
+    }
+
+    pinnedStatsMetricCard = card;
+    tooltip.textContent = description;
+    tooltip.style.display = 'block';
+    const rect = card.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.bottom + 6}px`;
+}
+
+document.addEventListener('click', () => {
+    if (!pinnedStatsMetricCard) return;
+    pinnedStatsMetricCard = null;
+    const tooltip = document.getElementById('stats-metric-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+});
 
 function setHtml(id, html) {
     const el = document.getElementById(id);

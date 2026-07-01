@@ -15,8 +15,8 @@ function nowDatetimeLocal() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function makeDefaultLeg(quantity, fee) {
-    return { id: genTradeId(), action: 'buy', datetime: nowDatetimeLocal(), quantity: quantity || '', price: '', fee: fee || 0 };
+function makeDefaultLeg(quantity, fee, datetime) {
+    return { id: genTradeId(), action: 'buy', datetime: datetime || nowDatetimeLocal(), quantity: quantity || '', price: '', fee: fee || 0 };
 }
 
 // ---- Modal open/close/tabs ----
@@ -38,6 +38,8 @@ function openTradeModal(tradeId) {
             target: '',
             stopLoss: '',
             journal: '',
+            confidence: 5,
+            screenshots: [],
             tagIds: defaults.defaultTagId ? [defaults.defaultTagId] : [],
             legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
         };
@@ -46,6 +48,8 @@ function openTradeModal(tradeId) {
     if (!draftTrade.tagIds) {
         draftTrade.tagIds = draftTrade.tagId ? [draftTrade.tagId] : [];
     }
+    if (typeof draftTrade.confidence !== 'number') draftTrade.confidence = 5;
+    if (!draftTrade.screenshots) draftTrade.screenshots = [];
 
     document.getElementById('trade-modal-title').textContent = editingTradeId ? 'Edit Trade' : 'New Trade';
     document.getElementById('trade-modal-symbol').value = draftTrade.symbol || '';
@@ -53,7 +57,10 @@ function openTradeModal(tradeId) {
     document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
     document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
     document.getElementById('trade-tag-input').value = '';
+    document.getElementById('trade-modal-confidence').value = draftTrade.confidence;
+    updateTradeConfidenceLabel(draftTrade.confidence);
     renderTradeTagChips();
+    renderTradeScreenshotThumbs();
     switchTradeModalTab('general');
     renderTradeLegs();
     clearTradeModalValidation();
@@ -136,6 +143,86 @@ function commitPendingTagInput(inputEl) {
     renderTradeTagChips();
 }
 
+// ---- Confidence slider (Journal tab) ----
+// Red at 0 fading smoothly to green at 10, matching the Win/Loss color scheme
+// used everywhere else in the app.
+function getConfidenceColor(value) {
+    const t = Math.max(0, Math.min(10, value)) / 10;
+    const from = [246, 70, 93];   // #f6465d
+    const to = [46, 189, 133];    // #2ebd85
+    const [r, g, b] = from.map((c, i) => Math.round(c + (to[i] - c) * t));
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function updateTradeConfidenceLabel(value) {
+    const confidence = parseInt(value, 10);
+    draftTrade.confidence = confidence;
+
+    const label = document.getElementById('trade-confidence-value');
+    if (label) {
+        label.textContent = confidence;
+        label.style.color = getConfidenceColor(confidence);
+    }
+}
+
+// ---- Screenshot upload (Journal tab) ----
+// Resizes/compresses to a JPEG data URL before storing (same technique as the
+// profile avatar in settings.js) so a handful of screenshots per trade don't
+// blow past Firestore's per-document size limit.
+function resizeImageFileToDataUrl(file, maxWidth, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const image = new Image();
+            image.onload = () => {
+                const scale = Math.min(1, maxWidth / image.width);
+                const w = Math.round(image.width * scale);
+                const h = Math.round(image.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(image, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            image.onerror = reject;
+            image.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function handleTradeScreenshotFileChange(event) {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    Promise.all(files.map(file => resizeImageFileToDataUrl(file, 1000, 0.72)))
+        .then(dataUrls => {
+            if (!draftTrade.screenshots) draftTrade.screenshots = [];
+            dataUrls.forEach(dataUrl => draftTrade.screenshots.push({ id: genTradeId(), dataUrl }));
+            renderTradeScreenshotThumbs();
+        });
+
+    event.target.value = ''; // allow re-selecting the same filename later
+}
+
+function renderTradeScreenshotThumbs() {
+    const container = document.getElementById('trade-screenshot-thumbs');
+    if (!container) return;
+    const shots = draftTrade.screenshots || [];
+
+    container.innerHTML = shots.map(s => `
+        <div class="trade-screenshot-thumb">
+            <img src="${s.dataUrl}" onclick="window.open(this.src, '_blank')" alt="Trade screenshot">
+            <button type="button" class="trade-screenshot-remove-btn" onclick="removeTradeScreenshot('${s.id}')" title="Remove"><i class="fa-solid fa-circle-xmark"></i></button>
+        </div>`).join('');
+}
+
+function removeTradeScreenshot(id) {
+    draftTrade.screenshots = (draftTrade.screenshots || []).filter(s => s.id !== id);
+    renderTradeScreenshotThumbs();
+}
+
 function closeTradeModal() {
     document.getElementById('trade-modal-overlay').style.display = 'none';
     draftTrade = null;
@@ -167,7 +254,14 @@ function renderTradeLegs() {
 }
 
 function addTradeLeg() {
-    draftTrade.legs.push(makeDefaultLeg());
+    // "Default Order Date" setting (Settings > Account Settings): a new leg's
+    // date/time is either copied from the previous leg (handy when entering
+    // several fills back-to-back) or defaults to right now.
+    const usesPreviousEntry = typeof appSettings !== 'undefined' && appSettings.defaultOrderDate === 'previous';
+    const lastLeg = draftTrade.legs[draftTrade.legs.length - 1];
+    const datetime = usesPreviousEntry && lastLeg ? lastLeg.datetime : null;
+
+    draftTrade.legs.push(makeDefaultLeg(undefined, undefined, datetime));
     renderTradeLegs();
 }
 
@@ -354,10 +448,17 @@ function computeTradeSummary(trade) {
     const firstTime = new Date(legs[0].datetime).getTime();
     const lastTime = new Date(legs[legs.length - 1].datetime).getTime();
 
+    // "Default Grid Date" setting: which date represents this trade on the
+    // Dashboard/Calendar/Stats charts - its most recent action (exit) or when
+    // it was originally opened. Everything downstream (sorting, calendar day
+    // grouping, equity curve, hour/day-of-week stats) reads this single field.
+    const usesLastAction = typeof appSettings !== 'undefined' && appSettings.defaultGridDate === 'last-action';
+    const gridDate = usesLastAction ? legs[legs.length - 1].datetime : legs[0].datetime;
+
     return {
         id: trade.id,
         symbol: trade.symbol,
-        date: legs[0].datetime,
+        date: gridDate,
         direction,
         status,
         tagIds: trade.tagIds || (trade.tagId ? [trade.tagId] : []),
@@ -370,6 +471,7 @@ function computeTradeSummary(trade) {
         holdSeconds: Math.max(0, (lastTime - firstTime) / 1000),
         returnAmount,
         returnPct,
+        confidence: typeof trade.confidence === 'number' ? trade.confidence : null,
         forceWash: !!trade.forceWash
     };
 }
@@ -407,7 +509,7 @@ function formatTotal(value) {
 // ---- Column sorting ----
 const TRADE_SORT_KEYS = [
     'date', 'symbol', 'status', 'direction', 'qty', 'entryPrice', 'exitPrice',
-    'entTot', 'extTot', 'pos', 'holdSeconds', 'returnAmount', 'returnPct'
+    'entTot', 'extTot', 'pos', 'holdSeconds', 'returnAmount', 'returnPct', 'confidence'
 ];
 let tradeSortKey = 'date';
 let tradeSortDir = 'desc';
@@ -591,12 +693,43 @@ function openTradeViewModal(event, tradeId) {
 
     document.getElementById('trade-view-journal').value = trade.journal || '';
 
+    const confidenceBadge = document.getElementById('trade-view-confidence');
+    if (typeof trade.confidence === 'number') {
+        confidenceBadge.textContent = `CONFIDENCE: ${trade.confidence}`;
+        confidenceBadge.style.display = 'inline-flex';
+    } else {
+        confidenceBadge.style.display = 'none';
+    }
+
+    const screenshotsPanel = document.getElementById('trade-view-screenshots-panel');
+    const screenshotsList = document.getElementById('trade-view-screenshots-list');
+    const screenshots = trade.screenshots || [];
+    if (screenshots.length > 0) {
+        screenshotsList.innerHTML = screenshots.map(s => `
+            <img src="${s.dataUrl}" class="trade-view-screenshot-thumb" onclick="openScreenshotLightbox(this.src)" alt="Trade screenshot">
+        `).join('');
+        screenshotsPanel.style.display = 'block';
+    } else {
+        screenshotsList.innerHTML = '';
+        screenshotsPanel.style.display = 'none';
+    }
+
     document.getElementById('trade-view-modal-overlay').style.display = 'flex';
 }
 
 function closeTradeViewModal() {
     document.getElementById('trade-view-modal-overlay').style.display = 'none';
     viewingTradeId = null;
+}
+
+// ---- Full-size screenshot viewer (Trade View's screenshots panel) ----
+function openScreenshotLightbox(dataUrl) {
+    document.getElementById('screenshot-lightbox-img').src = dataUrl;
+    document.getElementById('screenshot-lightbox-overlay').style.display = 'flex';
+}
+
+function closeScreenshotLightbox() {
+    document.getElementById('screenshot-lightbox-overlay').style.display = 'none';
 }
 
 function editTradeFromView() {
@@ -639,6 +772,7 @@ function buildTradeRowHtml(row) {
         <div class="table-cell">${formatHoldDuration(row.holdSeconds)}</div>
         <div class="table-cell ${returnClass}">${row.returnAmount === null ? '-' : formatTotal(row.returnAmount)}</div>
         <div class="table-cell ${returnClass}">${row.returnPct === null ? '-' : row.returnPct.toFixed(2) + '%'}</div>
+        <div class="table-cell confidence-col" style="${row.confidence === null ? '' : `color:${getConfidenceColor(row.confidence)};`}">${row.confidence === null ? '-' : row.confidence}</div>
         <div class="trade-row-menu-wrap">
             ${row.forceWash ? '<i class="fa-solid fa-scale-balanced trade-wash-badge" title="Marked as Wash"></i>' : ''}
             ${tagIndicator}

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -14,7 +15,17 @@
         <!-- 1. Top Left Brand Title Links to Dashboard -->
         <div class="brand">
             <a href="#" class="brand-link" onclick="showPage('page-dashboard', this)">
-              <i class="fa-solid fa-coins brand-icon"></i>
+              <svg class="logo-mark brand-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
+                  <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
+                  <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
+                  <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
+                  <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
+                  <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                  <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                  <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                  <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+              </svg>
               <h1>Bullion Book</h1>
             </a>
         </div>
@@ -235,6 +246,7 @@
                     <div class="col-head sortable" onclick="sortTradeLog('holdSeconds')">Hold <i class="fa-solid fa-sort" id="sort-icon-holdSeconds"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('returnAmount')">Return <i class="fa-solid fa-sort" id="sort-icon-returnAmount"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('returnPct')">Return % <i class="fa-solid fa-sort" id="sort-icon-returnPct"></i></div>
+                    <div class="col-head sortable confidence-col" onclick="sortTradeLog('confidence')">Confidence <i class="fa-solid fa-sort" id="sort-icon-confidence"></i></div>
                 </div>
                 <div class="table-body" id="trade-log-body"></div>
             </section>
@@ -488,7 +500,9 @@
 
                         <div class="settings-form-grid">
                             <div class="modal-field">
-                                <label class="modal-label">Currency Format</label>
+                                <label class="modal-label">Currency Format
+                                    <button type="button" class="settings-info-btn" data-tooltip="Sets the $/€/£/R symbol shown throughout the app (Dashboard, Stats, Trade View, etc)." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <select id="settings-currency-format" class="modal-input">
                                     <option value="USD">US Dollar - $</option>
                                     <option value="EUR">Euro - &euro;</option>
@@ -497,37 +511,51 @@
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Order Date</label>
+                                <label class="modal-label">Default Order Date
+                                    <button type="button" class="settings-info-btn" data-tooltip="When you add a new leg to a trade, its date/time is pre-filled either by copying the previous leg you entered, or with the current date/time." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <select id="settings-default-order-date" class="modal-input">
                                     <option value="previous">Previous Order Entry</option>
-                                    <option value="today">Today</option>
+                                    <option value="today">Current Date/Time</option>
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Grid Date</label>
+                                <label class="modal-label">Default Grid Date
+                                    <button type="button" class="settings-info-btn" data-tooltip="Controls which date represents a trade on the Dashboard, Calendar, and Stats charts: its most recent action (exit), or when it was originally opened." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <select id="settings-default-grid-date" class="modal-input">
                                     <option value="last-action">Last Action Date</option>
-                                    <option value="today">Today</option>
+                                    <option value="trade-open">Trade Open Date</option>
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Symbol</label>
+                                <label class="modal-label">Default Symbol
+                                    <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Symbol field whenever you open New Trade." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <input type="text" id="settings-default-symbol" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Qty</label>
+                                <label class="modal-label">Default Qty
+                                    <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Quantity field on a new trade's first leg." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <input type="number" step="0.0001" id="settings-default-qty" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Fee $</label>
+                                <label class="modal-label">Default Fee $
+                                    <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Fee field on a new trade's first leg." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <input type="number" step="0.01" id="settings-default-fee" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Journal Tag</label>
+                                <label class="modal-label">Default Journal Tag
+                                    <button type="button" class="settings-info-btn" data-tooltip="Pre-selects this tag whenever you open New Trade." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <select id="settings-default-tag" class="modal-input"></select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">PnL % Calculation Type</label>
+                                <label class="modal-label">PnL % Calculation Type
+                                    <button type="button" class="settings-info-btn" data-tooltip="Return on Invested Capital divides PnL by that trade's own entry value. Return on Account Balance divides by your total account balance instead." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
                                 <select id="settings-pnl-calc-type" class="modal-input">
                                     <option value="capital">Return on Invested Capital</option>
                                     <option value="balance">Return on Account Balance</option>
@@ -544,6 +572,12 @@
                         <p class="settings-share-desc">Create a public link to share a snapshot of this account's trades with others. Anyone with the link can view it without logging in.</p>
                         <button class="btn-action btn-blue" onclick="generatePublicLink()">Generate Public Link</button>
                         <div id="settings-public-link-result" class="settings-public-link-result"></div>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Export Trade History</h3>
+                        <p class="settings-share-desc">Download your full trade history as a CSV file. Matches whatever's currently filtered on the Dashboard (Tags/Symbol/Direction/Status/date range).</p>
+                        <button class="btn-action btn-blue" onclick="exportTradesToCsv()"><i class="fa-solid fa-file-arrow-down"></i> Export as CSV</button>
                     </div>
 
                     <!-- Tag Management -->
@@ -666,7 +700,17 @@
         <div id="page-help" class="view-section help-page" style="display: none;">
             <!-- Hero -->
             <div class="help-hero">
-                <i class="fa-solid fa-coins help-hero-icon"></i>
+                <svg class="logo-mark help-hero-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
+                    <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
+                    <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
+                    <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
+                    <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
+                    <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
+                    <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                </svg>
                 <h1>How can we help?</h1>
                 <p>Everything Bullion Book can do, in one place. Search or jump to a topic below.</p>
                 <div class="help-search-wrap">
@@ -1134,6 +1178,24 @@
                         <label class="modal-label">Notes</label>
                         <textarea id="trade-modal-journal" class="modal-input trade-journal-textarea" rows="8" placeholder="What was your setup, reasoning, lessons learned?"></textarea>
                     </div>
+
+                    <div class="modal-field">
+                        <label class="modal-label">Confidence: <span id="trade-confidence-value">5</span></label>
+                        <input type="range" id="trade-modal-confidence" class="confidence-slider" min="0" max="10" step="1" value="5" oninput="updateTradeConfidenceLabel(this.value)">
+                        <div class="confidence-slider-ticks"><span>0</span><span>5</span><span>10</span></div>
+                    </div>
+
+                    <div class="modal-field">
+                        <label class="modal-label">Screenshots</label>
+                        <div class="trade-screenshot-upload-row">
+                            <label class="trade-screenshot-upload-btn" for="trade-screenshot-input" title="Upload screenshots">
+                                <i class="fa-regular fa-image"></i>
+                            </label>
+                            <label class="trade-screenshot-upload-label" for="trade-screenshot-input">Upload screenshots</label>
+                            <input type="file" id="trade-screenshot-input" accept="image/*" multiple style="display: none;" onchange="handleTradeScreenshotFileChange(event)">
+                        </div>
+                        <div class="trade-screenshot-thumbs" id="trade-screenshot-thumbs"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1312,7 +1374,10 @@
                     </div>
                 </div>
 
-                <div class="modal-section-label">Notes 'n Things</div>
+                <div class="modal-section-label-row">
+                    <div class="modal-section-label">Notes 'n Things</div>
+                    <span class="trade-view-confidence-badge" id="trade-view-confidence" style="display: none;"></span>
+                </div>
                 <textarea id="trade-view-journal" class="modal-input trade-journal-textarea" rows="3" readonly placeholder="No notes for this trade."></textarea>
             </div>
 
@@ -1320,6 +1385,20 @@
                 <button class="btn-action btn-blue" onclick="editTradeFromView()">Edit</button>
             </div>
         </div>
+
+        <!-- Sits beside the Trade View card (same flex row in the overlay) -
+             only shown when the trade has at least one uploaded screenshot. -->
+        <div class="trade-view-screenshots-panel" id="trade-view-screenshots-panel" style="display: none;">
+            <div class="modal-section-label">Screenshots</div>
+            <div class="trade-view-screenshots-list" id="trade-view-screenshots-list"></div>
+        </div>
+    </div>
+
+    <!-- Full-size screenshot viewer - opened by clicking a thumbnail in the
+         Trade View panel above. -->
+    <div id="screenshot-lightbox-overlay" class="screenshot-lightbox-overlay" style="display: none;" onclick="closeScreenshotLightbox()">
+        <button class="screenshot-lightbox-close" onclick="closeScreenshotLightbox()"><i class="fa-solid fa-xmark"></i></button>
+        <img id="screenshot-lightbox-img" src="" alt="Trade screenshot" onclick="event.stopPropagation()">
     </div>
 
     <!-- Account & Transactions Modal -->

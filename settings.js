@@ -6,8 +6,12 @@ const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', ZAR: 'R' };
 
 let appSettings = {
     currencyCode: 'USD',
-    defaultOrderDate: 'previous',
-    defaultGridDate: 'last-action',
+    // Matches the app's actual pre-existing behavior (always "now" for new legs,
+    // always the trade's open date on the grid) - so shipping the real
+    // implementation of these two settings doesn't silently change anything for
+    // existing users unless they explicitly pick the other option.
+    defaultOrderDate: 'today',
+    defaultGridDate: 'trade-open',
     defaultSymbol: '',
     defaultQty: '',
     defaultFee: 0,
@@ -21,6 +25,55 @@ let currentSettingsTab = 'personal';
 function getCurrencySymbol() {
     return CURRENCY_SYMBOLS[appSettings.currencyCode] || '$';
 }
+
+// ---- "?" info tooltips next to setting labels - shown on hover, and pinned
+// open on click (so it also works on touch devices with no hover state) ----
+let pinnedSettingsInfoBtn = null;
+
+function getSettingsInfoTooltip() {
+    let el = document.getElementById('settings-info-tooltip');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'settings-info-tooltip';
+        el.className = 'settings-info-tooltip';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function showSettingsInfoTooltip(btn) {
+    const tooltip = getSettingsInfoTooltip();
+    tooltip.textContent = btn.dataset.tooltip;
+    tooltip.style.display = 'block';
+
+    const rect = btn.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.bottom + 6}px`;
+}
+
+function hideSettingsInfoTooltip() {
+    if (pinnedSettingsInfoBtn) return; // stays open until clicked again/elsewhere
+    const tooltip = document.getElementById('settings-info-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+}
+
+function toggleSettingsInfoTooltip(event, btn) {
+    event.stopPropagation();
+    if (pinnedSettingsInfoBtn === btn) {
+        pinnedSettingsInfoBtn = null;
+        hideSettingsInfoTooltip();
+        return;
+    }
+    pinnedSettingsInfoBtn = btn;
+    showSettingsInfoTooltip(btn);
+}
+
+document.addEventListener('click', () => {
+    if (!pinnedSettingsInfoBtn) return;
+    pinnedSettingsInfoBtn = null;
+    const tooltip = document.getElementById('settings-info-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+});
 
 function loadAppSettings() {
     auth.onAuthStateChanged(user => {
@@ -276,6 +329,57 @@ function copyPublicLink(url) {
     navigator.clipboard.writeText(url)
         .then(() => showSettingsStatus('settings-account-status', 'Link copied to clipboard.', 'success'))
         .catch(() => showSettingsStatus('settings-account-status', 'Could not copy automatically - select and copy the link manually.', 'error'));
+}
+
+// Downloads the full trade history as a CSV - reuses the same filter state as
+// the Dashboard (tradeLogFilters, filters.js) so the export matches whatever
+// view the user currently has narrowed down (tags/symbol/direction/status/date).
+function exportTradesToCsv() {
+    const account = getActiveAccount();
+    let rows = (account.trades || []).map(computeTradeSummary);
+
+    if (typeof tradeLogFilters !== 'undefined' && typeof tradeRowMatchesFilters === 'function') {
+        rows = rows.filter(row => tradeRowMatchesFilters(row, tradeLogFilters));
+    }
+
+    rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (rows.length === 0) {
+        showSettingsStatus('settings-account-status', 'No trades to export.', 'error');
+        return;
+    }
+
+    const tagDefs = (account.tagDefs) || [];
+    const tagNameById = new Map(tagDefs.map(t => [t.id, t.name]));
+
+    const csvRows = rows.map(r => ({
+        Date: formatTradeDate(r.date),
+        Symbol: r.symbol,
+        Direction: r.direction,
+        Status: r.status,
+        Qty: r.qty,
+        'Entry Price': round2(r.entryPrice),
+        'Exit Price': r.exitPrice ? round2(r.exitPrice) : '',
+        'Entry Total': round2(r.entTot),
+        'Exit Total': r.extTot ? round2(r.extTot) : '',
+        PnL: r.returnAmount !== null ? round2(r.returnAmount) : '',
+        'PnL %': r.returnPct !== null ? round2(r.returnPct) : '',
+        Tags: (r.tagIds || []).map(id => tagNameById.get(id)).filter(Boolean).join('; ')
+    }));
+
+    const csv = Papa.unparse(csvRows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${account.name.replace(/[^a-z0-9]/gi, '_')}_trades_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showSettingsStatus('settings-account-status', `Exported ${csvRows.length} trades.`, 'success');
 }
 
 // ---- Tag Management ----
