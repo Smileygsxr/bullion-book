@@ -22,15 +22,39 @@ INTERVALS = {"1": "1min", "5": "5min", "15": "15min"}
 API_URL = "https://api.twelvedata.com/time_series"
 
 
-def get_target_date():
-    yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
-    if yesterday.weekday() in (5, 6):  # Saturday, Sunday - market was closed
-        return None
-    return yesterday
+def get_missing_dates(lookback_days=7):
+    """
+    Returns a list of weekday dates (most recent first) within the last
+    lookback_days that don't yet have a complete set of 3 CSV files in /data.
+    This catches yesterday plus any days that were missed due to API errors.
+    """
+    today = datetime.now(timezone.utc).date()
+    missing = []
+    for i in range(1, lookback_days + 1):
+        date = today - timedelta(days=i)
+        if date.weekday() in (5, 6):  # skip weekends
+            continue
+        date_str = date.strftime("%Y-%m-%d")
+        existing = sum(
+            1 for label in INTERVALS
+            if os.path.exists(os.path.join(
+                DATA_DIR,
+                f"XAU-USD_{label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
+            ))
+        )
+        if existing < len(INTERVALS):
+            missing.append((date, existing))
+    return missing
 
 
-def fetch_interval(api_key, date, interval_label, td_interval):
+def fetch_interval(api_key, date, interval_label, td_interval, retries=3):
     date_str = date.strftime("%Y-%m-%d")
+    out_name = f"XAU-USD_{interval_label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
+    out_path = os.path.join(DATA_DIR, out_name)
+
+    if os.path.exists(out_path):
+        print(f"  -> {out_name} already exists, skipping")
+        return True
 
     params = {
         "symbol": "XAU/USD",
@@ -42,40 +66,52 @@ def fetch_interval(api_key, date, interval_label, td_interval):
         "apikey": api_key,
     }
 
-    response = requests.get(API_URL, params=params, timeout=30)
-    payload = response.json()
+    for attempt in range(1, retries + 1):
+        try:
+            response = requests.get(API_URL, params=params, timeout=30)
+            payload = response.json()
+        except Exception as e:
+            print(f"  -> Attempt {attempt} network error: {e}")
+            if attempt < retries:
+                time.sleep(5.0 * attempt)
+            continue
 
-    if payload.get("status") == "error" or "values" not in payload:
-        print(f"  -> No data returned for {td_interval} {date_str}: {payload.get('message', payload)}")
-        return False
+        if payload.get("status") == "error" or "values" not in payload:
+            msg = payload.get("message", payload)
+            print(f"  -> Attempt {attempt} API error for {td_interval} {date_str}: {msg}")
+            if attempt < retries:
+                time.sleep(5.0 * attempt)
+            continue
 
-    values = payload["values"]
-    if not values:
-        print(f"  -> No data returned for {td_interval} {date_str} (empty result)")
-        return False
+        values = payload["values"]
+        if not values:
+            print(f"  -> No candles returned for {td_interval} {date_str} (market may have been closed)")
+            return False
 
-    df = pd.DataFrame(values)
-    df = df.rename(columns={
-        "datetime": "Africa/Johannesburg", "open": "Open", "high": "High",
-        "low": "Low", "close": "Close", "volume": "Volume"
-    })
-    if "Volume" not in df.columns:
-        df["Volume"] = 0
+        df = pd.DataFrame(values)
+        df = df.rename(columns={
+            "datetime": "Africa/Johannesburg", "open": "Open", "high": "High",
+            "low": "Low", "close": "Close", "volume": "Volume"
+        })
+        if "Volume" not in df.columns:
+            df["Volume"] = 0
 
-    # Twelve Data already returns timestamps in the requested timezone (fixed
-    # UTC+2, South Africa has no DST), so just append the offset as a string.
-    df["Africa/Johannesburg"] = pd.to_datetime(df["Africa/Johannesburg"])
-    df = df.sort_values("Africa/Johannesburg")
-    df["Africa/Johannesburg"] = df["Africa/Johannesburg"].dt.strftime("%Y-%m-%dT%H:%M:%S") + "+02:00"
+        # Twelve Data already returns timestamps in the requested timezone (fixed
+        # UTC+2, South Africa has no DST), so just append the offset as a string.
+        df["Africa/Johannesburg"] = pd.to_datetime(df["Africa/Johannesburg"])
+        df = df.sort_values("Africa/Johannesburg")
+        df["Africa/Johannesburg"] = df["Africa/Johannesburg"].dt.strftime("%Y-%m-%dT%H:%M:%S") + "+02:00"
 
-    df = df[["Africa/Johannesburg", "Open", "High", "Low", "Close", "Volume"]]
+        df = df[["Africa/Johannesburg", "Open", "High", "Low", "Close", "Volume"]]
 
-    os.makedirs(DATA_DIR, exist_ok=True)
-    out_name = f"XAU-USD_{interval_label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
-    df.to_csv(os.path.join(DATA_DIR, out_name), index=False)
+        os.makedirs(DATA_DIR, exist_ok=True)
+        df.to_csv(out_path, index=False)
 
-    print(f"  -> Saved {out_name} ({len(df)} rows)")
-    return True
+        print(f"  -> Saved {out_name} ({len(df)} rows)")
+        return True
+
+    print(f"  -> All {retries} attempts failed for {td_interval} {date_str}")
+    return False
 
 
 def main():
@@ -84,21 +120,23 @@ def main():
         print("TWELVE_DATA_API_KEY environment variable is not set.")
         sys.exit(1)
 
-    target = get_target_date()
-    if target is None:
-        print("Yesterday was a weekend - forex market was closed, nothing to fetch.")
+    missing = get_missing_dates(lookback_days=7)
+    if not missing:
+        print("All recent trading days already have complete data.")
         return
 
-    print(f"Fetching XAUUSD data for {target.strftime('%Y-%m-%d')}...")
     any_saved = False
-    for interval_label, td_interval in INTERVALS.items():
-        print(f"-> {td_interval}")
-        if fetch_interval(api_key, target, interval_label, td_interval):
-            any_saved = True
-        time.sleep(2.0)
+    for date, existing_count in missing:
+        date_str = date.strftime("%Y-%m-%d")
+        print(f"\nFetching XAUUSD data for {date_str} ({existing_count}/{len(INTERVALS)} intervals already present)...")
+        for interval_label, td_interval in INTERVALS.items():
+            print(f"  -> {td_interval}")
+            if fetch_interval(api_key, date, interval_label, td_interval):
+                any_saved = True
+            time.sleep(2.0)
 
     if not any_saved:
-        print("No data was retrieved for any interval.")
+        print("\nNo data was retrieved for any missing date/interval.")
         sys.exit(0)
 
 
