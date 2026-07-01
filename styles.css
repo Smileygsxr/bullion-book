@@ -340,6 +340,12 @@ body {
     min-height: 0;
     overflow-y: auto;
     padding-top: 24px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.view-section::-webkit-scrollbar {
+    display: none;
 }
 
 /* The date-range bar sits flush at the very top of these two pages instead -
@@ -841,6 +847,12 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.news-content-area::-webkit-scrollbar {
+    display: none;
 }
 
 /* CPI table and chart styles */
@@ -2638,7 +2650,14 @@ body {
     padding: 6px;
     width: 100%;
     box-sizing: border-box;
+    flex-shrink: 0;
     overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.page-date-range-bar::-webkit-scrollbar {
+    display: none;
 }
 
 .date-range-btn {
