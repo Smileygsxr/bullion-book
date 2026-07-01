@@ -2470,6 +2470,24 @@ body {
     font-weight: 600;
 }
 
+.day-note-pin-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 4px;
+}
+
+.day-note-pin-btn:hover {
+    color: var(--text-light);
+}
+
+.day-note-pin-btn.active {
+    color: var(--accent-gold);
+}
+
 /* Generic centered confirm dialog (e.g. Delete Trade) */
 .confirm-modal-card {
     max-width: 380px;

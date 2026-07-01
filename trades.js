@@ -15,8 +15,8 @@ function nowDatetimeLocal() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function makeDefaultLeg(quantity, fee, datetime) {
-    return { id: genTradeId(), action: 'buy', datetime: datetime || nowDatetimeLocal(), quantity: quantity || '', price: '', fee: fee || 0 };
+function makeDefaultLeg(quantity, fee, datetime, action) {
+    return { id: genTradeId(), action: action || 'buy', datetime: datetime || nowDatetimeLocal(), quantity: quantity || '', price: '', fee: fee || 0 };
 }
 
 // ---- Modal open/close/tabs ----
@@ -38,7 +38,7 @@ function openTradeModal(tradeId) {
             target: '',
             stopLoss: '',
             journal: '',
-            confidence: 5,
+            confidence: null,
             screenshots: [],
             tagIds: defaults.defaultTagId ? [defaults.defaultTagId] : [],
             legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
@@ -48,7 +48,7 @@ function openTradeModal(tradeId) {
     if (!draftTrade.tagIds) {
         draftTrade.tagIds = draftTrade.tagId ? [draftTrade.tagId] : [];
     }
-    if (typeof draftTrade.confidence !== 'number') draftTrade.confidence = 5;
+    if (typeof draftTrade.confidence !== 'number') draftTrade.confidence = null;
     if (!draftTrade.screenshots) draftTrade.screenshots = [];
 
     document.getElementById('trade-modal-title').textContent = editingTradeId ? 'Edit Trade' : 'New Trade';
@@ -57,8 +57,11 @@ function openTradeModal(tradeId) {
     document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
     document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
     document.getElementById('trade-tag-input').value = '';
-    document.getElementById('trade-modal-confidence').value = draftTrade.confidence;
-    updateTradeConfidenceLabel(draftTrade.confidence);
+    // The slider still needs a numeric thumb position even with no score set
+    // yet (defaults to the middle), but the label shows "-" and draftTrade.confidence
+    // stays null until the user actually drags it - see updateTradeConfidenceLabel.
+    document.getElementById('trade-modal-confidence').value = draftTrade.confidence !== null ? draftTrade.confidence : 5;
+    syncTradeConfidenceLabel(draftTrade.confidence);
     renderTradeTagChips();
     renderTradeScreenshotThumbs();
     switchTradeModalTab('general');
@@ -154,15 +157,27 @@ function getConfidenceColor(value) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
-function updateTradeConfidenceLabel(value) {
-    const confidence = parseInt(value, 10);
-    draftTrade.confidence = confidence;
-
+// Updates just the displayed label/color for a given confidence value (or "-"
+// for null/unset) without touching draftTrade - used when opening the modal so
+// a never-touched slider doesn't silently commit a value.
+function syncTradeConfidenceLabel(confidence) {
     const label = document.getElementById('trade-confidence-value');
-    if (label) {
+    if (!label) return;
+
+    if (typeof confidence !== 'number') {
+        label.textContent = '-';
+        label.style.color = '';
+    } else {
         label.textContent = confidence;
         label.style.color = getConfidenceColor(confidence);
     }
+}
+
+// Triggered by the slider's oninput - this is the only place that actually
+// commits a confidence value onto draftTrade (dragging it counts as "setting" it).
+function updateTradeConfidenceLabel(value) {
+    draftTrade.confidence = parseInt(value, 10);
+    syncTradeConfidenceLabel(draftTrade.confidence);
 }
 
 // ---- Screenshot upload (Journal tab) ----
@@ -261,7 +276,13 @@ function addTradeLeg() {
     const lastLeg = draftTrade.legs[draftTrade.legs.length - 1];
     const datetime = usesPreviousEntry && lastLeg ? lastLeg.datetime : null;
 
-    draftTrade.legs.push(makeDefaultLeg(undefined, undefined, datetime));
+    // A new leg defaults to the opposite action of the previous one (buy -> a
+    // sell to close it out, and vice versa) and copies its quantity, since the
+    // overwhelmingly common case is closing out the same size you entered with.
+    const action = lastLeg ? (lastLeg.action === 'buy' ? 'sell' : 'buy') : null;
+    const quantity = lastLeg ? lastLeg.quantity : undefined;
+
+    draftTrade.legs.push(makeDefaultLeg(quantity, undefined, datetime, action));
     renderTradeLegs();
 }
 
@@ -803,18 +824,17 @@ function renderTradeLog() {
     renderEquityChart(rows);
     updateSortHeaderIcons();
 
-    // Notes only interleave with trades by date when the log itself is date-sorted;
-    // otherwise they're just listed first (newest note on top either way).
-    const noteEntries = getDayNotesArray(account).map(note => ({ type: 'note', note, date: note.date }));
+    // Notes behave like any other dated entry - they sink down as newer trades
+    // or notes come in, instead of being permanently glued above everything.
+    // A note flagged .pinned (see toggleNotePinned in notes.js) is the only
+    // way to keep one fixed at the very top regardless of sort/date.
+    const allNotes = getDayNotesArray(account).map(note => ({ type: 'note', note, date: note.date }));
+    const pinnedEntries = allNotes.filter(e => e.note.pinned);
+    const unpinnedNoteEntries = allNotes.filter(e => !e.note.pinned);
+    const tradeEntries = rows.map(row => ({ type: 'trade', row, date: row.date }));
 
-    let entries;
-    if (tradeSortKey === 'date') {
-        const tradeEntries = rows.map(row => ({ type: 'trade', row, date: row.date }));
-        entries = mergeNoteAndTradeEntries(tradeEntries, noteEntries, tradeSortDir);
-    } else {
-        const sortedNotes = noteEntries.slice().sort((a, b) => (b.note.createdAt || 0) - (a.note.createdAt || 0));
-        entries = [...sortedNotes, ...rows.map(row => ({ type: 'trade', row, date: row.date }))];
-    }
+    const merged = mergeNoteAndTradeEntries(tradeEntries, unpinnedNoteEntries, tradeSortDir);
+    const entries = [...pinnedEntries, ...merged];
 
     body.innerHTML = entries
         .map(entry => entry.type === 'note' ? buildNoteRowHtml(entry.note) : buildTradeRowHtml(entry.row))
@@ -824,20 +844,27 @@ function renderTradeLog() {
     if (typeof refreshAllTradeOverlays === 'function') refreshAllTradeOverlays();
 }
 
-// Same calendar day: notes always rank above trades, and among notes the most
-// recently created/edited one ranks first - so a freshly saved note jumps to the
-// top of its day's group instead of sitting wherever its date alone would sort it.
+// Notes and trades interleave purely by recency (across days: the later
+// calendar day wins; within the same day: whichever actually happened/was
+// saved more recently wins) - a same-day trade CAN outrank a same-day note now,
+// instead of notes automatically winning every tie. Two trades always compare
+// equal here so the table's chosen column sort (compareTradeRows) is preserved
+// via a stable sort - only notes get positioned relative to that existing order.
 function mergeNoteAndTradeEntries(tradeEntries, noteEntries, dir) {
     return [...tradeEntries, ...noteEntries].sort((a, b) => {
+        if (a.type === 'trade' && b.type === 'trade') return 0;
+
         const aDay = a.date.slice(0, 10);
         const bDay = b.date.slice(0, 10);
         if (aDay !== bDay) {
             const cmp = aDay < bDay ? -1 : 1;
             return dir === 'asc' ? cmp : -cmp;
         }
-        if (a.type !== b.type) return a.type === 'note' ? -1 : 1;
-        if (a.type === 'note') return (b.note.createdAt || 0) - (a.note.createdAt || 0);
-        return 0;
+
+        const aTime = a.type === 'note' ? (a.note.createdAt || 0) : new Date(a.date).getTime();
+        const bTime = b.type === 'note' ? (b.note.createdAt || 0) : new Date(b.date).getTime();
+        const cmp = aTime - bTime;
+        return dir === 'asc' ? cmp : -cmp;
     });
 }
 

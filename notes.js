@@ -107,6 +107,19 @@ function saveNoteModal() {
     closeNoteModal();
 }
 
+// A pinned note always stays at the very top of the Dashboard trade log,
+// regardless of date/recency - the explicit override for when you actually
+// want a note to stick (unlike the default, where notes now sink down over
+// time just like any other dated entry - see mergeNoteAndTradeEntries).
+function toggleNotePinned(noteId) {
+    const account = getActiveAccount();
+    const note = getDayNotesArray(account).find(n => n.id === noteId);
+    if (!note) return;
+    note.pinned = !note.pinned;
+    saveAccountsState();
+    renderTradeLog();
+}
+
 // Closes the note editor and opens a styled "Delete Note?" confirmation in its
 // place (matches the Delete Trade confirmation), instead of stacking confirm()
 // on top of an open modal.
@@ -186,5 +199,8 @@ function buildNoteRowHtml(note) {
             <span class="day-note-stat" title="Open">${open}</span>
             <span class="day-note-stat value-negative" title="Losses">${losses}</span>
         </span>
+        <button class="day-note-pin-btn ${note.pinned ? 'active' : ''}" onclick="event.stopPropagation(); toggleNotePinned('${note.id}')" title="${note.pinned ? 'Unpin from top' : 'Pin to top'}">
+            <i class="fa-solid fa-thumbtack"></i>
+        </button>
     </div>`;
 }
