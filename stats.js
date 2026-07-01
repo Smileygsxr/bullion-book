@@ -230,7 +230,7 @@ function renderDivergingBarChart(containerId, items) {
         const pct = Math.min(100, (Math.abs(item.value) / maxAbs) * 100);
         const isNeg = item.value < 0;
         return `
-        <div class="stats-bar-row">
+        <div class="stats-bar-row" data-bar-label="${escapeHtml(item.label)}" data-bar-value="${item.value}">
             <div class="stats-bar-row-label">${escapeHtml(item.label)}</div>
             <div class="stats-bar-row-track">
                 <div class="stats-bar-half negative">${isNeg ? `<div class="stats-bar-fill negative" style="width:${pct}%"></div>` : ''}</div>
@@ -256,13 +256,81 @@ function renderDivergingBarChart(containerId, items) {
         </div>`;
 
     container.innerHTML = rowsHtml + ticksHtml;
+    bindDivergingBarTooltip(container);
+}
+
+// ---- Hover tooltip for the diverging bar charts (Day of Week / Hour) ----
+function getStatsBarTooltip() {
+    let tooltip = document.getElementById('stats-bar-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'stats-bar-tooltip';
+        tooltip.className = 'stats-bar-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    return tooltip;
+}
+
+// Event delegation, bound once per container (guarded via a dataset flag since
+// renderDivergingBarChart re-renders innerHTML on every stats refresh).
+function bindDivergingBarTooltip(container) {
+    if (container.dataset.tooltipBound) return;
+    container.dataset.tooltipBound = 'true';
+
+    const tooltip = getStatsBarTooltip();
+
+    container.addEventListener('mouseover', event => {
+        const row = event.target.closest('.stats-bar-row[data-bar-value]');
+        if (!row) return;
+
+        const value = parseFloat(row.dataset.barValue);
+        const isNeg = value < 0;
+        tooltip.innerHTML = `
+            <div class="stats-bar-tooltip-label">${escapeHtml(row.dataset.barLabel)}</div>
+            <div class="stats-bar-tooltip-value">
+                <span class="stats-bar-tooltip-swatch ${isNeg ? 'negative' : 'positive'}"></span>
+                <span class="sensitive-value">${formatTotal(value)}</span>
+            </div>`;
+        tooltip.style.display = 'block';
+    });
+
+    container.addEventListener('mousemove', event => {
+        const row = event.target.closest('.stats-bar-row[data-bar-value]');
+        if (!row || tooltip.style.display === 'none') return;
+        tooltip.style.left = `${event.clientX + 14}px`;
+        tooltip.style.top = `${event.clientY - 12}px`;
+    });
+
+    container.addEventListener('mouseout', event => {
+        const row = event.target.closest('.stats-bar-row[data-bar-value]');
+        const toRow = event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('.stats-bar-row[data-bar-value]');
+        if (row && row !== toRow) tooltip.style.display = 'none';
+    });
 }
 
 const WEEKDAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// r.date ("YYYY-MM-DDTHH:MM", no timezone suffix) is a wall-clock string meaning
+// "this hour/day in whatever timezone the chart is in" (GMT+2 for CSV-imported
+// trades - see csv-import.js). new Date(r.date).getHours()/.getDay() would
+// re-interpret that string in the VIEWER's OWN browser timezone instead, which
+// only coincidentally matches when the viewer happens to also be on GMT+2 - so
+// the hour/day is read directly from the string instead, via a UTC-anchored
+// Date that no local timezone conversion can touch.
+function getWallClockHour(dateStr) {
+    const timePart = dateStr.split('T')[1] || '';
+    return parseInt(timePart.slice(0, 2), 10);
+}
+
+function getWallClockWeekday(dateStr) {
+    const [datePart] = dateStr.split('T');
+    const [y, m, d] = datePart.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 function renderStatsDayOfWeekChart(closed) {
     const totals = new Array(7).fill(0);
-    closed.forEach(r => { totals[new Date(r.date).getDay()] += r.returnAmount; });
+    closed.forEach(r => { totals[getWallClockWeekday(r.date)] += r.returnAmount; });
     const items = WEEKDAY_LABELS.map((label, i) => ({ label, value: totals[i] }));
     renderDivergingBarChart('stats-day-chart', items);
 }
@@ -276,7 +344,7 @@ function formatHourLabel(hour) {
 function renderStatsHourChart(closed) {
     const totals = new Map();
     closed.forEach(r => {
-        const hour = new Date(r.date).getHours();
+        const hour = getWallClockHour(r.date);
         totals.set(hour, (totals.get(hour) || 0) + r.returnAmount);
     });
 
@@ -287,7 +355,45 @@ function renderStatsHourChart(closed) {
     renderDivergingBarChart('stats-hour-chart', items);
 }
 
-// ---- Breakdown tables ----
+// ---- Breakdown tables (sortable by column, click a header to toggle) ----
+const statsTableSort = {
+    tag: { key: 'trades', dir: 'desc' },
+    symbol: { key: 'trades', dir: 'desc' }
+};
+
+function sortStatsTable(tableType, key) {
+    const state = statsTableSort[tableType];
+    if (state.key === key) {
+        state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.key = key;
+        state.dir = 'desc';
+    }
+    renderStatsPage();
+}
+
+function sortStatsRows(rows, tableType) {
+    const { key, dir } = statsTableSort[tableType];
+    const sorted = rows.slice().sort((a, b) => {
+        let av = a[key];
+        let bv = b[key];
+        if (typeof av === 'string') av = av.toLowerCase();
+        if (typeof bv === 'string') bv = bv.toLowerCase();
+        if (av < bv) return dir === 'asc' ? -1 : 1;
+        if (av > bv) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    document.querySelectorAll(`#page-stats th.sortable i[id^="stats-${tableType}-sort-icon-"]`).forEach(icon => {
+        const iconKey = icon.id.replace(`stats-${tableType}-sort-icon-`, '');
+        icon.className = iconKey === key
+            ? (dir === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down')
+            : 'fa-solid fa-sort';
+    });
+
+    return sorted;
+}
+
 function renderStatsTagTable(closed) {
     const tagDefs = (getActiveAccount().tagDefs) || [];
     const tagNameById = new Map(tagDefs.map(t => [t.id, t.name]));
@@ -306,7 +412,7 @@ function renderStatsTagTable(closed) {
 
     const totalPnl = closed.reduce((sum, r) => sum + r.returnAmount, 0);
 
-    const tagRows = Array.from(byTag.entries())
+    let tagRows = Array.from(byTag.entries())
         .map(([tagId, tagTrades]) => {
             const pnl = tagTrades.reduce((sum, r) => sum + r.returnAmount, 0);
             const entTot = tagTrades.reduce((sum, r) => sum + r.entTot, 0);
@@ -314,8 +420,8 @@ function renderStatsTagTable(closed) {
             const contributionPct = totalPnl !== 0 ? (pnl / totalPnl) * 100 : 0;
             const name = tagId ? (tagNameById.get(tagId) || 'Unknown Tag') : '--NO TAGS--';
             return { name, trades: tagTrades.length, pnl, pnlPct, contributionPct };
-        })
-        .sort((a, b) => b.trades - a.trades);
+        });
+    tagRows = sortStatsRows(tagRows, 'tag');
 
     setHtml('stats-tag-table-body', tagRows.map(row => `
         <tr>
@@ -336,15 +442,15 @@ function renderStatsSymbolTable(closed) {
 
     const totalPnl = closed.reduce((sum, r) => sum + r.returnAmount, 0);
 
-    const symbolRows = Array.from(bySymbol.entries())
+    let symbolRows = Array.from(bySymbol.entries())
         .map(([symbol, symbolTrades]) => {
             const pnl = symbolTrades.reduce((sum, r) => sum + r.returnAmount, 0);
             const entTot = symbolTrades.reduce((sum, r) => sum + r.entTot, 0);
             const pnlPct = entTot !== 0 ? (pnl / entTot) * 100 : 0;
             const contributionPct = totalPnl !== 0 ? (pnl / totalPnl) * 100 : 0;
             return { symbol, trades: symbolTrades.length, pnl, pnlPct, contributionPct };
-        })
-        .sort((a, b) => b.trades - a.trades);
+        });
+    symbolRows = sortStatsRows(symbolRows, 'symbol');
 
     setHtml('stats-symbol-table-body', symbolRows.map(row => `
         <tr>

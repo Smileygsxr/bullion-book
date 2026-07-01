@@ -664,7 +664,7 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
 
     attachLockToggle(chart, chartContainer);
     attachMeasureTool(chart, series, chartContainer, dateString);
-    attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true });
+    attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true, showAxisPriceLabel: true });
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
     cpiChartInstances.set(dateString, {

@@ -39,6 +39,57 @@ function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// ---- Contract size (Settings > Contract Sizes) ----
+// A raw price move times "quantity" only equals real dollar P&L when quantity is
+// already in dollar-equivalent units. Trade quantities here are broker LOTS, so
+// each symbol needs its own multiplier - e.g. XAUUSD is 100oz per lot, so a $10
+// move on 0.01 lots is $10 P&L (10 * 0.01 * 100), not $0.10. This is NOT
+// leverage (leverage only affects margin required, never P&L) - it's the
+// instrument's contract size. account.contractSizes is an array of
+// { id, symbol, size } rows (editable in Settings), falling back to well-known
+// defaults, then 1 (old behavior) if the symbol isn't recognized either way.
+const BUILT_IN_CONTRACT_SIZES = { XAUUSD: 100 };
+
+function getContractSizeForSymbol(symbol) {
+    const account = getActiveAccount();
+    const key = (symbol || '').trim().toUpperCase();
+    const row = (account.contractSizes || []).find(r => r.symbol.toUpperCase() === key);
+    if (row && typeof row.size === 'number' && row.size > 0) return row.size;
+    return BUILT_IN_CONTRACT_SIZES[key] || 1;
+}
+
+// ---- Generic confirmation dialog - a single reusable modal (index.html) instead
+// of the browser's native confirm() popup, used by any destructive action that
+// doesn't already have its own dedicated confirm modal (Delete Trade/Note do). ----
+let genericConfirmModalAction = null;
+
+function showConfirmDialog({ title, body, confirmText, onConfirm }) {
+    const titleEl = document.getElementById('generic-confirm-modal-title');
+    const bodyEl = document.getElementById('generic-confirm-modal-body');
+    const confirmBtn = document.getElementById('generic-confirm-modal-confirm-btn');
+    const overlay = document.getElementById('generic-confirm-modal-overlay');
+    if (!titleEl || !bodyEl || !confirmBtn || !overlay) return;
+
+    titleEl.textContent = title;
+    bodyEl.textContent = body;
+    confirmBtn.textContent = confirmText || 'Yes, continue';
+    genericConfirmModalAction = onConfirm;
+
+    overlay.style.display = 'flex';
+}
+
+function closeGenericConfirmModal() {
+    const overlay = document.getElementById('generic-confirm-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+    genericConfirmModalAction = null;
+}
+
+function runGenericConfirmModalAction() {
+    const action = genericConfirmModalAction;
+    closeGenericConfirmModal();
+    if (typeof action === 'function') action();
+}
+
 function initAccounts() {
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -123,6 +174,10 @@ function switchActiveAccount(accountId) {
     accountsState.activeAccountId = accountId;
     saveAccountsState();
     renderSidebarAccount();
+    // Each account remembers its own CSV import timezone/history - refresh the
+    // Import Trades panel immediately in case it's already open, instead of only
+    // updating once the user leaves and re-enters that Settings tab.
+    if (typeof renderCsvImportMeta === 'function') renderCsvImportMeta();
 }
 
 // ---- Modal: Account & Transactions ----
@@ -199,21 +254,27 @@ function saveAccountModal() {
 }
 
 function deleteAccountModal() {
-    if (!confirm(`Delete "${draftAccount.name}" and all its transactions? This can't be undone.`)) return;
+    const accountToDelete = draftAccount;
+    showConfirmDialog({
+        title: 'Delete Account?',
+        body: `Delete "${accountToDelete.name}" and all its transactions? This can't be undone.`,
+        confirmText: 'Yes, delete it',
+        onConfirm: () => {
+            delete accountsState.accounts[accountToDelete.id];
 
-    delete accountsState.accounts[draftAccount.id];
+            if (Object.keys(accountsState.accounts).length === 0) {
+                const fresh = makeDefaultAccount('Primary Live');
+                accountsState.accounts[fresh.id] = fresh;
+                accountsState.activeAccountId = fresh.id;
+            } else if (accountsState.activeAccountId === accountToDelete.id) {
+                accountsState.activeAccountId = Object.keys(accountsState.accounts)[0];
+            }
 
-    if (Object.keys(accountsState.accounts).length === 0) {
-        const fresh = makeDefaultAccount('Primary Live');
-        accountsState.accounts[fresh.id] = fresh;
-        accountsState.activeAccountId = fresh.id;
-    } else if (accountsState.activeAccountId === draftAccount.id) {
-        accountsState.activeAccountId = Object.keys(accountsState.accounts)[0];
-    }
-
-    saveAccountsState();
-    renderSidebarAccount();
-    closeAccountModal();
+            saveAccountsState();
+            renderSidebarAccount();
+            closeAccountModal();
+        }
+    });
 }
 
 function newAccountModal() {

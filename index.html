@@ -282,7 +282,13 @@
                 <div class="stats-panel stats-panel-half">
                     <table class="stats-table">
                         <thead>
-                            <tr><th>Tag</th><th>Trades</th><th>PnL</th><th>PnL %</th><th>PnL Contribution %</th></tr>
+                            <tr>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'name')">Tag <i class="fa-solid fa-sort" id="stats-tag-sort-icon-name"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-tag-sort-icon-trades"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnl"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'pnlPct')">PnL % <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnlPct"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'contributionPct')">PnL Contribution % <i class="fa-solid fa-sort" id="stats-tag-sort-icon-contributionPct"></i></th>
+                            </tr>
                         </thead>
                         <tbody id="stats-tag-table-body"></tbody>
                     </table>
@@ -290,7 +296,13 @@
                 <div class="stats-panel stats-panel-half">
                     <table class="stats-table">
                         <thead>
-                            <tr><th>Symbol</th><th>Trades</th><th>PnL</th><th>PnL %</th><th>PnL Contribution %</th></tr>
+                            <tr>
+                                <th class="sortable" onclick="sortStatsTable('symbol', 'symbol')">Symbol <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-symbol"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('symbol', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-trades"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('symbol', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-pnl"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('symbol', 'pnlPct')">PnL % <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-pnlPct"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('symbol', 'contributionPct')">PnL Contribution % <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-contributionPct"></i></th>
+                            </tr>
                         </thead>
                         <tbody id="stats-symbol-table-body"></tbody>
                     </table>
@@ -427,6 +439,14 @@
                         <span><i class="fa-solid fa-tag"></i> Tag Management</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
+                    <button class="settings-subnav-item" id="settings-tab-contracts" onclick="switchSettingsPanel('contracts')">
+                        <span><i class="fa-solid fa-scale-balanced"></i> Contract Sizes</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
+                    <button class="settings-subnav-item" id="settings-tab-import" onclick="switchSettingsPanel('import')">
+                        <span><i class="fa-solid fa-file-csv"></i> Import Trades</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
                     <button class="settings-subnav-item" id="settings-tab-security" onclick="switchSettingsPanel('security')">
                         <span><i class="fa-solid fa-shield-halved"></i> Password & Security</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
@@ -513,17 +533,6 @@
                                     <option value="balance">Return on Account Balance</option>
                                 </select>
                             </div>
-                            <div class="modal-field">
-                                <label class="modal-label">Default Forex Leverage</label>
-                                <select id="settings-default-leverage" class="modal-input">
-                                    <option value="1">1:1</option>
-                                    <option value="10">10:1</option>
-                                    <option value="20">20:1</option>
-                                    <option value="50">50:1</option>
-                                    <option value="100">100:1</option>
-                                    <option value="500">500:1</option>
-                                </select>
-                            </div>
                         </div>
 
                         <button class="btn-action btn-blue settings-save-btn" onclick="saveAccountSettings()">Save</button>
@@ -546,6 +555,62 @@
                             </thead>
                             <tbody id="settings-tag-table-body"></tbody>
                         </table>
+                    </div>
+
+                    <!-- Contract Sizes: fixes P&L math for lot-based instruments (forex/CFDs) -->
+                    <div class="settings-panel" id="settings-panel-contracts" style="display: none;">
+                        <h2 class="settings-panel-title">Contract Sizes</h2>
+                        <p class="settings-share-desc">
+                            A price move only equals real dollars once it's scaled by how much of the
+                            instrument one lot actually represents (e.g. Gold/XAUUSD is 100oz per lot,
+                            so a $10 move on 0.01 lots is $10, not $0.10). This is separate from
+                            leverage, which only affects margin required, never P&L. XAUUSD defaults
+                            to 100 automatically - add other symbols you trade below, or override the
+                            default.
+                        </p>
+                        <button class="btn-action btn-blue settings-add-tag-btn" onclick="addContractSizeRow()">Add Symbol</button>
+                        <table class="stats-table settings-tag-table">
+                            <thead>
+                                <tr><th>Symbol</th><th>Contract Size (units per lot)</th><th></th></tr>
+                            </thead>
+                            <tbody id="settings-contract-size-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Import Trades (CSV, e.g. an Exness/MT4/MT5 trade history export) -->
+                    <div class="settings-panel" id="settings-panel-import" style="display: none;">
+                        <h2 class="settings-panel-title">Import Trades from CSV</h2>
+                        <p class="settings-share-desc">
+                            Upload a closed-trades CSV export from your broker (e.g. Exness).
+                            Uploading a new file replaces whatever was imported last time - trades
+                            you added manually, plus any tags/notes on previously imported trades,
+                            are left untouched.
+                        </p>
+
+                        <div class="modal-field settings-field csv-import-timezone-field">
+                            <label class="modal-label">Time Adjustment (hours to add to your CSV's times)</label>
+                            <div class="custom-select" id="csv-timezone-dropdown">
+                                <button type="button" class="custom-select-trigger" onclick="toggleCsvTimezoneDropdown()">
+                                    <span id="csv-timezone-dropdown-label">+0 hours</span>
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </button>
+                                <div class="custom-select-list" id="csv-timezone-dropdown-list" style="display: none;"></div>
+                            </div>
+                            <p class="settings-field-hint">Your chart data is always in GMT+2. If your broker's CSV times are GMT+0 (e.g. Exness's "_utc" columns), choose +2 here so a raw 13:00 becomes 15:00 - changing this updates all your already-imported trade times immediately.</p>
+                        </div>
+
+                        <label class="btn-action btn-blue csv-import-upload-btn" for="csv-import-file-input">
+                            <i class="fa-solid fa-upload"></i> Choose CSV File
+                        </label>
+                        <input type="file" id="csv-import-file-input" accept=".csv" style="display: none;" onchange="handleTradeCsvFileChange(event)">
+
+                        <div id="csv-import-status" class="settings-status"></div>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Last Import</h3>
+                        <p class="settings-share-desc" id="csv-import-last-info">No CSV has been imported yet.</p>
+                        <button class="btn-action btn-danger settings-save-btn" onclick="removeCsvImportedTrades()">Remove Imported Trades</button>
                     </div>
 
                     <!-- Password & Security -->
@@ -581,12 +646,14 @@
                             <div class="settings-danger-box-title">Delete Journal Data</div>
                             <p>This will delete all journal data (trades, tags, notes, etc) in the account "<span id="settings-danger-account-name"></span>".</p>
                             <button class="btn-action btn-danger" onclick="deleteJournalData()">DELETE</button>
+                            <div id="settings-danger-journal-status" class="settings-status"></div>
                         </div>
 
                         <div class="settings-danger-box">
                             <div class="settings-danger-box-title">Delete User Account</div>
                             <p>This will permanently delete your user account and all its data.</p>
                             <button class="btn-action btn-danger" onclick="deleteUserAccount()">DELETE</button>
+                            <div id="settings-danger-account-status" class="settings-status"></div>
                         </div>
                     </div>
                 </div>
@@ -989,6 +1056,20 @@
         </div>
     </div>
 
+    <!-- Generic confirmation dialog - reusable via showConfirmDialog() (accounts.js)
+         wherever the app previously used a native confirm() popup. -->
+    <div id="generic-confirm-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card confirm-modal-card">
+            <div class="confirm-modal-icon"><i class="fa-solid fa-exclamation"></i></div>
+            <h3 class="confirm-modal-title" id="generic-confirm-modal-title"></h3>
+            <p class="confirm-modal-body" id="generic-confirm-modal-body"></p>
+            <div class="confirm-modal-actions">
+                <button class="btn-action btn-danger" onclick="closeGenericConfirmModal()">Cancel</button>
+                <button class="btn-action btn-blue" id="generic-confirm-modal-confirm-btn" onclick="runGenericConfirmModalAction()">Yes, continue</button>
+            </div>
+        </div>
+    </div>
+
     <!-- New Trade Modal -->
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
         <div class="modal-card trade-modal-card">
@@ -1303,6 +1384,7 @@
     <script src="stats.js"></script>
     <script src="calendar.js"></script>
     <script src="settings.js"></script>
+    <script src="csv-import.js"></script>
     <script src="notes.js"></script>
     <script src="filters.js"></script>
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>

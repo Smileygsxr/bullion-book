@@ -440,6 +440,26 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+/* Price badge pinned to the right price axis, tracking the crosshair's actual
+   price height while hovering (attachCrosshairPillLabels' showAxisPriceLabel
+   option) - mirrors the chart's own native last-value axis badge, but follows
+   whichever bar is currently hovered instead of only the latest one. */
+.chart-axis-price-label {
+    position: absolute;
+    display: none;
+    right: 0;
+    transform: translateY(-50%);
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px 0 0 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 6;
+}
+
 /* Metric Pill Double Stacks */
 .metrics-group {
     display: flex;
@@ -1319,6 +1339,48 @@ body {
     background: var(--border-color);
 }
 
+/* Hover tooltip for the diverging bar charts (Day of Week / Hour) - a single
+   shared floating element repositioned/repopulated on hover (see
+   bindDivergingBarTooltip in stats.js), styled to match the equity chart's
+   crosshair pill. */
+.stats-bar-tooltip {
+    position: fixed;
+    display: none;
+    background: rgba(15, 18, 32, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 500;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.stats-bar-tooltip-label {
+    color: var(--text-light);
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.stats-bar-tooltip-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.stats-bar-tooltip-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.stats-bar-tooltip-swatch.positive { background: #2ebd85; }
+.stats-bar-tooltip-swatch.negative { background: #f6465d; }
+
 .stats-bar-ticks-half {
     flex: 1;
     display: flex;
@@ -1341,6 +1403,21 @@ body {
     text-transform: uppercase;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--border-color);
+}
+
+.stats-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.stats-table th.sortable:hover {
+    color: var(--text-light);
+}
+
+.stats-table th.sortable i {
+    margin-left: 4px;
+    font-size: 0.65rem;
 }
 
 .stats-table td {
@@ -1508,6 +1585,13 @@ body {
     color: var(--accent-blue);
     font-size: 0.8rem;
     margin: 0 0 14px;
+}
+
+.settings-field-hint {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    margin: 6px 0 0;
+    line-height: 1.5;
 }
 
 .settings-public-link-result {
@@ -1914,6 +1998,12 @@ body {
 
 .btn-danger {
     background-color: #f6465d;
+}
+
+.csv-import-upload-btn {
+    width: auto;
+    display: inline-flex;
+    margin-bottom: 4px;
 }
 
 /* New Trade Modal */
@@ -2785,6 +2875,76 @@ body.privacy-mode .equity-crosshair-label.price {
 .modal-select option {
     background-color: var(--bg-card);
     color: var(--text-light);
+}
+
+/* Custom dropdown (e.g. CSV Timezone) - used instead of a native <select> where
+   the dropdown list needs its own styling/scrollbar, since a native select's
+   popup is rendered by the OS and can't be styled from CSS at all. */
+.custom-select {
+    position: relative;
+}
+
+.custom-select-trigger {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.custom-select-trigger:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-select-trigger i {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.custom-select-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 20;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.custom-select-list::-webkit-scrollbar {
+    display: none;
+}
+
+.custom-select-option {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.custom-select-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.custom-select-option.active {
+    background: rgba(41, 121, 255, 0.15);
+    color: var(--accent-blue);
+    font-weight: 600;
 }
 
 .trade-filter-actions {

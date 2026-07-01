@@ -12,8 +12,7 @@ let appSettings = {
     defaultQty: '',
     defaultFee: 0,
     defaultTagId: '',
-    pnlCalcType: 'capital',
-    defaultLeverage: '20'
+    pnlCalcType: 'capital'
 };
 
 let customAvatarDataUrl = null;
@@ -131,7 +130,7 @@ function renderSettingsPage() {
 
 function switchSettingsPanel(tab) {
     currentSettingsTab = tab;
-    ['personal', 'account', 'tags', 'security', 'danger'].forEach(t => {
+    ['personal', 'account', 'tags', 'contracts', 'import', 'security', 'danger'].forEach(t => {
         const panel = document.getElementById(`settings-panel-${t}`);
         const navItem = document.getElementById(`settings-tab-${t}`);
         if (panel) panel.style.display = t === tab ? 'block' : 'none';
@@ -141,6 +140,8 @@ function switchSettingsPanel(tab) {
     if (tab === 'personal') populatePersonalInfoPanel();
     if (tab === 'account') populateAccountSettingsPanel();
     if (tab === 'tags') renderTagTable();
+    if (tab === 'contracts') renderContractSizeTable();
+    if (tab === 'import') renderCsvImportMeta();
     if (tab === 'danger') {
         const nameEl = document.getElementById('settings-danger-account-name');
         if (nameEl) nameEl.textContent = getActiveAccount().name;
@@ -201,7 +202,6 @@ function populateAccountSettingsPanel() {
     document.getElementById('settings-default-qty').value = appSettings.defaultQty;
     document.getElementById('settings-default-fee').value = appSettings.defaultFee;
     document.getElementById('settings-pnl-calc-type').value = appSettings.pnlCalcType;
-    document.getElementById('settings-default-leverage').value = appSettings.defaultLeverage;
     populateDefaultTagSelect();
     showSettingsStatus('settings-account-status', '');
     document.getElementById('settings-public-link-result').innerHTML = '';
@@ -224,7 +224,6 @@ function saveAccountSettings() {
     appSettings.defaultFee = document.getElementById('settings-default-fee').value;
     appSettings.defaultTagId = document.getElementById('settings-default-tag').value;
     appSettings.pnlCalcType = document.getElementById('settings-pnl-calc-type').value;
-    appSettings.defaultLeverage = document.getElementById('settings-default-leverage').value;
 
     saveAppSettings();
     renderSidebarAccount();
@@ -317,6 +316,50 @@ function deleteTagRow(tagId) {
     renderTagTable();
 }
 
+// ---- Contract Sizes (fixes P&L math for lot-based instruments - see
+// getContractSizeForSymbol in accounts.js for why this isn't "leverage") ----
+function renderContractSizeTable() {
+    const tbody = document.getElementById('settings-contract-size-table-body');
+    if (!tbody) return;
+    const rows = (getActiveAccount().contractSizes) || [];
+
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td><input type="text" value="${escapeHtml(r.symbol)}" onchange="updateContractSizeField('${r.id}','symbol',this.value.trim().toUpperCase())"></td>
+            <td><input type="number" step="1" min="1" value="${r.size}" onchange="updateContractSizeField('${r.id}','size',parseFloat(this.value) || 1)"></td>
+            <td><button class="txn-remove-btn" onclick="deleteContractSizeRow('${r.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button></td>
+        </tr>`).join('');
+}
+
+function addContractSizeRow() {
+    const account = getActiveAccount();
+    if (!account.contractSizes) account.contractSizes = [];
+    account.contractSizes.push({ id: genId(), symbol: 'NEWSYMBOL', size: 1 });
+    saveAccountsState();
+    renderContractSizeTable();
+}
+
+function updateContractSizeField(rowId, field, value) {
+    const account = getActiveAccount();
+    const row = (account.contractSizes || []).find(r => r.id === rowId);
+    if (!row) return;
+    row[field] = value;
+    saveAccountsState();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderStatsPage === 'function') renderStatsPage();
+    updateSidebarBalanceDisplay();
+}
+
+function deleteContractSizeRow(rowId) {
+    const account = getActiveAccount();
+    account.contractSizes = (account.contractSizes || []).filter(r => r.id !== rowId);
+    saveAccountsState();
+    renderContractSizeTable();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderStatsPage === 'function') renderStatsPage();
+    updateSidebarBalanceDisplay();
+}
+
 // ---- Password & Security ----
 function savePassword() {
     const password = document.getElementById('settings-new-password').value;
@@ -384,33 +427,44 @@ function fixMissingTrades() {
 
 function deleteJournalData() {
     const active = getActiveAccount();
-    if (!confirm(`Delete ALL journal data (trades, tags, notes) in "${active.name}"? This can't be undone.`)) return;
-
-    active.trades = [];
-    active.tagDefs = [];
-    active.dayNotes = [];
-    saveAccountsState();
-    renderSidebarAccount();
-    if (currentSettingsTab === 'tags') renderTagTable();
-    alert('Journal data deleted.');
+    showConfirmDialog({
+        title: 'Delete Journal Data?',
+        body: `Delete ALL journal data (trades, tags, notes) in "${active.name}"? This can't be undone.`,
+        confirmText: 'Yes, delete it',
+        onConfirm: () => {
+            active.trades = [];
+            active.tagDefs = [];
+            active.dayNotes = [];
+            saveAccountsState();
+            renderSidebarAccount();
+            if (currentSettingsTab === 'tags') renderTagTable();
+            showSettingsStatus('settings-danger-journal-status', 'Journal data deleted.', 'success');
+        }
+    });
 }
 
 function deleteUserAccount() {
     const user = auth.currentUser;
     if (!user) {
-        alert('You are not logged in.');
+        showSettingsStatus('settings-danger-account-status', 'You are not logged in.', 'error');
         return;
     }
-    if (!confirm('This will PERMANENTLY delete your account and all its data. This cannot be undone. Continue?')) return;
 
-    db.collection('users').doc(user.uid).delete()
-        .then(() => user.delete())
-        .then(() => { window.location.href = 'login.html'; })
-        .catch(err => {
-            if (err.code === 'auth/requires-recent-login') {
-                alert('For security, please log out and log back in, then try deleting your account again.');
-            } else {
-                alert('Could not delete account: ' + err.message);
-            }
-        });
+    showConfirmDialog({
+        title: 'Delete Your Account?',
+        body: 'This will PERMANENTLY delete your account and all its data. This cannot be undone. Continue?',
+        confirmText: 'Yes, delete my account',
+        onConfirm: () => {
+            db.collection('users').doc(user.uid).delete()
+                .then(() => user.delete())
+                .then(() => { window.location.href = 'login.html'; })
+                .catch(err => {
+                    if (err.code === 'auth/requires-recent-login') {
+                        showSettingsStatus('settings-danger-account-status', 'For security, please log out and log back in, then try deleting your account again.', 'error');
+                    } else {
+                        showSettingsStatus('settings-danger-account-status', 'Could not delete account: ' + err.message, 'error');
+                    }
+                });
+        }
+    });
 }

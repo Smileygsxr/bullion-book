@@ -273,9 +273,16 @@ function computeTradeReturnAmount(trade) {
     const closedQty = Math.min(entryQty, exitQty);
     const directionSign = direction === 'long' ? 1 : -1;
 
-    return closedQty > 0
-        ? (exitPrice * closedQty - entryPrice * closedQty) * directionSign - totalFees
-        : 0;
+    if (closedQty <= 0) return 0;
+
+    // CSV-imported trades (csv-import.js) store the broker's own reported P&L
+    // here, since price-diff * lots can't be turned into real dollars without
+    // knowing each instrument's contract size/pip value (e.g. gold is 100oz per
+    // lot) - trusting the broker's own number is more accurate than guessing.
+    if (typeof trade.overrideReturnAmount === 'number') return trade.overrideReturnAmount;
+
+    const contractSize = getContractSizeForSymbol(trade.symbol);
+    return (exitPrice * closedQty - entryPrice * closedQty) * directionSign * contractSize - totalFees;
 }
 
 function computeTradeSummary(trade) {
@@ -289,21 +296,39 @@ function computeTradeSummary(trade) {
 
     const entryQty = entryLegs.reduce((sum, l) => sum + parseFloat(l.quantity), 0);
     const exitQty = exitLegs.reduce((sum, l) => sum + parseFloat(l.quantity), 0);
-    const entTot = entryLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
-    const extTot = exitLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
+    // Weighted-average PRICES (unscaled by contract size - a price is a price
+    // regardless of lot size, needed as-is for Entry/Exit display and the Trade
+    // Levels chart overlay).
+    const entryPriceTotal = entryLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
+    const exitPriceTotal = exitLegs.reduce((sum, l) => sum + parseFloat(l.quantity) * parseFloat(l.price), 0);
     const totalFees = legs.reduce((sum, l) => sum + (parseFloat(l.fee) || 0), 0);
 
-    const entryPrice = entryQty > 0 ? entTot / entryQty : 0;
-    const exitPrice = exitQty > 0 ? extTot / exitQty : 0;
+    const entryPrice = entryQty > 0 ? entryPriceTotal / entryQty : 0;
+    const exitPrice = exitQty > 0 ? exitPriceTotal / exitQty : 0;
     const closedQty = Math.min(entryQty, exitQty);
     const remainingQty = entryQty - exitQty;
 
+    // Dollar notional totals (EntTot/ExtTot columns, PnL) DO need the contract
+    // size - a price move only equals real dollars once scaled by how much of
+    // the instrument one lot actually represents (e.g. gold = 100oz/lot).
+    const contractSize = getContractSizeForSymbol(trade.symbol);
+    const entTot = entryPriceTotal * contractSize;
+    const extTot = exitPriceTotal * contractSize;
+
     const directionSign = direction === 'long' ? 1 : -1;
-    const closedEntryValue = entryPrice * closedQty;
-    const closedExitValue = exitPrice * closedQty;
+    const closedEntryValue = entryPrice * closedQty * contractSize;
+    const closedExitValue = exitPrice * closedQty * contractSize;
     let returnAmount = closedQty > 0
         ? (closedExitValue - closedEntryValue) * directionSign - totalFees
         : null;
+
+    // CSV-imported trades (csv-import.js) store the broker's own reported P&L
+    // here, since price-diff * lots can't be turned into real dollars without
+    // knowing each instrument's contract size/pip value (e.g. gold is 100oz per
+    // lot) - trusting the broker's own number is more accurate than guessing.
+    if (typeof trade.overrideReturnAmount === 'number' && closedQty > 0) {
+        returnAmount = trade.overrideReturnAmount;
+    }
 
     // Marked as wash = treated as breakeven, not a real win/loss - zero out its
     // P&L impact everywhere (PnL totals, Balance, equity curve), not just the
@@ -366,7 +391,7 @@ function formatTradeDate(isoLike) {
 function formatTradeDateTime(isoLike) {
     const d = new Date(isoLike);
     const datePart = d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: '2-digit' });
-    const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const timePart = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
     return `${datePart}, ${timePart}`;
 }
 
@@ -778,10 +803,25 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
         container.appendChild(dateLabel);
     }
 
+    // Optional: a badge pinned to the right price axis that tracks the
+    // crosshair's actual price height (like the axis's own native last-value
+    // badge, but following the hovered bar instead of only the latest one) -
+    // opt-in since the equity chart's single top pill is enough on its own.
+    let axisPriceLabel = null;
+    if (options.showAxisPriceLabel) {
+        axisPriceLabel = container.querySelector(':scope > .chart-axis-price-label');
+        if (!axisPriceLabel) {
+            axisPriceLabel = document.createElement('div');
+            axisPriceLabel.className = 'chart-axis-price-label';
+            container.appendChild(axisPriceLabel);
+        }
+    }
+
     let defaultPoint = null; // { time, value }
 
     function showDefault() {
         dateLabel.style.display = 'none';
+        if (axisPriceLabel) axisPriceLabel.style.display = 'none';
 
         if (!defaultPoint) {
             priceLabel.style.display = 'none';
@@ -829,6 +869,20 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
             priceLabel.style.top = '';
             priceLabel.style.bottom = 'auto';
             priceLabel.style.display = 'block';
+        }
+
+        if (axisPriceLabel) {
+            // Uses the raw cursor pixel (not the snapped bar price above) so this
+            // lines up exactly with the chart's own native horizontal crosshair
+            // line, which also follows the mouse's actual Y position.
+            const rawPrice = series.coordinateToPrice(param.point.y);
+            if (rawPrice !== null) {
+                axisPriceLabel.textContent = `${currencySymbol}${rawPrice.toFixed(2)}`;
+                axisPriceLabel.style.top = `${param.point.y}px`;
+                axisPriceLabel.style.display = 'block';
+            } else {
+                axisPriceLabel.style.display = 'none';
+            }
         }
 
         // timeZone: 'UTC' matters here - candle/equity epochs in this app encode
