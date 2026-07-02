@@ -222,9 +222,62 @@ Formats the main application name in bold white text and positions a bright blue
     padding-top: 10px;
 }
 
+/* "Support this platform" widget - pinned toward the bottom of the sidebar,
+   just above the profile section. */
+.sidebar-support {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+    padding: 4px 4px 14px;
+}
+
+.sidebar-support-text {
+    margin: 0;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.sidebar-support-text i {
+    color: var(--accent-gold);
+    margin-right: 2px;
+}
+
+.sidebar-support-text a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.sidebar-support-text a:hover {
+    text-decoration: underline;
+}
+
+.sidebar-support-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    box-shadow: 0 4px 14px rgba(41, 121, 255, 0.4);
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.sidebar-support-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
 /* Logged-in user avatar circle, pinned to the bottom of the sidebar */
 .sidebar-profile-wrap {
-    margin-top: auto;
+    margin-top: 0;
 }
 
 .sidebar-profile {
@@ -352,12 +405,25 @@ body {
     min-height: 0;
     overflow-y: auto;
     padding-top: 24px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .view-section::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+}
+
+.view-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.view-section::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+.view-section::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 /* The date-range bar sits flush at the very top of these two pages instead -
@@ -885,12 +951,25 @@ body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .news-content-area::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+}
+
+.news-content-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.news-content-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+.news-content-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 /* CPI table and chart styles */
@@ -2844,12 +2923,25 @@ body {
     border-radius: 14px;
     padding: 16px;
     box-sizing: border-box;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .trade-view-screenshots-panel::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+}
+
+.trade-view-screenshots-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.trade-view-screenshots-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+.trade-view-screenshots-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 .trade-view-screenshots-list {
@@ -3306,12 +3398,25 @@ body {
     box-sizing: border-box;
     flex-shrink: 0;
     overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .page-date-range-bar::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+}
+
+.page-date-range-bar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.page-date-range-bar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+.page-date-range-bar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 .date-range-btn {
@@ -3363,6 +3468,28 @@ body.privacy-mode .equity-crosshair-label.price {
 }
 
 /* Dashboard trade filter flyout */
+.custom-date-popover {
+    position: fixed;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    z-index: 400;
+    box-sizing: border-box;
+}
+
+.custom-date-popover .modal-field {
+    margin-bottom: 0;
+}
+
+.custom-date-popover .modal-input {
+    width: 150px;
+}
+
 .trade-filter-panel {
     position: fixed;
     top: 70px;
@@ -3486,12 +3613,25 @@ body.privacy-mode .equity-crosshair-label.price {
     z-index: 20;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     box-sizing: border-box;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
 .custom-select-list::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+}
+
+.custom-select-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+.custom-select-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 .custom-select-option {

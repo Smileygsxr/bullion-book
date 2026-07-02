@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=6">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -82,6 +82,18 @@
             </button>
         </div>
 
+        <!-- Support widget - replace the "#" hrefs below with your real Ko-fi
+             (or other) donation/membership page links once you have one. -->
+        <div class="sidebar-support">
+            <p class="sidebar-support-text">
+                <i class="fa-solid fa-mug-hot"></i>
+                Support this free platform with a <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener">donation</a> or <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener">membership</a>.
+            </p>
+            <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener" class="sidebar-support-btn" title="Support this project">
+                <i class="fa-solid fa-mug-hot"></i>
+            </a>
+        </div>
+
         <!-- 4. Logged-in User Profile Circle -->
         <div class="sidebar-profile-wrap">
             <div class="sidebar-profile" onclick="toggleProfileMenu()">
@@ -119,6 +131,7 @@
                 <button class="date-range-btn" data-range-key="last3Months" onclick="applyDateRangePreset('last3Months')">Last 3 months</button>
                 <button class="date-range-btn" data-range-key="thisYear" onclick="applyDateRangePreset('thisYear')">This year</button>
                 <button class="date-range-btn" data-range-key="lastYear" onclick="applyDateRangePreset('lastYear')">Last year</button>
+                <button class="date-range-btn" data-range-key="custom" onclick="toggleCustomDateRangePopover(event)">Custom</button>
                 <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
             </div>
 
@@ -270,6 +283,7 @@
                 <button class="date-range-btn" data-range-key="last3Months" onclick="applyDateRangePreset('last3Months')">Last 3 months</button>
                 <button class="date-range-btn" data-range-key="thisYear" onclick="applyDateRangePreset('thisYear')">This year</button>
                 <button class="date-range-btn" data-range-key="lastYear" onclick="applyDateRangePreset('lastYear')">Last year</button>
+                <button class="date-range-btn" data-range-key="custom" onclick="toggleCustomDateRangePopover(event)">Custom</button>
                 <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
             </div>
 
@@ -1490,6 +1504,19 @@
                 <button class="btn-action btn-blue" onclick="saveTradeModal()">Save</button>
             </div>
         </div>
+    </div>
+
+    <!-- Custom date-range popover (toggled from the "Custom" quick-filter button, shared between Dashboard and Stats) -->
+    <div id="custom-date-range-popover" class="custom-date-popover" style="display: none;">
+        <div class="modal-field">
+            <label class="modal-label">From</label>
+            <input type="date" id="custom-date-from" class="modal-input">
+        </div>
+        <div class="modal-field">
+            <label class="modal-label">To</label>
+            <input type="date" id="custom-date-to" class="modal-input">
+        </div>
+        <button class="btn-action btn-blue" style="width: auto;" onclick="applyCustomDateRange()">Apply</button>
     </div>
 
     <!-- Dashboard trade filter flyout (toggled from the sidebar sliders icon) -->

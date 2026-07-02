@@ -110,6 +110,60 @@ function updateDateRangeButtonState(activeKey) {
     });
 }
 
+// ---- Custom date range (shared popover, opened from either page's "Custom" button) ----
+function toDateInputValue(date) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function toggleCustomDateRangePopover(event) {
+    const popover = document.getElementById('custom-date-range-popover');
+    if (!popover) return;
+
+    if (popover.style.display === 'block') {
+        popover.style.display = 'none';
+        return;
+    }
+
+    const fromInput = document.getElementById('custom-date-from');
+    const toInput = document.getElementById('custom-date-to');
+    if (activeDateRangeKey === 'custom' && tradeLogFilters.dateFrom && tradeLogFilters.dateTo) {
+        fromInput.value = toDateInputValue(tradeLogFilters.dateFrom);
+        toInput.value = toDateInputValue(tradeLogFilters.dateTo);
+    } else {
+        fromInput.value = '';
+        toInput.value = '';
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    popover.style.left = `${rect.left}px`;
+    popover.style.top = `${rect.bottom + 6}px`;
+    popover.style.display = 'block';
+}
+
+function applyCustomDateRange() {
+    const fromVal = document.getElementById('custom-date-from').value;
+    const toVal = document.getElementById('custom-date-to').value;
+    if (!fromVal || !toVal) return;
+
+    tradeLogFilters.dateFrom = startOfDay(new Date(`${fromVal}T00:00:00`));
+    tradeLogFilters.dateTo = endOfDay(new Date(`${toVal}T00:00:00`));
+    activeDateRangeKey = 'custom';
+
+    updateDateRangeButtonState('custom');
+    updateFilterToggleButtonState();
+    refreshFilteredViews();
+    document.getElementById('custom-date-range-popover').style.display = 'none';
+}
+
+document.addEventListener('click', event => {
+    const popover = document.getElementById('custom-date-range-popover');
+    if (!popover || popover.style.display === 'none') return;
+    const customBtn = event.target.closest('[data-range-key="custom"]');
+    if (popover.contains(event.target) || customBtn) return;
+    popover.style.display = 'none';
+});
+
 // ---- Panel open/close ----
 function toggleTradeFilterPanel() {
     const panel = document.getElementById('trade-filter-panel');
