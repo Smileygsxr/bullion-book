@@ -187,13 +187,35 @@ Formats the main application name in bold white text and positions a bright blue
 .nav-link {
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 4px 10px;
     color: var(--text-muted);
     text-decoration: none;
     padding: 9px 10px;
     border-radius: 6px;
     font-weight: 500;
     transition: all 0.2s ease;
+}
+
+.nav-link-wip {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+    opacity: 0.85;
+}
+
+.news-wip-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(223, 177, 91, 0.12);
+    border: 1px solid rgba(223, 177, 91, 0.35);
+    color: var(--accent-gold);
+    font-size: 0.72rem;
+    font-weight: 600;
 }
 /* Targets the font icon inside the link. It gives all icons a fixed width: 20px to prevent layout shifting, ensuring your
  text lines up perfectly straight even if one icon is naturally wider than another*/

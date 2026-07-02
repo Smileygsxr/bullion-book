@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+    <link rel="stylesheet" href="styles.css?v=7">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -15,16 +15,9 @@
         <!-- 1. Top Left Brand Title Links to Dashboard -->
         <div class="brand">
             <a href="#" class="brand-link" onclick="showPage('page-dashboard', this)">
-              <svg class="logo-mark brand-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
-                  <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
-                  <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
-                  <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
-                  <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
-                  <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                  <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
-                  <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                  <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+              <svg class="logo-mark brand-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="94" height="94" rx="12" fill="#dfb15b"/>
+                  <text x="50" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" letter-spacing="-6" fill="#131722">BB</text>
               </svg>
               <h1>Bullion Book</h1>
             </a>
@@ -67,7 +60,7 @@
             <a href="#" class="nav-link active" onclick="showPage('page-dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
             <a href="#" class="nav-link" onclick="showPage('page-calendar', this)"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
-            <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
+            <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News <span class="nav-link-wip">(Work in Progress)</span></a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
             <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
             <a href="#" class="nav-link" id="nav-logout-link" onclick="logOut()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -430,6 +423,7 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
                     <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
+                    <span class="news-wip-badge"><i class="fa-solid fa-triangle-exclamation"></i> This page is a Work in Progress - data is not accurate</span>
                 </div>
                 <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
             </header>
@@ -799,16 +793,9 @@
         <div id="page-help" class="view-section help-page" style="display: none;">
             <!-- Hero -->
             <div class="help-hero">
-                <svg class="logo-mark help-hero-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M11 7 L21 7 L24 11 L8 11 Z" fill="#f0d9a8"/>
-                    <path d="M8 11 L24 11 L27 24 L5 24 Z" fill="#dfb15b"/>
-                    <path d="M24 11 L27 24 L24 24 L21 11 Z" fill="#b8903f"/>
-                    <rect x="11" y="12" width="10" height="9" rx="1.2" fill="#3c2a12"/>
-                    <line x1="16" y1="12" x2="16" y2="21" stroke="#8a6a35" stroke-width="1"/>
-                    <line x1="12.5" y1="15" x2="15" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                    <line x1="12.5" y1="17.5" x2="15" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
-                    <line x1="17" y1="15" x2="19.5" y2="15" stroke="#8a6a35" stroke-width="0.7"/>
-                    <line x1="17" y1="17.5" x2="19.5" y2="17.5" stroke="#8a6a35" stroke-width="0.7"/>
+                <svg class="logo-mark help-hero-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="94" height="94" rx="12" fill="#dfb15b"/>
+                    <text x="50" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" letter-spacing="-6" fill="#131722">BB</text>
                 </svg>
                 <h1>How can we help?</h1>
                 <p>Everything Bullion Book can do, in one place. Search or jump to a topic below.</p>
