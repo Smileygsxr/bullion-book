@@ -1431,6 +1431,24 @@ body {
     color: #f6465d;
 }
 
+.wl-compare-value.left {
+    text-align: right;
+    padding-right: 20px;
+}
+
+.wl-compare-value.right {
+    text-align: left;
+    padding-left: 20px;
+}
+
+.wl-compare-header-row .wl-compare-value {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+}
+
 .mae-mfe-panel {
     color: var(--text-muted);
     font-size: 0.82rem;
@@ -1479,8 +1497,9 @@ body {
 
 .pro-score-svg {
     width: 100%;
-    max-width: 340px;
+    max-width: 460px;
     height: auto;
+    max-height: 100%;
 }
 
 .pro-score-grid-ring {
@@ -1505,6 +1524,25 @@ body {
     fill: #7c5cff;
     stroke: #ffffff;
     stroke-width: 1.5;
+    transition: r 0.15s ease;
+}
+
+.pro-score-vertex.hovered {
+    r: 5.5;
+}
+
+.pro-score-hit {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.pro-score-hit:hover {
+    fill: rgba(124, 92, 255, 0.18);
+}
+
+.stats-bar-tooltip-swatch.pro-score {
+    background: #7c5cff;
+    border-radius: 50%;
 }
 
 .pro-score-axis-label {
@@ -1584,82 +1622,140 @@ body {
     min-width: 0;
 }
 
-/* Stacks two .stats-panel cards vertically inside one .stats-panel-half column
-   (e.g. Wins vs Losses above MAE/MFE). The row's default stretch makes this
-   column match Pro Score's height; the last card (MAE/MFE) grows to absorb
-   that leftover space instead of Wins vs Losses, whose row-based layout
-   wouldn't look right stretched. */
+/* The row's default stretch makes Pro Score match the right column's
+   (Wins vs Losses + MAE/MFE + Performance-vs-Volatility) natural height.
+   This makes the radar chart grow into that extra space and stay centered,
+   instead of leaving a dead gap below the gradient bar. */
+.pro-score-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.pro-score-panel .pro-score-radar {
+    flex: 1;
+    min-height: 0;
+    align-items: center;
+}
+
+/* Stacks Wins vs Losses above a MAE/MFE + Performance-vs-Volatility row,
+   inside the same column width Pro Score occupies. Pro Score is the taller
+   natural-height card, so the row stretches this whole column to match it;
+   the bottom row grows to absorb that leftover height instead of leaving a
+   gap below it. */
 .stats-stack-col {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
-.stats-stack-col > .stats-panel:last-child {
+.stats-stack-row {
+    display: flex;
+    gap: 12px;
     flex: 1;
+}
+
+.stats-stack-row .stats-panel {
     display: flex;
     flex-direction: column;
 }
 
-.stats-stack-col > .stats-panel:last-child .mae-mfe-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+/* Centered via auto margins (not flex-direction:column on the content
+   itself) so mae-mfe-panel's own inline-flex items stay side by side
+   instead of being forced into a vertical stack. */
+.stats-stack-row .stats-panel > .mae-mfe-panel,
+.stats-stack-row .stats-panel > .wl-compare {
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .stats-bar-chart {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 }
 
 .stats-bar-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    padding: 3px 8px;
+    margin: 0 -8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.stats-bar-row[data-bar-value]:hover {
+    background: rgba(255, 255, 255, 0.035);
 }
 
 .stats-bar-row-label {
-    width: 70px;
+    width: 64px;
     font-size: 0.7rem;
     color: var(--text-muted);
     text-align: right;
     flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .stats-bar-row-track {
     flex: 1;
     display: flex;
     align-items: center;
+    position: relative;
 }
 
 .stats-bar-half {
     flex: 1;
     display: flex;
-    height: 16px;
+    align-items: center;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.035);
 }
 
 .stats-bar-half.negative {
     justify-content: flex-end;
+    border-radius: 4px 0 0 4px;
 }
 
 .stats-bar-half.positive {
     justify-content: flex-start;
+    border-radius: 0 4px 4px 0;
 }
 
 .stats-bar-fill {
     height: 100%;
-    border-radius: 2px;
+    min-width: 2px;
+    transition: filter 0.15s ease;
 }
 
-.stats-bar-fill.negative { background: #f6465d; }
-.stats-bar-fill.positive { background: #2ebd85; }
+.stats-bar-fill.negative { background: #f6465d; border-radius: 4px 0 0 4px; }
+.stats-bar-fill.positive { background: #2ebd85; border-radius: 0 4px 4px 0; }
+
+.stats-bar-row[data-bar-value]:hover .stats-bar-fill { filter: brightness(1.18); }
 
 .stats-bar-divider {
     width: 1px;
     align-self: stretch;
     background: var(--border-color);
+}
+
+.stats-bar-ticks-row {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-color);
+}
+
+.stats-bar-ticks-row:hover {
+    background: none;
+}
+
+.stats-bar-zero {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 /* Hover tooltip for the diverging bar charts (Day of Week / Hour) - a single
@@ -1710,6 +1806,8 @@ body {
     justify-content: space-between;
     font-size: 0.62rem;
     color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
 }
 
 .stats-table {
@@ -3266,6 +3364,19 @@ body {
     margin: 0;
     font-size: 1.2rem;
     color: #ffffff;
+}
+
+.help-section-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(223, 177, 91, 0.08);
+    border: 1px solid rgba(223, 177, 91, 0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: -8px 0 16px;
+    font-size: 0.8rem;
+    color: var(--accent-gold);
 }
 
 .help-grid {

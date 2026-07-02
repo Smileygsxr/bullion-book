@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=15">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -28,6 +28,10 @@
             <button class="sidebar-icon-btn" id="privacy-toggle-btn" onclick="togglePrivacyMode()" title="Hide sensitive values">
                 <i class="fa-solid fa-eye"></i>
             </button>
+            <button class="sidebar-icon-btn" id="import-trades-btn" onclick="document.getElementById('sidebar-csv-import-input').click()" title="Import trades (CSV)">
+                <i class="fa-solid fa-file-csv"></i>
+            </button>
+            <input type="file" id="sidebar-csv-import-input" accept=".csv" style="display: none;" onchange="handleTradeCsvFileChange(event)">
             <button class="sidebar-icon-btn" id="filter-toggle-btn" onclick="toggleTradeFilterPanel()" title="Filter trades">
                 <i class="fa-solid fa-sliders"></i>
             </button>
@@ -284,7 +288,7 @@
             <div class="stats-metrics-row" id="stats-metrics-row-2"></div>
 
             <div class="stats-charts-row">
-                <div class="stats-panel stats-panel-half">
+                <div class="stats-panel stats-panel-half pro-score-panel">
                     <div class="pro-score-title-row">
                         <span class="stats-panel-title" style="margin-bottom: 0;">PRO SCORE</span>
                         <button type="button" class="settings-info-btn" data-tooltip="Pro Score averages 6 normalized metrics (each scored out of 100): Win %, Profit Factor, Avg Win/Loss ratio, Recovery Factor, Max Drawdown, and Consistency (how much of your profit came from a single best day)." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
@@ -307,9 +311,20 @@
                         <div class="stats-panel-title">WINS VS LOSSES</div>
                         <div class="wl-compare" id="wins-losses-compare"></div>
                     </div>
-                    <div class="stats-panel">
-                        <div class="stats-panel-title">MAE / MFE (XAUUSD, SAME-DAY TRADES)</div>
-                        <div class="mae-mfe-panel" id="stats-mae-mfe-result"></div>
+
+                    <div class="stats-stack-row">
+                        <div class="stats-panel stats-panel-half">
+                            <div class="stats-panel-title">MAE / MFE (XAUUSD, SAME-DAY TRADES)</div>
+                            <div class="mae-mfe-panel" id="stats-mae-mfe-result"></div>
+                        </div>
+
+                        <div class="stats-panel stats-panel-half">
+                            <div class="pro-score-title-row">
+                                <span class="stats-panel-title" style="margin-bottom: 0;">PERFORMANCE VS VOLATILITY (XAUUSD)</span>
+                                <button type="button" class="settings-info-btn" data-tooltip="Splits your closed XAUUSD trades by that day's real intraday price range (high minus low), at the median across days with chart data, then compares win rate and P&L between the higher-range ('high volatility') and lower-range ('low volatility') halves." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                            </div>
+                            <div class="wl-compare" id="stats-volatility-result"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -862,7 +877,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-calendar"></i>
                         <h3>Quick Date Range</h3>
-                        <p>The row of buttons above the stats cards (Today, Yesterday, This Week, etc) instantly narrows the Dashboard and Stats to that period. Click the active button again, or Reset, to clear it.</p>
+                        <p>The row of buttons above the stats cards (Today, Yesterday, This Week, etc) instantly narrows the Dashboard and Stats to that period. Use <strong>Custom</strong> to pick your own From/To dates. Click the active button again, or Reset, to clear it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-file-csv"></i>
+                        <h3>Quick CSV Import</h3>
+                        <p>The file icon next to the eye icon (top of the sidebar) opens the CSV file picker directly from any page - same import as Settings → Import Trades, without leaving where you are.</p>
                     </div>
                 </div>
             </section>
@@ -1149,6 +1169,11 @@
                         <h3>MAE / MFE</h3>
                         <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade. Only computable for same-day XAUUSD trades, since that's the only price history this app has.</p>
                     </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-wave-square"></i>
+                        <h3>Performance vs. Volatility</h3>
+                        <p>Splits your closed XAUUSD trades into "high" and "low" volatility days, based on each day's real intraday price range, then compares win rate and P&amp;L between the two - see if your edge holds up when gold really moves. Click the <strong>?</strong> for the exact split method.</p>
+                    </div>
                 </div>
             </section>
 
@@ -1158,6 +1183,7 @@
                     <i class="fa-solid fa-newspaper"></i>
                     <h2>News &amp; Charts</h2>
                 </div>
+                <p class="help-section-note">The News page is currently a Work in Progress - its economic-event data isn't accurate yet. Everything below about the daily XAUUSD charts themselves is already live.</p>
                 <div class="help-grid">
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-candlestick"></i>
@@ -1331,6 +1357,11 @@
                         <i class="fa-solid fa-bug"></i>
                         <h3>Report a Bug</h3>
                         <p>Something not working as expected? Email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> with what happened and which page you were on.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-mug-hot"></i>
+                        <h3>Support This Platform</h3>
+                        <p>Bullion Book is free to use. If it's helped your trading, the "Support this platform" card near the bottom of the sidebar links to a Ko-fi where you can donate or become a member - it covers hosting and chart-data costs.</p>
                     </div>
                 </div>
             </section>

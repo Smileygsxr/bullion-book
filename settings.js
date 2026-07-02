@@ -487,8 +487,16 @@ function updateTagField(tagId, field, value) {
 function deleteTagRow(tagId) {
     const account = getActiveAccount();
     account.tagDefs = (account.tagDefs || []).filter(t => t.id !== tagId);
+    // Strip the deleted tag from every trade so it doesn't linger as an
+    // orphaned "Unknown Tag" reference.
+    (account.trades || []).forEach(t => {
+        if (t.tagIds && t.tagIds.includes(tagId)) t.tagIds = t.tagIds.filter(id => id !== tagId);
+        if (t.tagId === tagId) t.tagId = '';
+    });
     saveAccountsState();
     renderTagTable();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderStatsPage === 'function') renderStatsPage();
 }
 
 // ---- Playbooks (Settings > Playbooks) - define a strategy's rules, then

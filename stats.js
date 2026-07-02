@@ -32,6 +32,7 @@ function renderStatsPage() {
     renderStatsSymbolTable(closed);
     renderStatsPlaybookTable(closed);
     renderMaeMfeStats(closed);
+    renderVolatilityStats(closed);
 }
 
 // ---- Pro Score: a hexagonal radar chart averaging 6 normalized (0-100)
@@ -137,7 +138,17 @@ function renderProScore(closed, wins, losses) {
         const r = maxR * (m.value / 100);
         const x = cx + r * Math.cos(angle);
         const y = cy + r * Math.sin(angle);
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="pro-score-vertex"/>`;
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" class="pro-score-vertex" data-vertex-index="${i}"/>`;
+    }).join('');
+
+    // Invisible larger hit-targets over each vertex - the visible dot (r=3.5)
+    // is too small to hover reliably, per the ~24px minimum hit-area rule.
+    const hitTargets = metrics.map((m, i) => {
+        const angle = (-90 + i * 60) * Math.PI / 180;
+        const r = maxR * (m.value / 100);
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12" class="pro-score-hit" data-vertex-index="${i}" data-score-label="${escapeHtml(m.label)}" data-score-value="${m.value.toFixed(0)}"/>`;
     }).join('');
 
     const labels = metrics.map((m, i) => {
@@ -160,10 +171,54 @@ function renderProScore(closed, wins, losses) {
             <polygon points="${dataPoints}" class="pro-score-data-polygon"/>
             ${vertexDots}
             ${labels}
+            ${hitTargets}
         </svg>`;
 
     scoreEl.textContent = overallScore.toFixed(2);
     if (markerEl) markerEl.style.left = `${Math.max(0, Math.min(100, overallScore))}%`;
+
+    bindProScoreTooltip(container);
+}
+
+// ---- Hover tooltip for the Pro Score radar vertices - reuses the same
+// floating tooltip element/style as the diverging bar charts. ----
+function bindProScoreTooltip(container) {
+    if (container.dataset.tooltipBound) return;
+    container.dataset.tooltipBound = 'true';
+
+    const tooltip = getStatsBarTooltip();
+
+    container.addEventListener('mouseover', event => {
+        const hit = event.target.closest('.pro-score-hit');
+        if (!hit) return;
+        tooltip.innerHTML = `
+            <div class="stats-bar-tooltip-label">${escapeHtml(hit.dataset.scoreLabel)}</div>
+            <div class="stats-bar-tooltip-value">
+                <span class="stats-bar-tooltip-swatch pro-score"></span>
+                <span>${hit.dataset.scoreValue}/100</span>
+            </div>`;
+        tooltip.style.display = 'block';
+
+        const vertex = container.querySelector(`.pro-score-vertex[data-vertex-index="${hit.dataset.vertexIndex}"]`);
+        if (vertex) vertex.classList.add('hovered');
+    });
+
+    container.addEventListener('mousemove', event => {
+        const hit = event.target.closest('.pro-score-hit');
+        if (!hit || tooltip.style.display === 'none') return;
+        tooltip.style.left = `${event.clientX + 14}px`;
+        tooltip.style.top = `${event.clientY - 12}px`;
+    });
+
+    container.addEventListener('mouseout', event => {
+        const hit = event.target.closest('.pro-score-hit');
+        const toHit = event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('.pro-score-hit');
+        if (hit && hit !== toHit) {
+            tooltip.style.display = 'none';
+            const vertex = container.querySelector(`.pro-score-vertex[data-vertex-index="${hit.dataset.vertexIndex}"]`);
+            if (vertex) vertex.classList.remove('hovered');
+        }
+    });
 }
 
 // ---- Playbook performance breakdown ----
@@ -337,6 +392,103 @@ function renderMaeMfeStats(closed) {
             </div>
             <p class="mae-mfe-note">Based on ${valid.length} of ${eligible.length} XAUUSD trade${eligible.length === 1 ? '' : 's'} in view with available chart data (same-day trades only).</p>`;
     });
+}
+
+// ---- Performance vs. Volatility ----
+// Splits trades into "high" and "low" volatility days based on that day's
+// actual XAUUSD intraday range (high-low across the day's candles, reusing
+// the same chart data/cache as MAE/MFE), then compares win rate and P&L
+// across the two buckets. Only possible because this app fetches real gold
+// chart data daily - no generic trade journal has this.
+const dailyRangeCache = new Map(); // dateStr -> range number or null
+
+function computeDailyRange(dateStr) {
+    if (dailyRangeCache.has(dateStr)) return Promise.resolve(dailyRangeCache.get(dateStr));
+
+    return fetchMaeMfeCandles(dateStr).then(candles => {
+        if (!candles || candles.length === 0) {
+            dailyRangeCache.set(dateStr, null);
+            return null;
+        }
+        const highs = candles.map(c => c.high);
+        const lows = candles.map(c => c.low);
+        const range = Math.max(...highs) - Math.min(...lows);
+        dailyRangeCache.set(dateStr, range);
+        return range;
+    });
+}
+
+function median(values) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function renderVolatilityStats(closed) {
+    const container = document.getElementById('stats-volatility-result');
+    if (!container) return;
+
+    if (typeof Papa === 'undefined') return; // PapaParse loads after this file - skip if unavailable
+
+    const eligible = closed.filter(r => r.symbol === 'XAUUSD');
+    if (eligible.length === 0) {
+        container.innerHTML = '<p class="mae-mfe-note">No closed XAUUSD trades in view - this stat needs real chart data, which this app only auto-fetches for XAUUSD.</p>';
+        return;
+    }
+
+    container.innerHTML = '<p class="mae-mfe-note">Calculating from chart data...</p>';
+
+    const uniqueDays = Array.from(new Set(eligible.map(r => r.date.slice(0, 10))));
+    Promise.all(uniqueDays.map(day => computeDailyRange(day).then(range => [day, range])))
+        .then(entries => {
+            const rangeByDay = new Map(entries.filter(([, range]) => range !== null));
+            const scoredTrades = eligible
+                .map(r => ({ row: r, range: rangeByDay.get(r.date.slice(0, 10)) }))
+                .filter(t => t.range !== undefined);
+
+            if (scoredTrades.length === 0 || rangeByDay.size < 2) {
+                container.innerHTML = '<p class="mae-mfe-note">Chart data wasn\'t available for enough of these trades\' dates to compare volatility.</p>';
+                return;
+            }
+
+            const dayMedian = median(Array.from(rangeByDay.values()));
+            const highVol = scoredTrades.filter(t => t.range >= dayMedian).map(t => t.row);
+            const lowVol = scoredTrades.filter(t => t.range < dayMedian).map(t => t.row);
+
+            const bucketStats = rows => {
+                const wins = rows.filter(r => r.status === 'WIN');
+                const winRate = rows.length > 0 ? (wins.length / rows.length) * 100 : 0;
+                const total = rows.reduce((sum, r) => sum + r.returnAmount, 0);
+                return { trades: rows.length, winRate, total, avg: average(rows.map(r => r.returnAmount)) };
+            };
+
+            const high = bucketStats(highVol);
+            const low = bucketStats(lowVol);
+            const valFmt = (n, count) => count > 0
+                ? `<span class="${n < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(n)}</span>`
+                : '-';
+
+            const rowDefs = [
+                ['Trades', high.trades, low.trades],
+                ['Win Rate', high.trades > 0 ? `${high.winRate.toFixed(0)}%` : '-', low.trades > 0 ? `${low.winRate.toFixed(0)}%` : '-'],
+                ['Total P&L', valFmt(high.total, high.trades), valFmt(low.total, low.trades)],
+                ['Average', valFmt(high.avg, high.trades), valFmt(low.avg, low.trades)]
+            ];
+
+            container.innerHTML = `
+                <div class="wl-compare-row wl-compare-header-row">
+                    <div class="wl-compare-value left">High Volatility Days</div>
+                    <div class="wl-compare-label"></div>
+                    <div class="wl-compare-value right">Low Volatility Days</div>
+                </div>
+                ${rowDefs.map(([label, highVal, lowVal]) => `
+                <div class="wl-compare-row">
+                    <div class="wl-compare-value left">${highVal}</div>
+                    <div class="wl-compare-label">${label}</div>
+                    <div class="wl-compare-value right">${lowVal}</div>
+                </div>`).join('')}
+                <p class="mae-mfe-note">Split at the median daily range (${formatTotal(dayMedian)}) across ${rangeByDay.size} day${rangeByDay.size === 1 ? '' : 's'} with chart data.</p>`;
+        });
 }
 
 // ---- Wins vs Losses comparison ----
@@ -649,15 +801,15 @@ function renderDivergingBarChart(containerId, items) {
 
     const step = maxAbs / 2;
     const ticksHtml = `
-        <div class="stats-bar-row">
+        <div class="stats-bar-row stats-bar-ticks-row">
             <div class="stats-bar-row-label"></div>
             <div class="stats-bar-row-track sensitive-value">
                 <div class="stats-bar-ticks-half">
-                    <span>-${Math.round(maxAbs)}</span><span>-${Math.round(step)}</span><span>0</span>
+                    <span>-${Math.round(maxAbs)}</span><span>-${Math.round(step)}</span><span></span>
                 </div>
-                <div class="stats-bar-divider"></div>
+                <div class="stats-bar-zero">0</div>
                 <div class="stats-bar-ticks-half">
-                    <span>0</span><span>${Math.round(step)}</span><span>${Math.round(maxAbs)}</span>
+                    <span></span><span>${Math.round(step)}</span><span>${Math.round(maxAbs)}</span>
                 </div>
             </div>
         </div>`;

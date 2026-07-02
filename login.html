@@ -34,7 +34,10 @@
             <form id="login-form">
                 <div class="auth-field">
                     <label class="auth-label" for="login-email">Email</label>
-                    <input class="auth-input" type="email" id="login-email" required>
+                    <div class="auth-input-wrap">
+                        <i class="fa-solid fa-envelope auth-input-icon"></i>
+                        <input class="auth-input has-icon" type="email" id="login-email" required>
+                    </div>
                 </div>
 
                 <div class="auth-field">
@@ -42,11 +45,15 @@
                         <label class="auth-label" for="login-password">Password</label>
                         <a class="auth-forgot-link" onclick="sendPasswordReset(document.getElementById('login-email').value)">Forgot password?</a>
                     </div>
-                    <input class="auth-input" type="password" id="login-password" required>
+                    <div class="auth-input-wrap">
+                        <i class="fa-solid fa-lock auth-input-icon"></i>
+                        <input class="auth-input has-icon has-toggle" type="password" id="login-password" required>
+                        <button type="button" class="auth-input-toggle" onclick="togglePasswordVisibility(this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                    </div>
                 </div>
 
-                <button class="auth-btn-submit" type="submit">
-                    <i class="fa-solid fa-lock"></i> Login
+                <button class="auth-btn-submit" type="submit" id="login-submit-btn">
+                    <i class="fa-solid fa-lock"></i> <span>Login</span>
                 </button>
             </form>
 
@@ -56,8 +63,9 @@
         </div>
     </div>
 
-    <div class="auth-right">
-        <svg class="auth-right-art auth-right-art-candles" viewBox="0 0 110 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <div class="auth-right" id="auth-right-panel">
+        <div class="auth-right-art-bar-glow"></div>
+        <svg class="auth-right-art auth-right-art-candles" data-depth="16" viewBox="0 0 110 560" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <line x1="15" y1="460" x2="15" y2="520" stroke="#f6465d" stroke-width="2"/>
             <rect x="8" y="475" width="14" height="30" fill="#f6465d"/>
             <line x1="32" y1="400" x2="32" y2="470" stroke="#2ebd85" stroke-width="2"/>
@@ -71,10 +79,16 @@
             <line x1="100" y1="140" x2="100" y2="220" stroke="#2ebd85" stroke-width="2"/>
             <rect x="93" y="155" width="14" height="40" fill="#2ebd85"/>
         </svg>
-        <svg class="auth-right-art auth-right-art-bar" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M70 40 L130 40 L150 70 L50 70 Z" fill="#f0d9a8"/>
-            <path d="M50 70 L150 70 L170 220 L30 220 Z" fill="#dfb15b"/>
-            <path d="M150 70 L170 220 L150 220 L130 70 Z" fill="#b8903f"/>
+        <svg class="auth-right-art auth-right-art-bar" data-depth="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="15" y1="180" x2="185" y2="180" stroke="#dfb15b" stroke-width="1" opacity="0.4"/>
+            <rect class="auth-chart-bar" x="20" y="140" width="20" height="40" rx="3" fill="#8a661f"/>
+            <rect class="auth-chart-bar" x="55" y="115" width="20" height="65" rx="3" fill="#b8903f"/>
+            <rect class="auth-chart-bar" x="90" y="125" width="20" height="55" rx="3" fill="#c9a052"/>
+            <rect class="auth-chart-bar" x="125" y="85" width="20" height="95" rx="3" fill="#dfb15b"/>
+            <rect class="auth-chart-bar" x="160" y="45" width="20" height="135" rx="3" fill="#f7e6bd"/>
+            <path class="auth-chart-line" d="M30,140 L65,115 L100,125 L135,85 L170,45" fill="none" stroke="#f7e6bd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle class="auth-chart-dot" cx="170" cy="45" r="9" fill="none" stroke="#f7e6bd" stroke-width="1.5" opacity="0.5"/>
+            <circle class="auth-chart-dot" cx="170" cy="45" r="5" fill="#f7e6bd"/>
         </svg>
 
         <div class="auth-marketing">
@@ -82,7 +96,7 @@
             <p>Bullion Book turns your raw trade history into a real edge - log every entry and exit, see exactly what's working, and journal the psychology behind each decision.</p>
             <ul class="auth-feature-list">
                 <li>
-                    <span class="auth-feature-icon"><i class="fa-solid fa-chart-candlestick"></i></span>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-chart-line"></i></span>
                     <span>
                         <span class="auth-feature-title">Visual Trade Journal</span>
                         <span class="auth-feature-desc">Entry/exit overlays on real charts, screenshots, and a confidence score per trade.</span>
@@ -120,9 +134,13 @@
     <script>
         document.getElementById('login-form').addEventListener('submit', function (e) {
             e.preventDefault();
-            loginWithEmail(
-                document.getElementById('login-email').value,
-                document.getElementById('login-password').value
+            withAuthButtonLoading(
+                document.getElementById('login-submit-btn'),
+                'Logging in...',
+                loginWithEmail(
+                    document.getElementById('login-email').value,
+                    document.getElementById('login-password').value
+                )
             );
         });
     </script>

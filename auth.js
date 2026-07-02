@@ -7,14 +7,41 @@ function showAuthError(message) {
 
 function loginWithEmail(email, password) {
     showAuthError('');
-    auth.signInWithEmailAndPassword(email, password)
+    return auth.signInWithEmailAndPassword(email, password)
         .then(() => { window.location.href = 'index.html'; })
         .catch(err => showAuthError(err.message));
 }
 
+// Toggles a password field between hidden/visible - btn is the eye button
+// sitting inside the same .auth-input-wrap as the <input> it controls.
+function togglePasswordVisibility(btn) {
+    const wrap = btn.closest('.auth-input-wrap');
+    const input = wrap && wrap.querySelector('input');
+    if (!input) return;
+    const showing = input.type === 'password';
+    input.type = showing ? 'text' : 'password';
+    const icon = btn.querySelector('i');
+    icon.classList.toggle('fa-eye', !showing);
+    icon.classList.toggle('fa-eye-slash', showing);
+}
+
+// Swaps a submit button into a disabled spinner state while an auth promise
+// is in flight, restoring its original label if it resolves with an error
+// (a successful login/signup navigates away, so there's nothing to restore).
+function withAuthButtonLoading(btn, loadingLabel, promise) {
+    if (!btn) return promise;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner"></i> <span>${loadingLabel}</span>`;
+    return promise.finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    });
+}
+
 function signUpWithEmail(email, password) {
     showAuthError('');
-    auth.createUserWithEmailAndPassword(email, password)
+    return auth.createUserWithEmailAndPassword(email, password)
         .then(() => { window.location.href = 'index.html'; })
         .catch(err => showAuthError(err.message));
 }
@@ -109,3 +136,30 @@ function toggleProfileMenu() {
     if (!menu) return;
     menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
 }
+
+// Subtle cursor-parallax for the login/signup right panel's decorative
+// candlestick + gold bar art - each layer drifts by its own data-depth (px)
+// so the deeper/closer bar moves more than the further-back candles, a
+// cheap fake-3D effect. No-ops anywhere .auth-right-panel doesn't exist.
+function initAuthParallax() {
+    const panel = document.getElementById('auth-right-panel');
+    if (!panel) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const layers = panel.querySelectorAll('.auth-right-art');
+    panel.addEventListener('mousemove', event => {
+        const rect = panel.getBoundingClientRect();
+        const px = (event.clientX - rect.left) / rect.width - 0.5;
+        const py = (event.clientY - rect.top) / rect.height - 0.5;
+        layers.forEach(layer => {
+            const depth = parseFloat(layer.dataset.depth || '10');
+            layer.style.translate = `${(px * depth).toFixed(1)}px ${(py * depth).toFixed(1)}px`;
+        });
+    });
+
+    panel.addEventListener('mouseleave', () => {
+        layers.forEach(layer => { layer.style.translate = '0 0'; });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initAuthParallax);

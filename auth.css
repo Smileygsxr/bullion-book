@@ -19,13 +19,67 @@ body {
     color: var(--text-light);
     display: flex;
     overflow: hidden;
+    position: relative;
 }
 
-/* Two-panel layout: login form on the left, marketing/feature pitch on the
-   right. The right panel drops out below 900px - there's no room to keep both
-   readable, so the form gets the full width on small screens instead. */
+/* Two soft, slowly-drifting glow blobs behind the whole page - gives the
+   dark background some life without competing with the form for attention. */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    width: 560px;
+    height: 560px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.16;
+}
+
+body::before {
+    top: -180px;
+    left: -160px;
+    background: var(--accent-blue);
+    animation: authBlobDrift1 16s ease-in-out infinite;
+}
+
+body::after {
+    bottom: -200px;
+    right: -160px;
+    background: var(--accent-gold);
+    animation: authBlobDrift2 18s ease-in-out infinite;
+}
+
+@keyframes authBlobDrift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(60px, 40px) scale(1.12); }
+}
+
+@keyframes authBlobDrift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-50px, -30px) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before, body::after,
+    .auth-right-art, .auth-card,
+    .auth-marketing h2 span { animation: none !important; }
+
+    /* These are entrance animations starting from a hidden state (scaleY(0),
+       full dash-offset, opacity:0) - disabling the animation without also
+       setting the end state would leave the whole chart invisible. */
+    .auth-chart-bar { animation: none !important; transform: scaleY(1) !important; }
+    .auth-chart-line { animation: none !important; stroke-dashoffset: 0 !important; }
+    .auth-chart-dot { animation: none !important; opacity: 1 !important; }
+}
+
+/* Two-panel layout: a fixed-width login form column on the left, with the
+   marketing/feature pitch filling the rest of the screen. The right panel
+   drops out below 900px - there's no room to keep both readable, so the
+   form gets the full width on small screens instead. */
 .auth-left {
-    flex: 1;
+    flex: 0 0 460px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -46,6 +100,7 @@ body {
 }
 
 @media (max-width: 900px) {
+    .auth-left { flex: 1; }
     .auth-right { display: none; }
 }
 
@@ -56,6 +111,12 @@ body {
     box-sizing: border-box;
     position: relative;
     z-index: 1;
+    animation: authCardIn 0.5s ease both;
+}
+
+@keyframes authCardIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .auth-brand {
@@ -102,7 +163,18 @@ body {
 }
 
 .auth-marketing h2 span {
-    color: var(--accent-gold);
+    background: linear-gradient(100deg, var(--accent-gold) 40%, #fff2d1 50%, var(--accent-gold) 60%);
+    background-size: 220% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: authShimmer 3.5s ease-in-out 1s infinite;
+}
+
+@keyframes authShimmer {
+    0%, 30% { background-position: 100% 0; }
+    70%, 100% { background-position: -20% 0; }
 }
 
 .auth-marketing p {
@@ -125,6 +197,15 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 14px;
+    padding: 8px;
+    margin: -8px;
+    border-radius: 12px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.auth-feature-list li:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateX(4px);
 }
 
 .auth-feature-icon {
@@ -138,6 +219,14 @@ body {
     justify-content: center;
     flex-shrink: 0;
     font-size: 0.95rem;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-feature-list li:hover .auth-feature-icon {
+    background: var(--accent-gold);
+    color: #131722;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(223, 177, 91, 0.35);
 }
 
 .auth-feature-title {
@@ -159,6 +248,7 @@ body {
     opacity: 0.1;
     pointer-events: none;
     z-index: 0;
+    transition: translate 0.15s ease-out;
 }
 
 .auth-right-art-candles {
@@ -166,13 +256,77 @@ body {
     left: -30px;
     width: 200px;
     height: auto;
+    animation: authFloat 7s ease-in-out infinite;
 }
 
+/* An ascending gold bar chart + trend line - mirrors the app's own equity
+   curve/stats charts, so the marketing art actually looks like the product
+   instead of an unrelated object. */
 .auth-right-art-bar {
-    top: -40px;
-    right: -40px;
-    width: 240px;
+    top: 30px;
+    right: -10px;
+    width: 200px;
     height: auto;
+    opacity: 0.5;
+    animation: authFloat 8s ease-in-out infinite 0.5s;
+}
+
+.auth-chart-bar {
+    transform-origin: bottom;
+    transform: scaleY(0);
+    animation: authBarGrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.auth-chart-bar:nth-of-type(1) { animation-delay: 0.1s; }
+.auth-chart-bar:nth-of-type(2) { animation-delay: 0.22s; }
+.auth-chart-bar:nth-of-type(3) { animation-delay: 0.34s; }
+.auth-chart-bar:nth-of-type(4) { animation-delay: 0.46s; }
+.auth-chart-bar:nth-of-type(5) { animation-delay: 0.58s; }
+
+@keyframes authBarGrow {
+    to { transform: scaleY(1); }
+}
+
+.auth-chart-line {
+    stroke-dasharray: 210;
+    stroke-dashoffset: 210;
+    animation: authLineDraw 1s ease-out 0.9s forwards;
+}
+
+@keyframes authLineDraw {
+    to { stroke-dashoffset: 0; }
+}
+
+.auth-chart-dot {
+    opacity: 0;
+    transform-origin: center;
+    animation: authDotIn 0.3s ease 1.8s forwards, authDotPulse 2s ease-in-out 2.1s infinite;
+}
+
+@keyframes authDotIn {
+    to { opacity: 1; }
+}
+
+@keyframes authDotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+}
+
+.auth-right-art-bar-glow {
+    position: absolute;
+    top: -40px;
+    right: -60px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(223, 177, 91, 0.28) 0%, rgba(223, 177, 91, 0) 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes authFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
 }
 
 .auth-title {
@@ -203,10 +357,17 @@ body {
     font-weight: 600;
     cursor: pointer;
     box-sizing: border-box;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 .auth-btn-google:hover {
     background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.auth-btn-google:active {
+    transform: translateY(0);
 }
 
 .auth-divider {
@@ -248,10 +409,30 @@ body {
     color: var(--accent-blue);
     text-decoration: none;
     cursor: pointer;
+    transition: color 0.15s ease;
 }
 
 .auth-forgot-link:hover {
     text-decoration: underline;
+}
+
+.auth-input-wrap {
+    position: relative;
+}
+
+.auth-input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: color 0.15s ease;
+}
+
+.auth-input-wrap:focus-within .auth-input-icon {
+    color: var(--accent-blue);
 }
 
 .auth-input {
@@ -263,11 +444,50 @@ body {
     border-radius: 10px;
     font-size: 0.9rem;
     box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.auth-input.has-icon {
+    padding-left: 42px;
+}
+
+.auth-input.has-toggle {
+    padding-right: 42px;
 }
 
 .auth-input:focus {
     outline: none;
     border-color: var(--accent-blue);
+    background: rgba(41, 121, 255, 0.06);
+    box-shadow: 0 0 0 3px rgba(41, 121, 255, 0.14);
+}
+
+.auth-input-toggle {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.auth-input-toggle:hover {
+    color: var(--text-light);
+}
+
+/* Edge/IE ship their own built-in password reveal icon, which would sit
+   right on top of our custom toggle button - hide theirs. */
+.auth-input::-ms-reveal,
+.auth-input::-ms-clear {
+    display: none;
 }
 
 .auth-btn-submit {
@@ -286,10 +506,33 @@ body {
     cursor: pointer;
     margin-top: 8px;
     box-sizing: border-box;
+    transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
 .auth-btn-submit:hover {
     background: #1f63d6;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(41, 121, 255, 0.35);
+}
+
+.auth-btn-submit:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.auth-btn-submit:disabled {
+    opacity: 0.7;
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+}
+
+.auth-btn-submit .fa-spinner {
+    animation: authSpin 0.7s linear infinite;
+}
+
+@keyframes authSpin {
+    to { transform: rotate(360deg); }
 }
 
 .auth-footer {
