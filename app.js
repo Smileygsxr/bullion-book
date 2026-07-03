@@ -870,3 +870,161 @@ function attachLockToggle(chart, container) {
 
     container.appendChild(button);
 }
+
+// ---- Help page "Go to" shortcuts ----
+// Each help-tile lives inside a .help-section whose id + <h3> title identify
+// it. Rather than hand-annotate ~60 tiles in the HTML, every tile's
+// destination is looked up here: a section-wide default (most tiles just go
+// to that feature's page), with per-tile overrides for the handful that
+// point somewhere more specific (a particular Settings tab, or a different
+// page entirely, e.g. "Playbook Performance" living in the Playbooks section
+// but actually being a Stats-page feature). Sections with no single sensible
+// destination (Login & Guest Mode, FAQ, Contact, Disclaimer) are omitted, so
+// their tiles are left as plain (non-interactive) reference cards.
+// "highlight" is a CSS selector for the actual on-page element(s) that
+// feature lives in - resolved and pulsed for ~1.8s after navigating, so the
+// user isn't just dropped on the right page but shown exactly where to look.
+// Selectors that could also match a same-named element on another (hidden)
+// page are scoped with a page id prefix to avoid grabbing the wrong one.
+const HELP_SECTION_GOTO = {
+    'help-dashboard': { page: 'page-dashboard' },
+    'help-trades': { page: 'page-dashboard' },
+    'help-playbooks': { page: 'page-settings', tab: 'playbooks', highlight: '#settings-panel-playbooks' },
+    'help-import': { page: 'page-settings', tab: 'import', highlight: '#settings-panel-import' },
+    'help-tags': { page: 'page-settings', tab: 'tags', highlight: '#settings-panel-tags' },
+    'help-accounts': { page: 'page-dashboard', highlight: '.account-box' },
+    'help-notes': { page: 'page-dashboard', highlight: '.table-container' },
+    'help-calendar': { page: 'page-calendar' },
+    'help-stats': { page: 'page-stats' },
+    'help-news': { page: 'page-news', highlight: '#chart-blocks-container' },
+    'help-settings': { page: 'page-settings' }
+};
+
+const HELP_TILE_GOTO_OVERRIDES = {
+    'help-dashboard::Equity Curve': { highlight: '.chart-card' },
+    'help-dashboard::Performance Rings': { highlight: '.metrics-group' },
+    'help-dashboard::Trade Log': { highlight: '.table-container' },
+    'help-dashboard::Account Balance': { highlight: '.account-box' },
+    'help-dashboard::Privacy Blur': { highlight: '#privacy-toggle-btn' },
+    'help-dashboard::Trade Filter': { highlight: '#filter-toggle-btn' },
+    'help-dashboard::Quick Date Range': { highlight: '#page-dashboard .page-date-range-bar' },
+    'help-dashboard::Quick CSV Import': { highlight: '#import-trades-btn' },
+
+    'help-trades::New Trade': { highlight: '.sidebar-actions .btn-blue' },
+    'help-trades::Breakeven Range': { tab: 'account', highlight: '#settings-breakeven-range' },
+    'help-trades::R-Multiple': { highlight: '.table-container' },
+    'help-trades::Playbooks': { tab: 'playbooks', highlight: '#settings-panel-playbooks' },
+    'help-trades::Mark as Wash': { highlight: '.table-container' },
+    'help-trades::Edit & Delete': { highlight: '.table-container' },
+
+    'help-playbooks::Assigning to a Trade': { page: 'page-dashboard', tab: null, highlight: '.sidebar-actions .btn-blue' },
+    'help-playbooks::Playbook Performance': { page: 'page-stats', tab: null, highlight: '#stats-playbook-table-body' },
+
+    'help-import::Time Adjustment': { highlight: '#csv-timezone-dropdown' },
+    'help-import::Exporting': { tab: 'account', highlight: '[onclick="exportTradesToCsv()"]' },
+
+    'help-tags::Adding Tags': { page: 'page-dashboard', tab: null, highlight: '.sidebar-actions .btn-blue' },
+    'help-tags::Spotting Tags': { page: 'page-dashboard', tab: null, highlight: '.table-container' },
+    'help-tags::Custom Categories': { highlight: '#tag-category-chips' },
+    'help-tags::Tag Performance': { page: 'page-stats', tab: null, highlight: '#stats-tag-table-body' },
+
+    'help-accounts::Multiple Accounts': { highlight: '.account-switcher' },
+
+    'help-notes::Mood & Conditions': { highlight: '.sidebar-actions .btn-gold' },
+    'help-notes::Multiple Per Day': { highlight: '.sidebar-actions .btn-gold' },
+
+    'help-calendar::Month Grid': { highlight: '.calendar-grid-wrap' },
+    'help-calendar::Weekly Summary': { highlight: '.calendar-weekly-summary' },
+    'help-calendar::Day Drill-Down': { highlight: '.calendar-grid-wrap' },
+
+    'help-stats::Key Metrics': { highlight: '#stats-metrics-row-1' },
+    'help-stats::Pro Score': { highlight: '.pro-score-panel' },
+    'help-stats::Equity Curve': { highlight: '#stats-equity-chart' },
+    'help-stats::Wins vs. Losses': { highlight: '#wins-losses-compare' },
+    'help-stats::Day & Hour Breakdown': { highlight: '#stats-day-chart, #stats-hour-chart' },
+    'help-stats::Tag, Symbol & Playbook Tables': { highlight: '#stats-tag-table-body, #stats-symbol-table-body, #stats-playbook-table-body' },
+    'help-stats::MAE / MFE': { highlight: '#stats-mae-mfe-result' },
+    'help-stats::Performance vs. Volatility': { highlight: '#stats-volatility-result' },
+
+    'help-settings::Personal Info': { tab: 'personal', highlight: '#settings-panel-personal' },
+    'help-settings::Account Settings': { tab: 'account', highlight: '#settings-panel-account' },
+    'help-settings::Contract Sizes': { tab: 'contracts', highlight: '#settings-panel-contracts' },
+    'help-settings::Playbooks': { tab: 'playbooks', highlight: '#settings-panel-playbooks' },
+    'help-settings::Tag Management': { tab: 'tags', highlight: '#settings-panel-tags' },
+    'help-settings::Import Trades': { tab: 'import', highlight: '#settings-panel-import' },
+    'help-settings::Share Your Journal': { tab: 'account', highlight: '#settings-panel-account' },
+    'help-settings::Export Trade History': { tab: 'account', highlight: '[onclick="exportTradesToCsv()"]' },
+    'help-settings::Password & Security': { tab: 'security', highlight: '#settings-panel-security' },
+    'help-settings::Danger Zone': { tab: 'danger', highlight: '#settings-panel-danger' }
+};
+
+function resolveHelpTileGoto(tile) {
+    const section = tile.closest('.help-section');
+    if (!section) return null;
+    const base = HELP_SECTION_GOTO[section.id];
+    if (!base) return null;
+
+    const titleEl = tile.querySelector('h3');
+    const title = titleEl ? titleEl.textContent.trim() : '';
+    const override = HELP_TILE_GOTO_OVERRIDES[`${section.id}::${title}`];
+    const target = Object.assign({}, base, override);
+    if (target.tab === null) delete target.tab;
+    return target;
+}
+
+// Pulses a gold ring around the target element(s) so the user isn't just
+// dropped on the right page but shown exactly where to look. Runs on a short
+// delay so the page/tab switch's DOM updates (and any re-render) settle
+// first, and filters out anything not actually visible (e.g. a same-named
+// element left over on a still-hidden panel).
+function highlightHelpTarget(selector) {
+    if (!selector) return;
+    window.setTimeout(() => {
+        const elements = Array.from(document.querySelectorAll(selector)).filter(el => el.offsetParent !== null);
+        if (elements.length === 0) return;
+
+        elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        elements.forEach(el => {
+            el.classList.remove('help-target-highlight');
+            void el.offsetWidth; // restart the animation if it's already mid-pulse from a fast repeat click
+            el.classList.add('help-target-highlight');
+            window.setTimeout(() => el.classList.remove('help-target-highlight'), 1800);
+        });
+    }, 150);
+}
+
+function navigateFromHelpTile(pageId, tab, highlight) {
+    const navLink = document.querySelector(`.nav-link[onclick*="'${pageId}'"]`);
+    showPage(pageId, navLink);
+    if (tab && typeof switchSettingsPanel === 'function') switchSettingsPanel(tab);
+    highlightHelpTarget(highlight);
+}
+
+// Click a tile to reveal its "Go to →" shortcut; click that button to jump
+// straight to the relevant page (and Settings tab, if applicable).
+function initHelpTileGoTo() {
+    document.querySelectorAll('.help-tile').forEach(tile => {
+        const target = resolveHelpTileGoto(tile);
+        if (!target) return;
+
+        tile.classList.add('help-tile-actionable');
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'help-tile-goto-btn';
+        btn.innerHTML = '<i class="fa-solid fa-arrow-right"></i> Go to';
+        btn.addEventListener('click', event => {
+            event.stopPropagation();
+            navigateFromHelpTile(target.page, target.tab, target.highlight);
+        });
+        tile.appendChild(btn);
+
+        tile.addEventListener('click', () => {
+            const alreadyRevealed = tile.classList.contains('help-tile-revealed');
+            document.querySelectorAll('.help-tile-revealed').forEach(t => t.classList.remove('help-tile-revealed'));
+            if (!alreadyRevealed) tile.classList.add('help-tile-revealed');
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initHelpTileGoTo);

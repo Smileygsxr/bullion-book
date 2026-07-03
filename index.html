@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=15">
+    <link rel="stylesheet" href="styles.css?v=18">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -1674,6 +1674,21 @@
     </div>
 
     <div id="trade-view-modal-overlay" class="modal-overlay" style="display: none;">
+        <!-- Sits beside the Trade View card (same flex row in the overlay) -
+             only shown for XAUUSD trades, since that's the only symbol this
+             app has real chart data for. -->
+        <div class="trade-view-chart-panel" id="trade-view-chart-panel" style="display: none;">
+            <div class="trade-view-chart-toolbar">
+                <div class="modal-section-label">Chart</div>
+                <div class="interval-toggle-set">
+                    <button type="button" class="interval-toggle-btn" data-interval="1" onclick="switchTradeViewChartInterval('1', this)">1m</button>
+                    <button type="button" class="interval-toggle-btn active" data-interval="5" onclick="switchTradeViewChartInterval('5', this)">5m</button>
+                    <button type="button" class="interval-toggle-btn" data-interval="15" onclick="switchTradeViewChartInterval('15', this)">15m</button>
+                </div>
+            </div>
+            <div class="trade-view-chart-container" id="trade-view-chart-container"></div>
+        </div>
+
         <div class="modal-card trade-view-card">
             <div class="modal-card-header">
                 <span>Trade View</span>
@@ -1816,7 +1831,7 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=12"></script>
 
 </body>
 </html>

@@ -3027,11 +3027,49 @@ body {
     max-width: 560px;
 }
 
-/* This modal's overlay holds two flex children when screenshots exist (the
-   card + the screenshots panel side by side) - other modals only ever have
-   one, so this gap is scoped here rather than to .modal-overlay generally. */
+/* This modal's overlay can hold up to three flex children side by side (the
+   day chart, the card, and the screenshots panel) - other modals only ever
+   have one, so this gap is scoped here rather than to .modal-overlay generally. */
 #trade-view-modal-overlay {
     gap: 16px;
+}
+
+.trade-view-chart-panel {
+    width: 460px;
+    max-height: 80vh;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.trade-view-chart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.trade-view-chart-toolbar .modal-section-label {
+    margin: 0;
+}
+
+.trade-view-chart-container {
+    width: 100%;
+    height: 420px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.trade-view-chart-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding-top: 180px;
+    font-size: 0.85rem;
 }
 
 .trade-view-screenshots-panel {
@@ -3416,6 +3454,71 @@ body {
     font-size: 0.8rem;
     color: var(--text-muted);
     line-height: 1.5;
+}
+
+/* Tiles that resolve to an in-app destination (see initHelpTileGoTo in
+   app.js) are clickable - clicking reveals a "Go to" shortcut instead of
+   navigating immediately, so a stray click while reading doesn't yank the
+   user off the Help page. */
+.help-tile-actionable {
+    cursor: pointer;
+}
+
+.help-tile-actionable:hover {
+    border-color: rgba(223, 177, 91, 0.5);
+}
+
+.help-tile-revealed {
+    border-color: var(--accent-gold);
+    background: rgba(223, 177, 91, 0.05);
+}
+
+.help-tile-goto-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 0;
+    margin-top: 0;
+    padding: 0 14px;
+    overflow: hidden;
+    opacity: 0;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: height 0.2s ease, opacity 0.2s ease, margin-top 0.2s ease, background 0.15s ease;
+}
+
+.help-tile-revealed .help-tile-goto-btn {
+    height: 32px;
+    opacity: 1;
+    margin-top: 12px;
+}
+
+.help-tile-goto-btn:hover {
+    background: #1f63d6;
+}
+
+/* Pulsing gold ring pulsed onto whatever element a "Go to" click lands on
+   (see highlightHelpTarget in app.js) - a double pulse reads clearly as
+   "look here" without a jarring single flash. */
+.help-target-highlight {
+    animation: helpTargetPulse 1.8s ease-in-out;
+    border-radius: 10px;
+}
+
+@keyframes helpTargetPulse {
+    0% { box-shadow: 0 0 0 0 rgba(223, 177, 91, 0.65); }
+    20% { box-shadow: 0 0 0 10px rgba(223, 177, 91, 0); }
+    40% { box-shadow: 0 0 0 0 rgba(223, 177, 91, 0.65); }
+    60% { box-shadow: 0 0 0 10px rgba(223, 177, 91, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(223, 177, 91, 0); }
 }
 
 .help-tile p a {

@@ -22,6 +22,16 @@ INTERVALS = {"1": "1min", "5": "5min", "15": "15min"}
 API_URL = "https://api.twelvedata.com/time_series"
 
 
+def count_existing(date_str):
+    return sum(
+        1 for label in INTERVALS
+        if os.path.exists(os.path.join(
+            DATA_DIR,
+            f"XAU-USD_{label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
+        ))
+    )
+
+
 def get_missing_dates(lookback_days=7):
     """
     Returns a list of weekday dates (most recent first) within the last
@@ -35,15 +45,32 @@ def get_missing_dates(lookback_days=7):
         if date.weekday() in (5, 6):  # skip weekends
             continue
         date_str = date.strftime("%Y-%m-%d")
-        existing = sum(
-            1 for label in INTERVALS
-            if os.path.exists(os.path.join(
-                DATA_DIR,
-                f"XAU-USD_{label}Minute_BID_{date_str}_00_00-23_59_Africa_Johannesburg.csv"
-            ))
-        )
+        existing = count_existing(date_str)
         if existing < len(INTERVALS):
             missing.append((date, existing))
+    return missing
+
+
+def get_backfill_dates(start_str, end_str=None):
+    """
+    Returns every weekday (oldest first) from start_str through end_str
+    (inclusive, defaulting to today) that doesn't yet have a complete set of
+    3 CSV files in /data - used for one-off historical backfills via the
+    workflow_dispatch backfill_start/backfill_end inputs, instead of the
+    normal "last 7 days" scheduled-run behavior.
+    """
+    start = datetime.strptime(start_str, "%Y-%m-%d").date()
+    end = datetime.strptime(end_str, "%Y-%m-%d").date() if end_str else datetime.now(timezone.utc).date()
+
+    missing = []
+    date = start
+    while date <= end:
+        if date.weekday() not in (5, 6):  # skip weekends
+            date_str = date.strftime("%Y-%m-%d")
+            existing = count_existing(date_str)
+            if existing < len(INTERVALS):
+                missing.append((date, existing))
+        date += timedelta(days=1)
     return missing
 
 
@@ -120,9 +147,17 @@ def main():
         print("TWELVE_DATA_API_KEY environment variable is not set.")
         sys.exit(1)
 
-    missing = get_missing_dates(lookback_days=7)
+    backfill_start = os.environ.get("BACKFILL_START", "").strip()
+    backfill_end = os.environ.get("BACKFILL_END", "").strip()
+
+    if backfill_start:
+        print(f"Backfill mode: {backfill_start} through {backfill_end or 'today'}")
+        missing = get_backfill_dates(backfill_start, backfill_end or None)
+    else:
+        missing = get_missing_dates(lookback_days=7)
+
     if not missing:
-        print("All recent trading days already have complete data.")
+        print("All requested trading days already have complete data.")
         return
 
     any_saved = False

@@ -185,7 +185,11 @@ function updateTradeConfidenceLabel(value) {
 // ---- Screenshot upload (Journal tab) ----
 // Resizes/compresses to a JPEG data URL before storing (same technique as the
 // profile avatar in settings.js) so a handful of screenshots per trade don't
-// blow past Firestore's per-document size limit.
+// blow past Firestore's per-document size limit - the whole account (every
+// trade, tag, playbook, and all embedded screenshots) lives in a single
+// document capped at 1MiB. 1600px/0.85 is a deliberate quality/size
+// tradeoff, not full original resolution - true original-quality storage
+// would need images moved out of Firestore into Cloud Storage instead.
 function resizeImageFileToDataUrl(file, maxWidth, quality) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -213,7 +217,7 @@ function handleTradeScreenshotFileChange(event) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    Promise.all(files.map(file => resizeImageFileToDataUrl(file, 1000, 0.72)))
+    Promise.all(files.map(file => resizeImageFileToDataUrl(file, 1600, 0.85)))
         .then(dataUrls => {
             if (!draftTrade.screenshots) draftTrade.screenshots = [];
             dataUrls.forEach(dataUrl => draftTrade.screenshots.push({ id: genTradeId(), dataUrl }));
@@ -701,6 +705,194 @@ function confirmDeleteTrade() {
     closeDeleteTradeModal();
 }
 
+// ---- Trade View day chart (left panel) - a self-contained mini version of
+// the News page's chart engine (app.js), deliberately NOT sharing its
+// cpiChartInstances map (keyed only by date) so opening this modal can't
+// clobber a chart the News page already has open for the same day. Only
+// shown for XAUUSD trades, since that's the only symbol this app has real
+// chart data for. ----
+let tradeViewChartState = null;
+// Bumped on every renderTradeViewChart call - lets a fetch resolving after
+// the modal was closed/reopened for a different trade detect it's stale and
+// bail instead of drawing into (or erroring against) a chart that's no
+// longer the one on screen.
+let tradeViewChartRenderId = 0;
+
+function buildDailyChartFilenames(dateString) {
+    const files = {};
+    ['1', '5', '15'].forEach(i => {
+        files[i] = `XAU-USD_${i}Minute_BID_${dateString}_00_00-23_59_Africa_Johannesburg.csv`;
+    });
+    return files;
+}
+
+function probeFileExists(path) {
+    return fetch(path, { method: 'HEAD' }).then(r => r.ok).catch(() => false);
+}
+
+function destroyTradeViewChart() {
+    if (tradeViewChartState && tradeViewChartState.chart) {
+        tradeViewChartState.chart.remove();
+    }
+    tradeViewChartState = null;
+}
+
+function tradeViewChartMarkers() {
+    if (!tradeViewChartState) return [];
+    const { entryEpoch, exitEpoch, entryPrice, exitPrice } = tradeViewChartState;
+    const markers = [];
+    if (entryEpoch !== null) {
+        markers.push({ time: entryEpoch, position: 'belowBar', color: '#2ebd85', shape: 'arrowUp', text: `Entry ${formatPrice(entryPrice)}` });
+    }
+    if (exitEpoch !== null) {
+        markers.push({ time: exitEpoch, position: 'aboveBar', color: '#f6465d', shape: 'arrowDown', text: `Exit ${formatPrice(exitPrice)}` });
+    }
+    return markers.sort((a, b) => a.time - b.time);
+}
+
+function loadTradeViewChartInterval(interval) {
+    if (!tradeViewChartState) return;
+    const filename = tradeViewChartState.filesByInterval[interval];
+    const { chart, series, container } = tradeViewChartState;
+    const renderId = tradeViewChartRenderId;
+    if (!filename) return;
+
+    tradeViewChartState.currentInterval = interval;
+
+    fetch(`./data/${filename}`)
+        .then(response => {
+            if (!response.ok) throw new Error('missing');
+            return response.text();
+        })
+        .then(csvText => {
+            const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+            const timestampField = parsed.meta.fields[0];
+            const cleanData = parsed.data.map(row => {
+                const stringTimestamp = row[timestampField];
+                const stamp = stringTimestamp && stringTimestamp.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+                const epochSeconds = stamp
+                    ? Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], +stamp[6]) / 1000
+                    : NaN;
+                return {
+                    time: epochSeconds,
+                    open: parseFloat(row.Open), high: parseFloat(row.High),
+                    low: parseFloat(row.Low), close: parseFloat(row.Close),
+                    volume: parseFloat(row.Volume)
+                };
+            }).filter(d => !isNaN(d.time) && !isNaN(d.close));
+            cleanData.sort((a, b) => a.time - b.time);
+
+            if (cleanData.length === 0) throw new Error('empty');
+            // Bail if the modal was closed, or reopened for a different trade,
+            // while this fetch was in flight - avoids drawing into (or
+            // erroring against) a chart/container that's no longer current.
+            if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
+
+            tradeViewChartState.data = cleanData;
+            series.setData(cleanData);
+            chart.timeScale().fitContent();
+            LightweightCharts.createSeriesMarkers(series, tradeViewChartMarkers());
+        })
+        .catch(() => {
+            if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
+            container.innerHTML = '<div class="trade-view-chart-empty">No chart data for this interval.</div>';
+        });
+}
+
+function switchTradeViewChartInterval(interval, btn) {
+    if (btn.disabled) return;
+    const toolbar = btn.closest('.interval-toggle-set');
+    if (toolbar) toolbar.querySelectorAll('.interval-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+    loadTradeViewChartInterval(interval);
+}
+
+function renderTradeViewChart(row, trade) {
+    const panel = document.getElementById('trade-view-chart-panel');
+    const container = document.getElementById('trade-view-chart-container');
+    if (!panel || !container) return;
+
+    const renderId = ++tradeViewChartRenderId;
+    destroyTradeViewChart();
+    container.innerHTML = '';
+
+    if (row.symbol !== 'XAUUSD' || typeof LightweightCharts === 'undefined') {
+        panel.style.display = 'none';
+        return;
+    }
+
+    const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const entryAction = row.direction === 'long' ? 'buy' : 'sell';
+    const exitAction = row.direction === 'long' ? 'sell' : 'buy';
+    const entryLeg = legs.find(l => l.action === entryAction);
+    const exitLeg = legs.slice().reverse().find(l => l.action === exitAction);
+    if (!entryLeg) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    const dateString = entryLeg.datetime.slice(0, 10);
+    panel.style.display = 'flex';
+
+    const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 420,
+        height: 420,
+        layout: { background: { color: '#0f1220' }, textColor: '#d1d4dc', attributionLogo: false },
+        grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
+        rightPriceScale: { borderColor: '#2a2e39', localization: { priceFormatter: price => parseFloat(price).toFixed(2) } },
+        timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false, fixLeftEdge: true, fixRightEdge: true },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+            vertLine: { labelVisible: false },
+            horzLine: { labelVisible: false }
+        },
+        handleScroll: false,
+        handleScale: false
+    });
+
+    const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
+        upColor: '#2ebd85', downColor: '#f6465d',
+        borderDownColor: '#f6465d', borderUpColor: '#2ebd85',
+        wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
+        priceLineVisible: false
+    });
+
+    attachLockToggle(chart, container);
+    attachMeasureTool(chart, series, container, `trade-view-${trade.id}`);
+    attachCrosshairPillLabels(chart, series, container, getCurrencySymbol(), { showTime: true, showAxisPriceLabel: true });
+
+    tradeViewChartState = {
+        chart, series, container,
+        filesByInterval: buildDailyChartFilenames(dateString),
+        currentInterval: null,
+        data: [],
+        entryEpoch: parseLegEpoch(entryLeg.datetime),
+        exitEpoch: exitLeg ? parseLegEpoch(exitLeg.datetime) : null,
+        entryPrice: parseFloat(entryLeg.price),
+        exitPrice: exitLeg ? parseFloat(exitLeg.price) : null
+    };
+
+    const filesByInterval = tradeViewChartState.filesByInterval;
+    Promise.all(['1', '5', '15'].map(i => probeFileExists(`./data/${filesByInterval[i]}`)))
+        .then(([has1, has5, has15]) => {
+            // Bail if the modal was closed, or reopened for a different
+            // trade, while these HEAD probes were in flight.
+            if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
+            const available = { 1: has1, 5: has5, 15: has15 };
+            const toolbar = panel.querySelector('.interval-toggle-set');
+            toolbar.querySelectorAll('.interval-toggle-btn').forEach(btn => {
+                btn.disabled = !available[btn.dataset.interval];
+            });
+
+            const defaultInterval = has5 ? '5' : (has1 ? '1' : (has15 ? '15' : null));
+            if (!defaultInterval) {
+                container.innerHTML = '<div class="trade-view-chart-empty">No chart data available for this day.</div>';
+                return;
+            }
+            toolbar.querySelectorAll('.interval-toggle-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.interval === defaultInterval));
+            loadTradeViewChartInterval(defaultInterval);
+        });
+}
+
 // ---- Trade View modal (click a row): read-only summary + an Edit button ----
 function openTradeViewModal(event, tradeId) {
     if (event && event.target.closest('.trade-row-menu-wrap')) return;
@@ -751,6 +943,8 @@ function openTradeViewModal(event, tradeId) {
     const playbook = playbooks.find(p => p.id === trade.playbookId);
     document.getElementById('trade-view-playbook').textContent = playbook ? playbook.name : '-';
 
+    renderTradeViewChart(row, trade);
+
     document.getElementById('trade-view-journal').value = trade.journal || '';
 
     const confidenceBadge = document.getElementById('trade-view-confidence');
@@ -780,6 +974,7 @@ function openTradeViewModal(event, tradeId) {
 function closeTradeViewModal() {
     document.getElementById('trade-view-modal-overlay').style.display = 'none';
     viewingTradeId = null;
+    destroyTradeViewChart();
 }
 
 // ---- Full-size screenshot viewer (Trade View's screenshots panel) ----
