@@ -160,15 +160,72 @@ function filterHelpSections(query) {
     if (quicklinks) quicklinks.style.display = normalized ? 'none' : 'flex';
 }
 
-const XAUUSD_FILENAME_PATTERN = /^XAU-USD_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
+// Symbols selectable via the News page's chart tabs. filePrefix must match
+// this app's filename convention (see mt5_fetch_button.py's SYMBOLS dict);
+// symbol must match how it's stored on trade.symbol, so Trade Levels
+// overlays can be scoped to whichever symbol's chart is currently shown
+// (otherwise a XAUUSD trade's target/stop-loss would get plotted on a
+// EURUSD chart's completely different price scale).
+const CHART_SYMBOLS = [
+    { symbol: 'XAUUSD', filePrefix: 'XAU-USD', label: 'XAUUSD' },
+    { symbol: 'BTCUSD', filePrefix: 'BTC-USD', label: 'BTCUSD' },
+    { symbol: 'US500', filePrefix: 'US500', label: 'US500' },
+    { symbol: 'EURUSD', filePrefix: 'EUR-USD', label: 'EURUSD' },
+    { symbol: 'GBPUSD', filePrefix: 'GBP-USD', label: 'GBPUSD' },
+    { symbol: 'USDJPY', filePrefix: 'USD-JPY', label: 'USDJPY' },
+    { symbol: 'USDCHF', filePrefix: 'USD-CHF', label: 'USDCHF' },
+    { symbol: 'AUDUSD', filePrefix: 'AUD-USD', label: 'AUDUSD' },
+    { symbol: 'USDCAD', filePrefix: 'USD-CAD', label: 'USDCAD' },
+    { symbol: 'NZDUSD', filePrefix: 'NZD-USD', label: 'NZDUSD' }
+];
+
+const CHART_FILENAME_PATTERN = /^([A-Z0-9]+(?:-[A-Z0-9]+)?)_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
 // Chart blocks are heavy (CSV fetch + chart instance each), so load them in
 // batches of CHART_BLOCKS_BATCH_SIZE instead of rendering every date up front.
 const CHART_BLOCKS_BATCH_SIZE = 10;
-let allChartFiles = [];
+let allDiscoveredFiles = []; // every symbol's files, from one discovery pass
+let allChartFiles = []; // allDiscoveredFiles filtered to activeChartSymbol
 let allChartEventsByDate = {};
 let renderedChartFileCount = 0;
 let isLoadingChartBatch = false;
+let activeChartSymbol = CHART_SYMBOLS[0]; // XAUUSD by default
+
+function renderChartSymbolTabs() {
+    const container = document.getElementById('chart-symbol-tabs');
+    if (!container) return;
+
+    const availablePrefixes = new Set(allDiscoveredFiles.map(f => f.filePrefix));
+    container.innerHTML = CHART_SYMBOLS.map(s => {
+        const available = availablePrefixes.has(s.filePrefix);
+        const activeClass = s.filePrefix === activeChartSymbol.filePrefix ? ' active' : '';
+        const disabledAttr = available ? '' : 'disabled title="No chart data found for this symbol yet"';
+        return `<button type="button" class="news-tab chart-symbol-tab${activeClass}" data-file-prefix="${s.filePrefix}" ${disabledAttr} onclick="selectChartSymbol('${s.filePrefix}')">${s.label}</button>`;
+    }).join('');
+}
+
+function selectChartSymbol(filePrefix) {
+    const match = CHART_SYMBOLS.find(s => s.filePrefix === filePrefix);
+    if (!match) return;
+    activeChartSymbol = match;
+    document.querySelectorAll('#chart-symbol-tabs .chart-symbol-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filePrefix === filePrefix);
+    });
+    applyActiveSymbolFilter();
+}
+
+// Re-filters the already-discovered file list down to the active symbol and
+// re-renders - no re-fetch needed, since discoverChartFiles() found every
+// symbol's files in one pass.
+function applyActiveSymbolFilter() {
+    const container = document.getElementById('chart-blocks-container');
+    const template = document.getElementById('xauusd-chart-block-template');
+    if (!container || !template) return;
+
+    allChartFiles = allDiscoveredFiles.filter(f => f.filePrefix === activeChartSymbol.filePrefix);
+    selectedEventFilters.clear();
+    resetChartBatches(container, template);
+}
 
 function initCpiChart() {
     const container = document.getElementById('chart-blocks-container');
@@ -187,10 +244,10 @@ function initCpiChart() {
             // Newest date first
             files.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
-            allChartFiles = files;
+            allDiscoveredFiles = files;
             allChartEventsByDate = eventsByDate;
-            selectedEventFilters.clear();
-            resetChartBatches(container, template);
+            renderChartSymbolTabs();
+            applyActiveSymbolFilter();
             renderEventFilterTabs(eventsByDate);
         })
         .catch(err => {
@@ -250,7 +307,7 @@ function resetChartBatches(container, template) {
     if (allChartFiles.length === 0) {
         container.innerHTML = `
             <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
-                No XAUUSD chart data found in /data.
+                No ${activeChartSymbol.label} chart data found in /data.
             </div>`;
     } else {
         loadNextChartBatch(container, template);
@@ -262,16 +319,19 @@ function resetChartBatches(container, template) {
 // a directory-listing response (e.g. `python -m http.server` for local dev).
 function discoverChartFiles() {
     function namesToDatedFiles(filenames) {
-        const filesByDate = new Map(); // date -> { '1': filename, '5': filename, '15': filename }
+        const filesByKey = new Map(); // "filePrefix|date" -> { filePrefix, date, files: {1,5,15} }
         filenames.forEach(filename => {
-            const match = filename.match(XAUUSD_FILENAME_PATTERN);
+            const match = filename.match(CHART_FILENAME_PATTERN);
             if (!match) return;
-            const interval = match[1];
-            const date = match[2];
-            if (!filesByDate.has(date)) filesByDate.set(date, {});
-            if (!filesByDate.get(date)[interval]) filesByDate.get(date)[interval] = filename;
+            const filePrefix = match[1].toUpperCase();
+            const interval = match[2];
+            const date = match[3];
+            const key = `${filePrefix}|${date}`;
+            if (!filesByKey.has(key)) filesByKey.set(key, { filePrefix, date, files: {} });
+            const entry = filesByKey.get(key);
+            if (!entry.files[interval]) entry.files[interval] = filename;
         });
-        return Array.from(filesByDate, ([date, files]) => ({ date, files }));
+        return Array.from(filesByKey.values());
     }
 
     return fetch('/api/data-files')
@@ -302,6 +362,9 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
     fileEntries.forEach(({ date, files }) => {
         const block = template.content.firstElementChild.cloneNode(true);
 
+        const titleEl = block.querySelector('.cpi-chart-title');
+        if (titleEl) titleEl.textContent = activeChartSymbol.label;
+
         const caption = block.querySelector('.cpi-chart-caption');
         const dateInput = block.querySelector('.cpi-date-input');
         const chartContainer = block.querySelector('.xauusd-lightweight-chart');
@@ -321,7 +384,7 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         });
 
         container.appendChild(block);
-        createOneDayChart(date, files, chartContainer, events, defaultInterval);
+        createOneDayChart(date, files, chartContainer, events, defaultInterval, activeChartSymbol.symbol);
     });
 }
 
@@ -476,6 +539,7 @@ function applyTradeOverlays(dateString) {
 
     const account = getActiveAccount();
     const trades = ((account && account.trades) || []).filter(trade => {
+        if (instance.tradeSymbol && trade.symbol !== instance.tradeSymbol) return false;
         const legs = trade.legs.slice().sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
         return legs[0] && legs[0].datetime.slice(0, 10) === dateString;
     });
@@ -620,7 +684,7 @@ function getActualColorClass(name, actual, forecast) {
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
-function createOneDayChart(dateString, filesByInterval, chartContainer, events, defaultInterval) {
+function createOneDayChart(dateString, filesByInterval, chartContainer, events, defaultInterval, tradeSymbol) {
     if (!chartContainer) return;
 
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -669,7 +733,7 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
     cpiChartInstances.set(dateString, {
         chart, series, container: chartContainer, events: events || [], markersApi,
-        filesByInterval, currentInterval: null
+        filesByInterval, currentInterval: null, tradeSymbol
     });
 
     // Trade Levels overlay needs repositioning whenever the visible range pans/zooms

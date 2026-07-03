@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=18">
+    <link rel="stylesheet" href="styles.css?v=19">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -442,6 +442,9 @@
                 </div>
                 <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
             </header>
+
+            <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
+            <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
 
             <div style="display: flex; align-items: center; gap: 8px; margin: -14px 0;">
                 <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">

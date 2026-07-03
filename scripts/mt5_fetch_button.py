@@ -26,14 +26,22 @@ import MetaTrader5 as mt5
 # ---- Configure these for your setup ----
 
 # Broker symbol name (as it appears in your MT5 Market Watch - many
-# brokers add a suffix like "m") -> the name to use in output filenames.
-# Add/remove pairs here; the app's News page currently only displays
-# XAU-USD charts, so other symbols will just sit in /data unused until
-# it's extended to show them too.
+# brokers add a suffix like "m") -> the file-prefix used in output
+# filenames. Must match CHART_SYMBOLS in app.js exactly, or the News page
+# won't recognize the files. Double-check these against your own broker's
+# Market Watch - the "m" suffix and "US500" naming are guesses and may
+# differ (e.g. some brokers use "US500.cash" or no suffix at all).
 SYMBOLS = {
     "XAUUSDm": "XAU-USD",
+    "BTCUSDm": "BTC-USD",
+    "US500m": "US500",
     "EURUSDm": "EUR-USD",
     "GBPUSDm": "GBP-USD",
+    "USDJPYm": "USD-JPY",
+    "USDCHFm": "USD-CHF",
+    "AUDUSDm": "AUD-USD",
+    "USDCADm": "USD-CAD",
+    "NZDUSDm": "NZD-USD",
 }
 
 INTERVALS = {"1": mt5.TIMEFRAME_M1, "5": mt5.TIMEFRAME_M5, "15": mt5.TIMEFRAME_M15}
