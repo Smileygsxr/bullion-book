@@ -534,9 +534,12 @@ function formatHoldDuration(seconds) {
     return `${Math.round(hours / 24)} D`;
 }
 
+const TRADE_DATE_MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function formatTradeDate(isoLike) {
     const d = new Date(isoLike);
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${day} ${TRADE_DATE_MONTH_ABBR[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function formatTradeTime(isoLike) {

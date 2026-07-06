@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=22">
+    <link rel="stylesheet" href="styles.css?v=30">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -64,7 +64,7 @@
             <a href="#" class="nav-link active" onclick="showPage('page-dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
             <a href="#" class="nav-link" onclick="showPage('page-calendar', this)"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
-            <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News <span class="nav-link-wip">(Work in Progress)</span></a>
+            <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
             <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
             <a href="#" class="nav-link" id="nav-logout-link" onclick="logOut()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
@@ -442,9 +442,24 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" id="event-tab-search" placeholder="Search event types..." oninput="filterEventTabs(this.value)">
                     </div>
-                    <span class="news-wip-badge"><i class="fa-solid fa-triangle-exclamation"></i> This page is a Work in Progress - data is not accurate</span>
+                    <button class="news-info-toggle" id="news-info-toggle" onclick="toggleNewsInfoPanel()" title="About this page">?</button>
                 </div>
                 <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
+                <div id="news-info-panel" class="news-info-panel" style="display: none;">
+                    <p class="news-info-warning">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Charts and economic news on this page are imported manually once a day, not streamed live from your broker. Prices may differ slightly from your broker's exact feed due to spread, execution timing, or the manual import schedule - treat this page as reference context, not tick-accurate data.
+                    </p>
+                    <p class="news-info-guide-title">How to use this page</p>
+                    <ul class="news-info-guide-list">
+                        <li>Use the symbol tabs (XAUUSD, BTCUSD, US500, majors) to switch which instrument's charts are shown.</li>
+                        <li>Click an event name under the arrow (&#9656;) toggle to only show charts from days that event occurred.</li>
+                        <li>Use the High / Medium / Low chips to filter events by importance.</li>
+                        <li>Use <strong>Filter Dates</strong> to narrow the chart list to a specific date range.</li>
+                        <li>Toggle <strong>News Time Markers</strong> to mark each chart at the time its event(s) happened.</li>
+                        <li>Toggle <strong>Trade Levels</strong> to overlay your entry/target/stop-loss zones for trades placed that day.</li>
+                    </ul>
+                </div>
             </header>
 
             <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
@@ -465,6 +480,12 @@
                 </button>
                 <button class="news-tab importance-filter-btn" data-importance="low" onclick="toggleImportanceFilter('low', this)" title="Show only low-impact events">
                     <span class="cpi-mini-event-importance-dot importance-low"></span> Low
+                </button>
+                <button class="news-tab importance-filter-btn active" id="news-none-filter-btn" data-importance="none" onclick="toggleNoNewsFilter(this)" title="Hide all news above the charts">
+                    <span class="cpi-mini-event-importance-dot importance-none"></span> None
+                </button>
+                <button class="news-tab" id="chart-date-filter-btn" onclick="toggleChartDatePopover(event)" title="Only show charts within a date range">
+                    <i class="fa-solid fa-calendar-days"></i> Filter Dates
                 </button>
             </div>
 
@@ -1553,6 +1574,22 @@
         <button class="btn-action btn-blue" style="width: auto;" onclick="applyCustomDateRange()">Apply</button>
     </div>
 
+    <!-- Chart date-range popover (News page - filters which dated chart blocks are shown) -->
+    <div id="chart-date-range-popover" class="custom-date-popover" style="display: none;">
+        <div class="modal-field">
+            <label class="modal-label">From</label>
+            <input type="date" id="chart-date-from" class="modal-input">
+        </div>
+        <div class="modal-field">
+            <label class="modal-label">To</label>
+            <input type="date" id="chart-date-to" class="modal-input">
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button class="custom-date-popover-btn btn-blue" onclick="applyChartDateFilter()">Apply</button>
+            <button class="custom-date-popover-btn btn-neutral" onclick="clearChartDateFilter()">Clear</button>
+        </div>
+    </div>
+
     <!-- Dashboard trade filter flyout (toggled from the sidebar sliders icon) -->
     <div id="trade-filter-panel" class="trade-filter-panel" style="display: none;">
         <div class="trade-filter-counter" id="trade-filter-counter">Total: 0 | Displaying: 0</div>
@@ -1847,7 +1884,7 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=16"></script>
 
 </body>
 </html>

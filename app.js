@@ -91,22 +91,81 @@ function clearEventFilters() {
     applyEventFilterAndReload();
 }
 
-// Re-filters allChartFiles by the selected event-name tags (empty selection
-// shows everything) and restarts batch-loading from scratch. This has to
-// re-filter the underlying data and reset pagination - not just hide/show
-// already-rendered DOM blocks - because with lazy-loaded batches, a filter
-// applied against only-whatever-happens-to-be-loaded-so-far would miss
-// matching dates further down the list that haven't rendered yet (e.g. a
-// monthly event like Unemployment Rate might only have 1 hit in the first
-// batch of 10 recent days, even though many more matches exist earlier).
+// Date range (inclusive, ISO "YYYY-MM-DD" strings) narrowing which chart
+// dates are shown - independent of tradeLogFilters (filters.js), since this
+// filters CSV chart files by date, not trades.
+let chartDateFrom = null;
+let chartDateTo = null;
+
+function toggleChartDatePopover(event) {
+    const popover = document.getElementById('chart-date-range-popover');
+    if (!popover) return;
+
+    if (popover.style.display === 'block') {
+        popover.style.display = 'none';
+        return;
+    }
+
+    document.getElementById('chart-date-from').value = chartDateFrom || '';
+    document.getElementById('chart-date-to').value = chartDateTo || '';
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    popover.style.left = `${rect.left}px`;
+    popover.style.top = `${rect.bottom + 6}px`;
+    popover.style.display = 'block';
+}
+
+function applyChartDateFilter() {
+    const fromVal = document.getElementById('chart-date-from').value;
+    const toVal = document.getElementById('chart-date-to').value;
+
+    chartDateFrom = fromVal || null;
+    chartDateTo = toVal || null;
+
+    document.getElementById('chart-date-filter-btn').classList.toggle('active', !!(chartDateFrom || chartDateTo));
+    document.getElementById('chart-date-range-popover').style.display = 'none';
+    applyEventFilterAndReload();
+}
+
+function clearChartDateFilter() {
+    chartDateFrom = null;
+    chartDateTo = null;
+    document.getElementById('chart-date-from').value = '';
+    document.getElementById('chart-date-to').value = '';
+    document.getElementById('chart-date-filter-btn').classList.remove('active');
+    document.getElementById('chart-date-range-popover').style.display = 'none';
+    applyEventFilterAndReload();
+}
+
+document.addEventListener('click', event => {
+    const popover = document.getElementById('chart-date-range-popover');
+    if (!popover || popover.style.display === 'none') return;
+    const filterBtn = event.target.closest('#chart-date-filter-btn');
+    if (popover.contains(event.target) || filterBtn) return;
+    popover.style.display = 'none';
+});
+
+// Re-filters allChartFiles by the selected event-name tags and date range
+// (empty/unset filters show everything) and restarts batch-loading from
+// scratch. This has to re-filter the underlying data and reset pagination -
+// not just hide/show already-rendered DOM blocks - because with lazy-loaded
+// batches, a filter applied against only-whatever-happens-to-be-loaded-so-far
+// would miss matching dates further down the list that haven't rendered yet
+// (e.g. a monthly event like Unemployment Rate might only have 1 hit in the
+// first batch of 10 recent days, even though many more matches exist earlier).
 function applyEventFilterAndReload() {
     const container = document.getElementById('chart-blocks-container');
     const template = document.getElementById('xauusd-chart-block-template');
     if (!container || !template) return;
 
+    let files = allChartFiles;
+
+    if (chartDateFrom) files = files.filter(({ date }) => date >= chartDateFrom);
+    if (chartDateTo) files = files.filter(({ date }) => date <= chartDateTo);
+
     displayedChartFiles = selectedEventFilters.size === 0
-        ? allChartFiles
-        : allChartFiles.filter(({ date }) => {
+        ? files
+        : files.filter(({ date }) => {
             const events = allChartEventsByDate[date] || [];
             return events.some(({ name }) => selectedEventFilters.has(name));
         });
@@ -123,6 +182,15 @@ function filterEventTabs(query) {
         const matches = !normalized || btn.textContent.toLowerCase().includes(normalized);
         btn.style.display = matches ? '' : 'none';
     });
+}
+
+function toggleNewsInfoPanel() {
+    const panel = document.getElementById('news-info-panel');
+    const toggleBtn = document.getElementById('news-info-toggle');
+    if (!panel) return;
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+    if (toggleBtn) toggleBtn.classList.toggle('active', isHidden);
 }
 
 function toggleEventTabsCollapse() {
@@ -317,7 +385,10 @@ function resetChartBatches(container, template) {
     renderedChartFileCount = 0;
 
     if (displayedChartFiles.length === 0) {
-        const filterNote = selectedEventFilters.size > 0 ? ' matching the selected event filter(s)' : '';
+        const noteParts = [];
+        if (selectedEventFilters.size > 0) noteParts.push('the selected event filter(s)');
+        if (chartDateFrom || chartDateTo) noteParts.push('the selected date range');
+        const filterNote = noteParts.length > 0 ? ` matching ${noteParts.join(' and ')}` : '';
         container.innerHTML = `
             <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
                 No ${activeChartSymbol.label} chart data found in /data${filterNote}.
@@ -649,6 +720,12 @@ function renderTradeOverlay(instance, trade) {
 // within each day regardless of this filter).
 const selectedImportanceFilters = new Set();
 
+// News is hidden above the charts by default (starts true) until the user
+// picks High/Medium/Low, or explicitly re-shows it by toggling "None" off -
+// keeps the News page uncluttered on first load rather than dumping every
+// event on every chart immediately.
+let hideAllNews = true;
+
 function toggleImportanceFilter(level, clickedButton) {
     if (selectedImportanceFilters.has(level)) {
         selectedImportanceFilters.delete(level);
@@ -657,9 +734,41 @@ function toggleImportanceFilter(level, clickedButton) {
         selectedImportanceFilters.add(level);
         clickedButton.classList.add('active');
     }
+    // Picking any real tier implies the user wants to see news again.
+    hideAllNews = false;
+    const noneBtn = document.getElementById('news-none-filter-btn');
+    if (noneBtn) noneBtn.classList.remove('active');
+
+    refreshNewsVisibility();
     document.querySelectorAll('#chart-blocks-container .cpi-mini-event').forEach(row => {
         const visible = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
         row.style.display = visible ? '' : 'none';
+    });
+}
+
+// "None" chip - hides the whole events strip above every chart, regardless
+// of the High/Medium/Low selection. Click again to go back to showing
+// everything (the same "empty selection" state the other chips use).
+function toggleNoNewsFilter(clickedButton) {
+    hideAllNews = !clickedButton.classList.contains('active');
+    clickedButton.classList.toggle('active', hideAllNews);
+    if (hideAllNews) {
+        selectedImportanceFilters.clear();
+        document.querySelectorAll('.importance-filter-btn').forEach(btn => {
+            if (btn !== clickedButton) btn.classList.remove('active');
+        });
+    }
+    refreshNewsVisibility();
+}
+
+// Shows/hides each already-rendered chart's events strip based on
+// hideAllNews - separate from the per-row High/Medium/Low filtering, which
+// only matters once the strip itself is visible.
+function refreshNewsVisibility() {
+    document.querySelectorAll('#chart-blocks-container .cpi-mini-data').forEach(miniData => {
+        const eventsList = miniData.querySelector('.cpi-mini-events');
+        const hasEvents = eventsList && eventsList.children.length > 0;
+        miniData.style.display = (hasEvents && !hideAllNews) ? 'flex' : 'none';
     });
 }
 
@@ -688,7 +797,7 @@ function renderEventsForDate(block, date, eventsByDate) {
     `;
     }).join('');
 
-    miniData.style.display = 'flex';
+    miniData.style.display = hideAllNews ? 'none' : 'flex';
 }
 
 // Parses values like "0.3%", "225K", "7.62M" into comparable numbers
