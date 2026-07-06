@@ -1,10 +1,10 @@
 name: Fetch Daily XAUUSD Data
 
 on:
-  schedule:
-    # 02:00 UTC daily - script itself skips weekends and exits cleanly if
-    # Twelve Data has nothing for the target date yet.
-    - cron: '0 2 * * *'
+  # Cron trigger disabled - daily chart/news data now comes from the MT5
+  # scripts (mt5_fetch_button.bat + Export_USD_Calendar.mq5) instead.
+  # workflow_dispatch below is kept so this can still be run manually
+  # (e.g. a one-off backfill) if ever needed.
   workflow_dispatch:
     inputs:
       backfill_start:
