@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=19">
+    <link rel="stylesheet" href="styles.css?v=22">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -438,6 +438,10 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
                     <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
+                    <div class="event-tab-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="event-tab-search" placeholder="Search event types..." oninput="filterEventTabs(this.value)">
+                    </div>
                     <span class="news-wip-badge"><i class="fa-solid fa-triangle-exclamation"></i> This page is a Work in Progress - data is not accurate</span>
                 </div>
                 <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
@@ -452,6 +456,15 @@
                 </button>
                 <button class="news-tab" id="trade-overlays-toggle" onclick="toggleTradeOverlays()" title="Show entry/target/stop-loss zones for trades placed that day">
                     <i class="fa-solid fa-bullseye"></i> Trade Levels
+                </button>
+                <button class="news-tab importance-filter-btn" data-importance="high" onclick="toggleImportanceFilter('high', this)" title="Show only high-impact events">
+                    <span class="cpi-mini-event-importance-dot importance-high"></span> High
+                </button>
+                <button class="news-tab importance-filter-btn" data-importance="moderate" onclick="toggleImportanceFilter('moderate', this)" title="Show only medium-impact events">
+                    <span class="cpi-mini-event-importance-dot importance-moderate"></span> Medium
+                </button>
+                <button class="news-tab importance-filter-btn" data-importance="low" onclick="toggleImportanceFilter('low', this)" title="Show only low-impact events">
+                    <span class="cpi-mini-event-importance-dot importance-low"></span> Low
                 </button>
             </div>
 
@@ -1834,7 +1847,7 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 
 </body>
 </html>

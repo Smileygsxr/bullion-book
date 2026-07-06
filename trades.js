@@ -718,10 +718,10 @@ let tradeViewChartState = null;
 // longer the one on screen.
 let tradeViewChartRenderId = 0;
 
-function buildDailyChartFilenames(dateString) {
+function buildDailyChartFilenames(dateString, filePrefix) {
     const files = {};
     ['1', '5', '15'].forEach(i => {
-        files[i] = `XAU-USD_${i}Minute_BID_${dateString}_00_00-23_59_Africa_Johannesburg.csv`;
+        files[i] = `${filePrefix}_${i}Minute_BID_${dateString}_00_00-23_59_Africa_Johannesburg.csv`;
     });
     return files;
 }
@@ -737,24 +737,44 @@ function destroyTradeViewChart() {
     tradeViewChartState = null;
 }
 
-function tradeViewChartMarkers() {
+// Lightweight Charts' marker plugin requires a marker's time to exactly
+// match one of the series' actual bar times - if it doesn't, it throws
+// "Value is null" while computing the marker's position, which happened
+// silently mid-render (breaking the whole draw pass, including candles)
+// whenever a raw leg time like 14:42 didn't land on an interval's bar grid
+// (e.g. any 15m bucket boundary). Snap to the nearest real bar, same as
+// the entry/exit line already does, so markers always resolve to real data.
+function tradeViewChartMarkers(data) {
     if (!tradeViewChartState) return [];
     const { entryEpoch, exitEpoch, entryPrice, exitPrice } = tradeViewChartState;
     const markers = [];
     if (entryEpoch !== null) {
-        markers.push({ time: entryEpoch, position: 'belowBar', color: '#2ebd85', shape: 'arrowUp', text: `Entry ${formatPrice(entryPrice)}` });
+        const snappedTime = nearestBarTime(data, entryEpoch);
+        if (snappedTime !== null) {
+            markers.push({ time: snappedTime, position: 'belowBar', color: '#2ebd85', shape: 'arrowUp', text: `Entry ${formatPrice(entryPrice)}` });
+        }
     }
     if (exitEpoch !== null) {
-        markers.push({ time: exitEpoch, position: 'aboveBar', color: '#f6465d', shape: 'arrowDown', text: `Exit ${formatPrice(exitPrice)}` });
+        const snappedTime = nearestBarTime(data, exitEpoch);
+        if (snappedTime !== null) {
+            markers.push({ time: snappedTime, position: 'aboveBar', color: '#f6465d', shape: 'arrowDown', text: `Exit ${formatPrice(exitPrice)}` });
+        }
     }
     return markers.sort((a, b) => a.time - b.time);
 }
+
+// Bumped on every loadTradeViewChartInterval call (both the automatic
+// default-interval load and manual 1m/5m/15m clicks) - lets a slower,
+// superseded request detect it's stale and bail instead of overwriting a
+// newer interval's data/markers once it finally resolves.
+let tradeViewChartIntervalRequestId = 0;
 
 function loadTradeViewChartInterval(interval) {
     if (!tradeViewChartState) return;
     const filename = tradeViewChartState.filesByInterval[interval];
     const { chart, series, container } = tradeViewChartState;
     const renderId = tradeViewChartRenderId;
+    const intervalRequestId = ++tradeViewChartIntervalRequestId;
     if (!filename) return;
 
     tradeViewChartState.currentInterval = interval;
@@ -779,22 +799,45 @@ function loadTradeViewChartInterval(interval) {
                     low: parseFloat(row.Low), close: parseFloat(row.Close),
                     volume: parseFloat(row.Volume)
                 };
-            }).filter(d => !isNaN(d.time) && !isNaN(d.close));
+            }).filter(d => !isNaN(d.time) && !isNaN(d.open) && !isNaN(d.high) && !isNaN(d.low) && !isNaN(d.close));
             cleanData.sort((a, b) => a.time - b.time);
 
             if (cleanData.length === 0) throw new Error('empty');
-            // Bail if the modal was closed, or reopened for a different trade,
-            // while this fetch was in flight - avoids drawing into (or
-            // erroring against) a chart/container that's no longer current.
+            // Bail if the modal was closed, reopened for a different trade, or
+            // a newer interval switch has since superseded this one, while
+            // this fetch was in flight - avoids drawing into (or erroring
+            // against) a chart/container that's no longer current, or
+            // clobbering a newer interval's data with a slower, older result.
             if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
+            if (intervalRequestId !== tradeViewChartIntervalRequestId) return;
 
             tradeViewChartState.data = cleanData;
             series.setData(cleanData);
             chart.timeScale().fitContent();
-            LightweightCharts.createSeriesMarkers(series, tradeViewChartMarkers());
+            // .setMarkers() on the one markersApi created in renderTradeViewChart -
+            // calling createSeriesMarkers() again here (instead of reusing it) is
+            // what caused duplicate entry/exit arrows on every interval switch.
+            tradeViewChartState.markersApi.setMarkers(tradeViewChartMarkers(cleanData));
+
+            // Snap the entry/exit line to whichever bar is actually closest
+            // in THIS interval's data - a raw leg time like 14:42 won't
+            // exactly match a 5m bar (which only lands on :00/:05/:10...),
+            // so re-snap on every interval switch rather than once.
+            const { entryExitLine, entryEpoch, exitEpoch, entryPrice, exitPrice } = tradeViewChartState;
+            if (entryExitLine && entryEpoch !== null && exitEpoch !== null && exitPrice !== null) {
+                const snappedEntryTime = nearestBarTime(cleanData, entryEpoch);
+                const snappedExitTime = nearestBarTime(cleanData, exitEpoch);
+                if (snappedEntryTime !== null && snappedExitTime !== null) {
+                    entryExitLine.setData([
+                        { time: snappedEntryTime, value: entryPrice },
+                        { time: snappedExitTime, value: exitPrice }
+                    ]);
+                }
+            }
         })
         .catch(() => {
             if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
+            if (intervalRequestId !== tradeViewChartIntervalRequestId) return;
             container.innerHTML = '<div class="trade-view-chart-empty">No chart data for this interval.</div>';
         });
 }
@@ -815,7 +858,14 @@ function renderTradeViewChart(row, trade) {
     destroyTradeViewChart();
     container.innerHTML = '';
 
-    if (row.symbol !== 'XAUUSD' || typeof LightweightCharts === 'undefined') {
+    // CHART_SYMBOLS (app.js) maps a trade's symbol to the file-prefix its
+    // chart data is saved under (e.g. XAUUSD -> "XAU-USD") - same list the
+    // News page's symbol tabs use, so any symbol with chart data there also
+    // gets a day-chart here.
+    const symbolMatch = typeof CHART_SYMBOLS !== 'undefined'
+        ? CHART_SYMBOLS.find(s => s.symbol === row.symbol)
+        : null;
+    if (!symbolMatch || typeof LightweightCharts === 'undefined') {
         panel.style.display = 'none';
         return;
     }
@@ -860,15 +910,40 @@ function renderTradeViewChart(row, trade) {
     attachMeasureTool(chart, series, container, `trade-view-${trade.id}`);
     attachCrosshairPillLabels(chart, series, container, getCurrencySymbol(), { showTime: true, showAxisPriceLabel: true });
 
+    const entryEpoch = parseLegEpoch(entryLeg.datetime);
+    const exitEpoch = exitLeg ? parseLegEpoch(exitLeg.datetime) : null;
+    const entryPrice = parseFloat(entryLeg.price);
+    const exitPrice = exitLeg ? parseFloat(exitLeg.price) : null;
+
+    // A straight line tracing entry -> exit - lets you see the trade's path
+    // at a glance without hunting for the two markers. Fixed gold accent
+    // color rather than win/loss green/red, since a losing trade's line
+    // would otherwise blend straight into the red candles it crosses.
+    // Created empty here; loadTradeViewChartInterval fills it in once actual
+    // bar data is loaded, snapping to the nearest real candle (see there).
+    let entryExitLine = null;
+    if (entryEpoch !== null && exitEpoch !== null && exitPrice !== null) {
+        entryExitLine = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#dfb15b',
+            lineWidth: 3,
+            pointMarkersVisible: false,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false
+        });
+    }
+
+    const markersApi = LightweightCharts.createSeriesMarkers(series, []);
+
     tradeViewChartState = {
-        chart, series, container,
-        filesByInterval: buildDailyChartFilenames(dateString),
+        chart, series, container, entryExitLine, markersApi,
+        filesByInterval: buildDailyChartFilenames(dateString, symbolMatch.filePrefix),
         currentInterval: null,
         data: [],
-        entryEpoch: parseLegEpoch(entryLeg.datetime),
-        exitEpoch: exitLeg ? parseLegEpoch(exitLeg.datetime) : null,
-        entryPrice: parseFloat(entryLeg.price),
-        exitPrice: exitLeg ? parseFloat(exitLeg.price) : null
+        entryEpoch,
+        exitEpoch,
+        entryPrice,
+        exitPrice
     };
 
     const filesByInterval = tradeViewChartState.filesByInterval;

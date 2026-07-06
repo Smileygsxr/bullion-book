@@ -2,16 +2,16 @@
 // date string -> { chart, series, container, markersApi, events, data, filesByInterval, currentInterval }
 const cpiChartInstances = new Map();
 
-// Re-upload/replace this file in /data whenever new economic events come in.
+// Re-generate this file (via scripts/Export_USD_Calendar.mq5, run inside
+// MT5) whenever you want fresher economic events - it's already
+// pre-filtered to USD only, so nothing here needs to filter by currency.
 const ECONOMIC_EVENTS_CSV_PATH = './data/EconomicEvents.csv';
-const ECONOMIC_EVENTS_YEAR = 2026;
-const MONTH_ABBR_TO_NUM = {
-    Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
-    Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
-};
 
-// CSV has no header row: [dateLabel, time, currency, _, event, _, _, actual, forecast, previous].
-// dateLabel/time are blank on rows that share the same day/time as the row above (forward-filled).
+// Header row: date,time,name,actual,forecast,previous,importance - one row
+// per event, date already ISO ("2026-07-03"), time already "8:30am"-style,
+// importance one of high/moderate/low/none (matches MT5's own Calendar tab).
+const IMPORTANCE_RANK = { high: 3, moderate: 2, low: 1, none: 0 };
+
 function loadUsdEconomicEvents() {
     return fetch(`${ECONOMIC_EVENTS_CSV_PATH}?t=${Date.now()}`)
         .then(response => {
@@ -19,44 +19,35 @@ function loadUsdEconomicEvents() {
             return response.text();
         })
         .then(csvText => {
-            const parsed = Papa.parse(csvText.trim(), { header: false, skipEmptyLines: true });
+            const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true });
             const eventsByDate = {};
-            let currentDate = null;
-            let currentTime = '';
 
             parsed.data.forEach(row => {
-                const [dateLabel, time, currency, , name, , , actual, forecast, previous] = row;
+                const date = (row.date || '').trim();
+                const name = (row.name || '').trim();
+                if (!date || !name) return;
 
-                if (dateLabel && dateLabel.trim()) {
-                    currentDate = parseEventDateLabel(dateLabel.trim());
-                }
-                if (time && time.trim()) {
-                    currentTime = time.trim().replace(/\s+/g, '').toLowerCase();
-                }
-                if (!currentDate || !name || !name.trim()) return;
-                if (!currency || currency.trim().toUpperCase() !== 'USD') return;
+                const importance = (row.importance || '').trim().toLowerCase();
 
-                if (!eventsByDate[currentDate]) eventsByDate[currentDate] = [];
-                eventsByDate[currentDate].push({
-                    time: currentTime,
-                    name: name.trim(),
-                    actual: (actual || '').trim(),
-                    forecast: (forecast || '').trim(),
-                    previous: (previous || '').trim()
+                if (!eventsByDate[date]) eventsByDate[date] = [];
+                eventsByDate[date].push({
+                    time: (row.time || '').trim().replace(/\s+/g, '').toLowerCase(),
+                    name,
+                    actual: (row.actual || '').trim(),
+                    forecast: (row.forecast || '').trim(),
+                    previous: (row.previous || '').trim(),
+                    importance: IMPORTANCE_RANK.hasOwnProperty(importance) ? importance : 'none'
                 });
+            });
+
+            // High-impact first within each day, so the events that actually
+            // move price aren't buried under a pile of low-impact noise.
+            Object.values(eventsByDate).forEach(events => {
+                events.sort((a, b) => IMPORTANCE_RANK[b.importance] - IMPORTANCE_RANK[a.importance]);
             });
 
             return eventsByDate;
         });
-}
-
-// Converts a label like "WedJun 10" into "2026-06-10"
-function parseEventDateLabel(label) {
-    const match = label.match(/^[A-Za-z]{3}([A-Za-z]{3})\s*(\d{1,2})$/);
-    if (!match) return null;
-    const month = MONTH_ABBR_TO_NUM[match[1]];
-    if (!month) return null;
-    return `${ECONOMIC_EVENTS_YEAR}-${month}-${match[2].padStart(2, '0')}`;
 }
 
 // Event-name filter tabs (multi-select) for the chart blocks
@@ -90,25 +81,47 @@ function toggleEventFilter(name, clickedButton) {
         clickedButton.classList.add('active');
     }
     document.getElementById('all-charts-tab').classList.toggle('active', selectedEventFilters.size === 0);
-    applyEventFilters();
+    applyEventFilterAndReload();
 }
 
 function clearEventFilters() {
     selectedEventFilters.clear();
     document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
     document.getElementById('all-charts-tab').classList.add('active');
-
-    const container = document.getElementById('chart-blocks-container');
-    const template = document.getElementById('xauusd-chart-block-template');
-    if (container && template) resetChartBatches(container, template);
+    applyEventFilterAndReload();
 }
 
-function applyEventFilters() {
-    document.querySelectorAll('#chart-blocks-container .xauusd-chart-panel').forEach(block => {
-        const blockEvents = (block.dataset.eventNames || '').split('|').filter(Boolean);
-        const matches = selectedEventFilters.size === 0 ||
-            blockEvents.some(name => selectedEventFilters.has(name));
-        block.style.display = matches ? '' : 'none';
+// Re-filters allChartFiles by the selected event-name tags (empty selection
+// shows everything) and restarts batch-loading from scratch. This has to
+// re-filter the underlying data and reset pagination - not just hide/show
+// already-rendered DOM blocks - because with lazy-loaded batches, a filter
+// applied against only-whatever-happens-to-be-loaded-so-far would miss
+// matching dates further down the list that haven't rendered yet (e.g. a
+// monthly event like Unemployment Rate might only have 1 hit in the first
+// batch of 10 recent days, even though many more matches exist earlier).
+function applyEventFilterAndReload() {
+    const container = document.getElementById('chart-blocks-container');
+    const template = document.getElementById('xauusd-chart-block-template');
+    if (!container || !template) return;
+
+    displayedChartFiles = selectedEventFilters.size === 0
+        ? allChartFiles
+        : allChartFiles.filter(({ date }) => {
+            const events = allChartEventsByDate[date] || [];
+            return events.some(({ name }) => selectedEventFilters.has(name));
+        });
+
+    resetChartBatches(container, template);
+}
+
+// Narrows the (potentially long) list of event-name filter tabs down to
+// ones matching the search text - doesn't touch which filters are actually
+// selected/active, just what's visible to search through.
+function filterEventTabs(query) {
+    const normalized = query.trim().toLowerCase();
+    document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => {
+        const matches = !normalized || btn.textContent.toLowerCase().includes(normalized);
+        btn.style.display = matches ? '' : 'none';
     });
 }
 
@@ -186,6 +199,7 @@ const CHART_FILENAME_PATTERN = /^([A-Z0-9]+(?:-[A-Z0-9]+)?)_(1|5|15)Minute_BID_(
 const CHART_BLOCKS_BATCH_SIZE = 10;
 let allDiscoveredFiles = []; // every symbol's files, from one discovery pass
 let allChartFiles = []; // allDiscoveredFiles filtered to activeChartSymbol
+let displayedChartFiles = []; // allChartFiles further filtered by selectedEventFilters - what pagination actually walks
 let allChartEventsByDate = {};
 let renderedChartFileCount = 0;
 let isLoadingChartBatch = false;
@@ -218,13 +232,12 @@ function selectChartSymbol(filePrefix) {
 // re-renders - no re-fetch needed, since discoverChartFiles() found every
 // symbol's files in one pass.
 function applyActiveSymbolFilter() {
-    const container = document.getElementById('chart-blocks-container');
-    const template = document.getElementById('xauusd-chart-block-template');
-    if (!container || !template) return;
-
     allChartFiles = allDiscoveredFiles.filter(f => f.filePrefix === activeChartSymbol.filePrefix);
     selectedEventFilters.clear();
-    resetChartBatches(container, template);
+    document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
+    const allChartsTab = document.getElementById('all-charts-tab');
+    if (allChartsTab) allChartsTab.classList.add('active');
+    applyEventFilterAndReload();
 }
 
 function initCpiChart() {
@@ -286,14 +299,13 @@ function handleChartScrollLoad(e) {
 }
 
 function loadNextChartBatch(container, template) {
-    if (isLoadingChartBatch || renderedChartFileCount >= allChartFiles.length) return;
+    if (isLoadingChartBatch || renderedChartFileCount >= displayedChartFiles.length) return;
 
     isLoadingChartBatch = true;
-    const batch = allChartFiles.slice(renderedChartFileCount, renderedChartFileCount + CHART_BLOCKS_BATCH_SIZE);
+    const batch = displayedChartFiles.slice(renderedChartFileCount, renderedChartFileCount + CHART_BLOCKS_BATCH_SIZE);
     renderedChartFileCount += batch.length;
 
     renderChartBlocks(batch, container, template, allChartEventsByDate);
-    applyEventFilters();
     isLoadingChartBatch = false;
 }
 
@@ -304,10 +316,11 @@ function resetChartBatches(container, template) {
     container.innerHTML = '';
     renderedChartFileCount = 0;
 
-    if (allChartFiles.length === 0) {
+    if (displayedChartFiles.length === 0) {
+        const filterNote = selectedEventFilters.size > 0 ? ' matching the selected event filter(s)' : '';
         container.innerHTML = `
             <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
-                No ${activeChartSymbol.label} chart data found in /data.
+                No ${activeChartSymbol.label} chart data found in /data${filterNote}.
             </div>`;
     } else {
         loadNextChartBatch(container, template);
@@ -409,8 +422,8 @@ function toggleNewsTimeLines() {
     cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
 }
 
-// Parses "4:00pm" / "12:30am" (no space, lowercase, as produced by parseEventDateLabel's
-// forward-filled time column) into 24-hour { hour, minute }. Returns null if unparseable.
+// Parses "4:00pm" / "12:30am" (no space, lowercase, as produced by
+// loadUsdEconomicEvents' time column) into 24-hour { hour, minute }. Returns null if unparseable.
 function parseEventClockTime(timeStr) {
     const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})(am|pm)$/i);
     if (!match) return null;
@@ -630,6 +643,26 @@ function renderTradeOverlay(instance, trade) {
     layer.appendChild(exitLine);
 }
 
+// Importance filter chips (High/Medium/Low) - multi-select, same pattern as
+// the event-name filter tabs: empty selection shows everything, one or more
+// selected shows only those tiers (events are already sorted high-to-low
+// within each day regardless of this filter).
+const selectedImportanceFilters = new Set();
+
+function toggleImportanceFilter(level, clickedButton) {
+    if (selectedImportanceFilters.has(level)) {
+        selectedImportanceFilters.delete(level);
+        clickedButton.classList.remove('active');
+    } else {
+        selectedImportanceFilters.add(level);
+        clickedButton.classList.add('active');
+    }
+    document.querySelectorAll('#chart-blocks-container .cpi-mini-event').forEach(row => {
+        const visible = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
+        row.style.display = visible ? '' : 'none';
+    });
+}
+
 // Populates (or hides) the USD events strip above a chart block for its date
 function renderEventsForDate(block, date, eventsByDate) {
     const miniData = block.querySelector('.cpi-mini-data');
@@ -638,11 +671,13 @@ function renderEventsForDate(block, date, eventsByDate) {
 
     if (!miniData || !eventsList || !events || events.length === 0) return;
 
-    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous }) => {
+    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous, importance }) => {
         const actualColorClass = getActualColorClass(name, actual, forecast);
+        const hidden = selectedImportanceFilters.size > 0 && !selectedImportanceFilters.has(importance || 'none');
         return `
-        <div class="cpi-mini-event">
+        <div class="cpi-mini-event" data-importance="${importance || 'none'}" style="${hidden ? 'display:none;' : ''}">
             <span class="cpi-mini-event-name">${name}</span>
+            <span class="cpi-mini-event-importance-dot importance-${importance || 'none'}" title="${(importance || 'none')} impact"></span>
             <span class="cpi-mini-event-vals">
                 <input type="text" class="cpi-edit-input cpi-mini-input ${actualColorClass}" value="${actual}" title="Actual" readonly>
                 <input type="text" class="cpi-edit-input cpi-mini-input" value="${forecast}" title="Forecast" readonly>

@@ -1081,6 +1081,25 @@ body {
     white-space: nowrap;
 }
 
+/* Matches MT5's own Calendar tab impact colors (see Export_USD_Calendar.mq5) */
+.cpi-mini-event-importance-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cpi-mini-event-importance-dot.importance-high { background: #f6465d; }
+.cpi-mini-event-importance-dot.importance-moderate { background: #dfb15b; }
+.cpi-mini-event-importance-dot.importance-low { background: #848e9c; }
+
+.importance-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.cpi-mini-event-importance-dot.importance-none { background: #3a3f4b; }
+
 .cpi-mini-event-vals {
     display: flex;
     gap: 10px;
@@ -3310,6 +3329,40 @@ body {
     margin: 0 0 22px;
     color: var(--text-muted);
     font-size: 0.95rem;
+}
+
+/* Compact inline search box for the News page's event-name filter tabs -
+   same visual language as .help-search-wrap, just sized for a toolbar row
+   instead of a centered hero search. */
+.event-tab-search-wrap {
+    position: relative;
+    width: 220px;
+}
+
+.event-tab-search-wrap i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+}
+
+.event-tab-search-wrap input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 6px 10px 6px 30px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    box-sizing: border-box;
+}
+
+.event-tab-search-wrap input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
 }
 
 .help-search-wrap {
