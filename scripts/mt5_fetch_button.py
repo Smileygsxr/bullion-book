@@ -72,7 +72,18 @@ def existing_dates(output_dir, filename_symbol, interval_label):
 def fetch_symbol_interval(mt5_symbol, filename_symbol, interval_label, mt5_timeframe, range_end):
     existing = existing_dates(OUTPUT_DIR, filename_symbol, interval_label)
 
-    rates = mt5.copy_rates_range(mt5_symbol, mt5_timeframe, EARLIEST_DATE, range_end)
+    # Only ask MT5 for days we don't already have, instead of re-requesting
+    # the full EARLIEST_DATE-to-today span every run - that grows a little
+    # more each day this script runs, and for M1 (5-15x more bars than M5/
+    # M15 over the same span) eventually exceeds MT5's per-request bar cap,
+    # which hits less-liquid pairs first since they also cache less local
+    # M1 history to begin with. A tight, recent range avoids that entirely.
+    range_start = EARLIEST_DATE
+    if existing:
+        latest_existing = max(datetime.strptime(d, "%Y-%m-%d") for d in existing)
+        range_start = latest_existing + timedelta(days=1)
+
+    rates = mt5.copy_rates_range(mt5_symbol, mt5_timeframe, range_start, range_end)
     if rates is None or len(rates) == 0:
         print(f"{mt5_symbol} ({interval_label}m): no data returned from MT5 (error: {mt5.last_error()}).")
         return
