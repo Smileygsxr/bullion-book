@@ -78,10 +78,19 @@ def fetch_symbol_interval(mt5_symbol, filename_symbol, interval_label, mt5_timef
     # M15 over the same span) eventually exceeds MT5's per-request bar cap,
     # which hits less-liquid pairs first since they also cache less local
     # M1 history to begin with. A tight, recent range avoids that entirely.
+    #
+    # The MOST RECENT saved day is always re-fetched and overwritten: it was
+    # almost certainly written mid-day on a previous run (e.g. fetching at
+    # 08:00 saves a file with bars only up to 08:00), so skipping it forever
+    # would leave that day permanently cut off at whatever time you last ran
+    # this. Range starts SERVER_TO_APP_OFFSET_HOURS earlier in server time so
+    # the rebuilt file keeps that day's first wall-clock hours too.
     range_start = EARLIEST_DATE
     if existing:
-        latest_existing = max(datetime.strptime(d, "%Y-%m-%d") for d in existing)
-        range_start = latest_existing + timedelta(days=1)
+        latest_str = max(existing)
+        latest_existing = datetime.strptime(latest_str, "%Y-%m-%d")
+        existing.discard(latest_str)
+        range_start = latest_existing - timedelta(hours=SERVER_TO_APP_OFFSET_HOURS)
 
     rates = mt5.copy_rates_range(mt5_symbol, mt5_timeframe, range_start, range_end)
     if rates is None or len(rates) == 0:

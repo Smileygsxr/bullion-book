@@ -747,6 +747,10 @@ function toggleImportanceFilter(level, clickedButton) {
 
     refreshNewsVisibility();
     document.querySelectorAll('#chart-blocks-container .cpi-mini-event').forEach(row => {
+        // The Actual/Forecast/Previous column-label header is also a
+        // .cpi-mini-event (for layout alignment) but has no importance -
+        // filtering must never hide it, or the columns lose their labels.
+        if (row.classList.contains('cpi-mini-events-header')) return;
         const visible = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
         row.style.display = visible ? '' : 'none';
     });

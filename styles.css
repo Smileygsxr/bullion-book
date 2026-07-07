@@ -1197,7 +1197,7 @@ body {
 }
 
 .cpi-mini-col-label {
-    width: 38px;
+    width: 56px;
     text-align: center;
     font-size: 0.52rem;
     color: var(--text-muted);
@@ -1253,7 +1253,7 @@ body {
 }
 
 .cpi-edit-input.cpi-mini-input {
-    width: 38px;
+    width: 56px;
     padding: 2px 4px;
     font-size: 0.65rem;
     text-align: center;
@@ -4688,6 +4688,20 @@ body.privacy-mode .equity-crosshair-label.price {
     background: var(--border-color);
 }
 
+.chart-tools-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    cursor: grab;
+    border-radius: 5px;
+}
+
+.chart-tools-grip:hover { color: var(--text-light); background: rgba(255, 255, 255, 0.06); }
+.chart-tools-grip:active { cursor: grabbing; }
+
 /* While a tool is armed, the whole chart shows a crosshair cursor */
 .chart-tools-drawing { cursor: crosshair; }
 .chart-tools-drawing canvas { cursor: crosshair !important; }
@@ -4802,3 +4816,44 @@ body.privacy-mode .equity-crosshair-label.price {
 }
 
 .chart-tools-clear-all:hover { background: rgba(var(--loss-rgb), 0.2); }
+
+/* ---- Weekly Review: notes panel ---- */
+.review-notes-row {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 16px;
+    align-items: stretch;
+}
+
+@media (max-width: 900px) {
+    .review-notes-row { grid-template-columns: 1fr; }
+}
+
+.review-notes-textarea {
+    width: 100%;
+    min-height: 150px;
+    box-sizing: border-box;
+    resize: vertical;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text-light);
+    font-family: inherit;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.review-notes-textarea:focus {
+    outline: none;
+    border-color: rgba(var(--accent-blue-rgb), 0.6);
+}
+
+.review-notes-status {
+    color: var(--win);
+    font-size: 0.66rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 8px;
+}

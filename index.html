@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=34">
+    <link rel="stylesheet" href="styles.css?v=35">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>try { var bbTheme = localStorage.getItem('bb_theme'); if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme); } catch (e) { }</script>
@@ -921,8 +921,10 @@
                 <a href="#help-accounts" class="help-quicklink"><i class="fa-solid fa-wallet"></i> Accounts</a>
                 <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
                 <a href="#help-calendar" class="help-quicklink"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+                <a href="#help-review" class="help-quicklink"><i class="fa-solid fa-clipboard-check"></i> Weekly Review</a>
                 <a href="#help-stats" class="help-quicklink"><i class="fa-solid fa-chart-simple"></i> Stats</a>
                 <a href="#help-news" class="help-quicklink"><i class="fa-solid fa-newspaper"></i> News & Charts</a>
+                <a href="#help-charttools" class="help-quicklink"><i class="fa-solid fa-pen-ruler"></i> Chart Tools</a>
                 <a href="#help-settings" class="help-quicklink"><i class="fa-solid fa-gear"></i> Settings</a>
                 <a href="#help-account-access" class="help-quicklink"><i class="fa-solid fa-right-to-bracket"></i> Login & Guest Mode</a>
                 <a href="#help-contact" class="help-quicklink"><i class="fa-solid fa-envelope"></i> Contact & Feedback</a>
@@ -974,6 +976,11 @@
                         <i class="fa-solid fa-file-csv"></i>
                         <h3>Quick CSV Import</h3>
                         <p>The file icon next to the eye icon (top of the sidebar) opens the CSV file picker directly from any page - same import as Settings → Import Trades, without leaving where you are.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-hand"></i>
+                        <h3>Risk Guardrails</h3>
+                        <p>Set a Max Daily Loss and/or Max Trades Per Day in Settings → Account Settings. A gold warning banner appears here at 80% of a limit, turning red once it's hit - a built-in "step away" reminder. Filters can't hide it; it always reads your full day.</p>
                     </div>
                 </div>
             </section>
@@ -1039,6 +1046,11 @@
                         <i class="fa-solid fa-trash"></i>
                         <h3>Edit &amp; Delete</h3>
                         <p>Click a trade row to open its read-only summary, then hit Edit to change anything. Deleting always asks for confirmation first.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-candlestick"></i>
+                        <h3>Trade View Chart</h3>
+                        <p>Opening a trade shows that day's real candlestick chart (1m/5m/15m) with your Entry/Exit marked and a gold line tracing the trade's path - available for any symbol with chart data on the News page. Chart drawings you make here are shared with the News page's chart for the same day.</p>
                     </div>
                 </div>
             </section>
@@ -1218,6 +1230,51 @@
                 </div>
             </section>
 
+            <!-- Weekly Review -->
+            <section class="help-section" id="help-review">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <h2>Weekly Review</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
+                        <h3>Week Grade</h3>
+                        <p>Every week gets an A+ to D grade from three ingredients: win rate (40%), profit factor (30%) and how many traded days ended green (30%). One-trade weeks grade harshly by design - consistency needs data.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-column"></i>
+                        <h3>12-Week Strip</h3>
+                        <p>The bar strip at the top shows your last 12 weeks at a glance - green up, red down. Hover for a week's P&amp;L, click to jump straight to it. The arrows and "This Week" button navigate too.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-area"></i>
+                        <h3>Week Equity Curve</h3>
+                        <p>Cumulative P&amp;L through the week, one dot per trade. Hover a dot for the trade's details; click it to open the full Trade View.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <h3>Takeaways</h3>
+                        <p>Auto-written observations for the week: how your win rate compared to your all-time average, your strongest and toughest days, and which tags made or cost the most money.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-list"></i>
+                        <h3>Day by Day</h3>
+                        <p>Click any traded day to expand its individual trades - time, symbol, P&amp;L and R-multiple - and click a trade to open it. The Best/Worst Trade panel is clickable the same way.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-pen"></i>
+                        <h3>Weekly Notes</h3>
+                        <p>A free-form notes box per week - what worked, what didn't, the plan for next week. It autosaves as you type and syncs to your account, even on weeks with no trades.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-trophy"></i>
+                        <h3>Record Week</h3>
+                        <p>A gold trophy chip appears on the grade card when the selected week's net P&amp;L is the best in your entire trading history.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Stats -->
             <section class="help-section" id="help-stats">
                 <div class="help-section-header">
@@ -1251,9 +1308,14 @@
                         <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you - hover a bar to see its exact P&amp;L.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-table-cells"></i>
+                        <h3>P&amp;L Heatmap</h3>
+                        <p>A day-of-week &times; hour grid showing where your money is actually made and lost - green cells profit, red cells bleed, intensity scaled to size. Hover any cell for its trades, win rate and P&amp;L. Great for finding your best (and worst) session habits.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
                         <h3>Tag, Symbol &amp; Playbook Tables</h3>
-                        <p>See trades, P&amp;L, P&amp;L% and contribution % broken down per tag, symbol and playbook - click any column header to sort a table.</p>
+                        <p>See trades, win rate, P&amp;L, P&amp;L%, average R-multiple and contribution % broken down per tag, symbol and playbook - click any column header to sort. Avg R only counts trades that had a stop-loss set.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-arrows-up-down"></i>
@@ -1274,12 +1336,12 @@
                     <i class="fa-solid fa-newspaper"></i>
                     <h2>News &amp; Charts</h2>
                 </div>
-                <p class="help-section-note">The News page is currently a Work in Progress - its economic-event data isn't accurate yet. Everything below about the daily XAUUSD charts themselves is already live.</p>
+                <p class="help-section-note">Charts and economic news are imported once a day from MetaTrader 5 - prices may differ slightly from your own broker's feed. Click the <strong>?</strong> button on the News page itself for the same disclaimer and a quick usage guide.</p>
                 <div class="help-grid">
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-candlestick"></i>
-                        <h3>Daily XAUUSD Charts</h3>
-                        <p>One interactive candlestick chart per trading day, updated automatically every night - no manual downloads needed.</p>
+                        <h3>Daily Charts, 10 Symbols</h3>
+                        <p>One interactive candlestick chart per trading day. Use the symbol tabs (XAUUSD, BTCUSD, US500 and the 7 major forex pairs) to switch instruments - tabs are greyed out until that symbol has data.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-clock"></i>
@@ -1287,9 +1349,19 @@
                         <p>Each chart has a timeframe toggle. Any interval not available for a given day is simply greyed out.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-circle-dot"></i>
+                        <h3>Economic Events</h3>
+                        <p>USD calendar events (with Actual/Forecast/Previous values and a colored importance dot) appear above each day's chart. They're hidden by default - the <strong>None</strong> chip is on until you pick High, Medium or Low to show those tiers.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-filter"></i>
+                        <h3>Filtering Days</h3>
+                        <p>Expand the arrow next to "All Charts" to filter days by event type (e.g. only CPI days) - there's a search box to find event names fast. <strong>Filter Dates</strong> narrows the list to a From/To range. Filters stack.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-bullseye"></i>
                         <h3>Trade Levels</h3>
-                        <p>Toggle "Trade Levels" to overlay your Target/Stop-Loss zones on the chart for any trade entered that day - green for the favorable side, red for risk.</p>
+                        <p>Toggle "Trade Levels" to overlay your Target/Stop-Loss zones on the chart for any trade entered that day - green for the favorable side, red for risk. Only trades matching the chart's symbol are shown.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-arrow-up"></i>
@@ -1309,6 +1381,42 @@
                 </div>
             </section>
 
+            <!-- Chart Tools -->
+            <section class="help-section" id="help-charttools">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <h2>Chart Tools</h2>
+                </div>
+                <p class="help-section-note">Every day-chart (News page and Trade View) has a small toolbar in its top-left corner with drawing tools, indicators and an object tree.</p>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-slash"></i>
+                        <h3>Drawing Tools</h3>
+                        <p>Trend line (2 clicks), horizontal line (1 click, shows its price on the axis), rectangle zone (2 corners) and Fibonacci retracement (click the swing high, then the low). Press <strong>Esc</strong> to cancel a half-placed drawing.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h3>Indicators</h3>
+                        <p>EMA 20, EMA 50, SMA 200, Bollinger Bands (20,2), VWAP and RSI 14 (in its own pane with 70/30 guides). Toggle them from the chart-line icon; they recompute automatically when you switch timeframes.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <h3>Object Tree</h3>
+                        <p>The layers icon lists every drawing and indicator on that chart, each with a remove button, plus Clear All. Anything you add stays until you delete it here.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-cloud"></i>
+                        <h3>Saved to Your Account</h3>
+                        <p>Drawings and indicators save per symbol + day and sync to your login, so they follow you between devices - and a drawing made on a News chart also appears on that same day's Trade View chart.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-up-down-left-right"></i>
+                        <h3>Movable Toolbar</h3>
+                        <p>Drag the grip lines at the top of the toolbar to park it anywhere in the chart, so it never covers the candles you're studying.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Settings -->
             <section class="help-section" id="help-settings">
                 <div class="help-section-header">
@@ -1324,7 +1432,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-sliders"></i>
                         <h3>Account Settings</h3>
-                        <p>Set your currency symbol, default Symbol/Qty/Fee for new trades, whether Return % is based on a trade's own capital or your full balance, and how new-leg dates/the Dashboard's date column behave. Hover or click the <strong>?</strong> next to any field for a quick explanation.</p>
+                        <p>Set your currency symbol, default Symbol/Qty/Fee for new trades, whether Return % is based on a trade's own capital or your full balance, Breakeven Range, and your risk guardrails (Max Daily Loss / Max Trades Per Day). Hover or click the <strong>?</strong> next to any field for a quick explanation.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-palette"></i>
+                        <h3>Appearance</h3>
+                        <p>Pick from 7 color themes - Slate, Midnight, Ocean, Forest, Amethyst, Ember and Bullion (black &amp; gold). Applies instantly and follows your login between devices.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
@@ -1349,7 +1462,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-link"></i>
                         <h3>Share Your Journal</h3>
-                        <p>Generate a public link with a snapshot of your last 100 trades - no login required to view it.</p>
+                        <p>Generate a public link with a snapshot of your last 100 trades - no login required to view it. The shared page shows your net P&amp;L, win rate, profit factor, an equity curve and the full trade list.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-file-arrow-down"></i>
@@ -1403,7 +1516,7 @@
                 <div class="help-faq-list">
                     <details class="help-faq-item">
                         <summary>Where does chart data come from, and how often does it update?</summary>
-                        <p>Charts are fetched automatically every night from a market data provider and added to the News tab - you don't need to download or upload anything yourself.</p>
+                        <p>Charts and economic-calendar events are imported once a day from MetaTrader 5 and added to the News tab - you don't need to download or upload anything yourself. Because it's a daily snapshot from one broker's feed, prices can differ slightly from your own broker's, and the newest day only fills in completely after the next morning's import.</p>
                     </details>
                     <details class="help-faq-item">
                         <summary>Is my data private?</summary>
@@ -1938,8 +2051,8 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="chart-tools.js?v=1"></script>
-    <script src="app.js?v=18"></script>
+    <script src="chart-tools.js?v=2"></script>
+    <script src="app.js?v=19"></script>
 
 </body>
 </html>

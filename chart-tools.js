@@ -272,6 +272,34 @@ function buildChartToolsToolbar(tools) {
     const bar = document.createElement('div');
     bar.className = 'chart-tools-bar';
 
+    // Grip handle: drag to move the whole toolbar anywhere inside the chart,
+    // so it never has to sit on top of the candles you care about.
+    const grip = document.createElement('div');
+    grip.className = 'chart-tools-grip';
+    grip.title = 'Drag to move';
+    grip.innerHTML = '<i class="fa-solid fa-grip-lines"></i>';
+    grip.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX, startY = e.clientY;
+        const startLeft = bar.offsetLeft, startTop = bar.offsetTop;
+
+        const onMove = ev => {
+            const maxLeft = tools.container.clientWidth - bar.offsetWidth;
+            const maxTop = tools.container.clientHeight - bar.offsetHeight;
+            bar.style.left = `${Math.max(0, Math.min(maxLeft, startLeft + ev.clientX - startX))}px`;
+            bar.style.top = `${Math.max(0, Math.min(maxTop, startTop + ev.clientY - startY))}px`;
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            positionChartToolsPanels(tools);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+    });
+    bar.appendChild(grip);
+
     CHART_TOOL_DEFS.forEach(def => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -300,6 +328,7 @@ function buildChartToolsToolbar(tools) {
         e.stopPropagation();
         tools.treePanel.style.display = 'none';
         tools.indMenu.style.display = tools.indMenu.style.display === 'none' ? 'block' : 'none';
+        positionChartToolsPanels(tools);
         renderChartIndMenu(tools);
     });
     bar.appendChild(indBtn);
@@ -314,6 +343,7 @@ function buildChartToolsToolbar(tools) {
         e.stopPropagation();
         tools.indMenu.style.display = 'none';
         tools.treePanel.style.display = tools.treePanel.style.display === 'none' ? 'block' : 'none';
+        positionChartToolsPanels(tools);
         renderChartObjectTree(tools);
     });
     bar.appendChild(treeBtn);
@@ -327,6 +357,21 @@ function buildChartToolsToolbar(tools) {
     indMenu.style.display = 'none';
     tools.container.appendChild(indMenu);
     tools.indMenu = indMenu;
+}
+
+// Keeps the dropdown panels glued next to the (movable) toolbar, flipping to
+// its left side when dragged against the chart's right edge.
+function positionChartToolsPanels(tools) {
+    const bar = tools.toolbar;
+    if (!bar) return;
+    [tools.indMenu, tools.treePanel].forEach(panel => {
+        if (!panel) return;
+        const panelWidth = panel.offsetWidth || 240;
+        const rightOfBar = bar.offsetLeft + bar.offsetWidth + 8;
+        const fitsRight = rightOfBar + panelWidth <= tools.container.clientWidth;
+        panel.style.left = `${fitsRight ? rightOfBar : Math.max(0, bar.offsetLeft - panelWidth - 8)}px`;
+        panel.style.top = `${bar.offsetTop}px`;
+    });
 }
 
 function setChartToolsActive(tools, toolId) {

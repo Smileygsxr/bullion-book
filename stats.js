@@ -1380,6 +1380,29 @@ function toggleReviewDay(headEl) {
     if (row && row.querySelector('.review-day-trades')) row.classList.toggle('open');
 }
 
+// Weekly notes autosave: debounced so it isn't hitting Firestore per
+// keystroke. Empty text is kept as '' (not deleted) on purpose - Firestore's
+// merge would otherwise resurrect the old note from the previous save.
+let reviewNotesSaveTimer = null;
+
+function handleReviewNotesInput(textarea) {
+    clearTimeout(reviewNotesSaveTimer);
+    const statusEl = document.getElementById('review-notes-status');
+    if (statusEl) statusEl.textContent = 'Saving...';
+
+    reviewNotesSaveTimer = setTimeout(() => {
+        const account = getActiveAccount();
+        if (!account) return;
+        if (!account.weeklyNotes) account.weeklyNotes = {};
+        account.weeklyNotes[textarea.dataset.weekKey] = textarea.value;
+        saveAccountsState();
+        if (statusEl) {
+            statusEl.textContent = 'Saved';
+            setTimeout(() => { if (statusEl.textContent === 'Saved') statusEl.textContent = ''; }, 1600);
+        }
+    }, 600);
+}
+
 function renderReviewPage() {
     const content = document.getElementById('review-content');
     const weekLabel = document.getElementById('review-week-label');
@@ -1400,8 +1423,23 @@ function renderReviewPage() {
 
     const stripHtml = buildReviewWeeksStrip(allClosed);
 
+    // Weekly notes: keyed by the week's Monday, stored on the account so
+    // they save to Firestore with everything else. Available even on weeks
+    // with no trades ("skipped this week - holiday" is a valid review note).
+    const weekKey = weekDates[0];
+    const noteText = (account && account.weeklyNotes && account.weeklyNotes[weekKey]) || '';
+    const notesPanelHtml = `
+        <div class="stats-panel review-animate">
+            <div class="stats-panel-title">WEEKLY NOTES <span class="review-notes-status" id="review-notes-status"></span></div>
+            <textarea class="review-notes-textarea" data-week-key="${weekKey}"
+                placeholder="What worked? What didn't? What will you do differently next week?"
+                oninput="handleReviewNotesInput(this)">${escapeHtml(noteText)}</textarea>
+        </div>`;
+
     if (week.length === 0) {
-        content.innerHTML = stripHtml + '<div class="review-empty">No closed trades this week. Use the arrows above - or click a bar in the strip - to look at another week.</div>';
+        content.innerHTML = stripHtml
+            + '<div class="review-empty">No closed trades this week. Use the arrows above - or click a bar in the strip - to look at another week.</div>'
+            + notesPanelHtml;
         bindReviewTooltips();
         return;
     }
@@ -1576,9 +1614,12 @@ function renderReviewPage() {
 
         ${buildReviewSparkline(week)}
 
-        <div class="stats-panel review-animate">
-            <div class="stats-panel-title">TAKEAWAYS</div>
-            <ul class="review-takeaways">${takeaways.map(t => `<li><i class="fa-solid ${t.icon}"></i><span>${t.html}</span></li>`).join('')}</ul>
+        <div class="review-notes-row">
+            <div class="stats-panel review-animate">
+                <div class="stats-panel-title">TAKEAWAYS</div>
+                <ul class="review-takeaways">${takeaways.map(t => `<li><i class="fa-solid ${t.icon}"></i><span>${t.html}</span></li>`).join('')}</ul>
+            </div>
+            ${notesPanelHtml}
         </div>
 
         <div class="review-cols">
