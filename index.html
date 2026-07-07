@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=30">
+    <link rel="stylesheet" href="styles.css?v=34">
+    <!-- Apply the saved theme before first paint so there's no color flash;
+         the authoritative copy in the user's settings re-syncs after login. -->
+    <script>try { var bbTheme = localStorage.getItem('bb_theme'); if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme); } catch (e) { }</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
@@ -64,6 +67,7 @@
             <a href="#" class="nav-link active" onclick="showPage('page-dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
             <a href="#" class="nav-link" onclick="showPage('page-calendar', this)"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+            <a href="#" class="nav-link" onclick="showPage('page-review', this)"><i class="fa-solid fa-clipboard-check"></i> Weekly Review</a>
             <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
             <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
@@ -131,6 +135,11 @@
                 <button class="date-range-btn" data-range-key="custom" onclick="toggleCustomDateRangePopover(event)">Custom</button>
                 <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
             </div>
+
+            <!-- Risk guardrail warnings (Max Daily Loss / Max Trades Per Day,
+                 configured under Settings > Account Settings) - hidden unless
+                 a limit is set and today's trading is approaching/past it. -->
+            <div id="risk-guardrail-banner" style="display: none;"></div>
 
             <!-- Top Dashboard Stats Overview Section -->
             <section class="stats-row">
@@ -345,6 +354,11 @@
                 </div>
             </div>
 
+            <div class="stats-panel">
+                <div class="stats-panel-title">P&amp;L HEATMAP - DAY &times; HOUR</div>
+                <div id="stats-heatmap"></div>
+            </div>
+
             <div class="stats-charts-row">
                 <div class="stats-panel stats-panel-half">
                     <table class="stats-table">
@@ -353,8 +367,10 @@
                                 <th class="sortable" onclick="sortStatsTable('tag', 'name')">Tag <i class="fa-solid fa-sort" id="stats-tag-sort-icon-name"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'categoryName')">Category <i class="fa-solid fa-sort" id="stats-tag-sort-icon-categoryName"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-tag-sort-icon-trades"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'winRate')">Win Rate <i class="fa-solid fa-sort" id="stats-tag-sort-icon-winRate"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnl"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'pnlPct')">PnL % <i class="fa-solid fa-sort" id="stats-tag-sort-icon-pnlPct"></i></th>
+                                <th class="sortable" onclick="sortStatsTable('tag', 'avgR')">Avg R <i class="fa-solid fa-sort" id="stats-tag-sort-icon-avgR"></i></th>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'contributionPct')">PnL Contribution % <i class="fa-solid fa-sort" id="stats-tag-sort-icon-contributionPct"></i></th>
                             </tr>
                         </thead>
@@ -386,12 +402,26 @@
                             <th class="sortable" onclick="sortStatsTable('playbook', 'trades')">Trades <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-trades"></i></th>
                             <th class="sortable" onclick="sortStatsTable('playbook', 'winRate')">Win Rate <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-winRate"></i></th>
                             <th class="sortable" onclick="sortStatsTable('playbook', 'pnl')">PnL <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-pnl"></i></th>
+                            <th class="sortable" onclick="sortStatsTable('playbook', 'avgR')">Avg R <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-avgR"></i></th>
                             <th class="sortable" onclick="sortStatsTable('playbook', 'contributionPct')">PnL Contribution % <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-contributionPct"></i></th>
                         </tr>
                     </thead>
                     <tbody id="stats-playbook-table-body"></tbody>
                 </table>
             </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- WEEKLY REVIEW PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-review" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+            <div class="review-toolbar">
+                <button class="calendar-nav-btn" onclick="shiftReviewWeek(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="review-week-label" id="review-week-label"></div>
+                <button class="calendar-nav-btn" onclick="shiftReviewWeek(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="news-tab" id="review-this-week-btn" onclick="resetReviewWeek()">This Week</button>
+            </div>
+            <div id="review-content"></div>
         </div>
 
         <!-- ========================================== -->
@@ -434,7 +464,7 @@
         <div id="page-news" class="view-section" style="display: none; width: 100%; flex-direction: column; gap: 20px; align-items: flex-start;">
     
             <!-- News Filter Segment Header Row -->
-            <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid #2a2e39; width: 100%;">
+            <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); width: 100%;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
                     <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
@@ -555,6 +585,10 @@
                     </button>
                     <button class="settings-subnav-item" id="settings-tab-account" onclick="switchSettingsPanel('account')">
                         <span><i class="fa-solid fa-gear"></i> Account Settings</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
+                    <button class="settings-subnav-item" id="settings-tab-appearance" onclick="switchSettingsPanel('appearance')">
+                        <span><i class="fa-solid fa-palette"></i> Appearance</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
                     <button class="settings-subnav-item" id="settings-tab-tags" onclick="switchSettingsPanel('tags')">
@@ -681,6 +715,18 @@
                                 </label>
                                 <input type="number" step="0.01" min="0" id="settings-breakeven-range" class="modal-input" placeholder="0">
                             </div>
+                            <div class="modal-field">
+                                <label class="modal-label">Max Daily Loss ($)
+                                    <button type="button" class="settings-info-btn" data-tooltip="Your daily loss limit. When today's closed P&L drops past this amount, a warning banner shows on the Dashboard telling you to stop trading. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
+                                <input type="number" step="1" min="0" id="settings-max-daily-loss" class="modal-input" placeholder="0">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label">Max Trades Per Day
+                                    <button type="button" class="settings-info-btn" data-tooltip="A cap on how many trades you want to take per day. When today's trade count reaches it, a warning banner shows on the Dashboard - a guard against overtrading. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                </label>
+                                <input type="number" step="1" min="0" id="settings-max-daily-trades" class="modal-input" placeholder="0">
+                            </div>
                         </div>
 
                         <button class="btn-action btn-blue settings-save-btn" onclick="saveAccountSettings()">Save</button>
@@ -698,6 +744,14 @@
                         <h3 class="settings-subtitle">Export Trade History</h3>
                         <p class="settings-share-desc">Download your full trade history as a CSV file. Matches whatever's currently filtered on the Dashboard (Tags/Symbol/Direction/Status/date range).</p>
                         <button class="btn-action btn-blue" onclick="exportTradesToCsv()"><i class="fa-solid fa-file-arrow-down"></i> Export as CSV</button>
+                    </div>
+
+                    <!-- Appearance -->
+                    <div class="settings-panel" id="settings-panel-appearance" style="display: none;">
+                        <h2 class="settings-panel-title">Appearance</h2>
+                        <h3 class="settings-subtitle">Color Theme</h3>
+                        <p class="settings-share-desc">Pick a color theme for the whole app. Applies instantly and is saved to your account, so it follows you between devices.</p>
+                        <div class="theme-swatch-grid" id="theme-swatch-grid"></div>
                     </div>
 
                     <!-- Tag Management -->
@@ -1884,7 +1938,8 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="app.js?v=16"></script>
+    <script src="chart-tools.js?v=1"></script>
+    <script src="app.js?v=18"></script>
 
 </body>
 </html>

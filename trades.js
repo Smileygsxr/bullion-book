@@ -734,6 +734,9 @@ function probeFileExists(path) {
 }
 
 function destroyTradeViewChart() {
+    if (tradeViewChartState && tradeViewChartState.chartTools) {
+        tradeViewChartState.chartTools.dispose();
+    }
     if (tradeViewChartState && tradeViewChartState.chart) {
         tradeViewChartState.chart.remove();
     }
@@ -821,6 +824,8 @@ function loadTradeViewChartInterval(interval) {
             // calling createSeriesMarkers() again here (instead of reusing it) is
             // what caused duplicate entry/exit arrows on every interval switch.
             tradeViewChartState.markersApi.setMarkers(tradeViewChartMarkers(cleanData));
+            // Recompute indicators + re-render saved drawings for this interval
+            if (tradeViewChartState.chartTools) tradeViewChartState.chartTools.setData(cleanData);
 
             // Snap the entry/exit line to whichever bar is actually closest
             // in THIS interval's data - a raw leg time like 14:42 won't
@@ -938,8 +943,14 @@ function renderTradeViewChart(row, trade) {
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
 
+    // Same chartKey scheme as the News page's charts (symbol|day), so
+    // drawings made on either chart show up on both.
+    const chartTools = typeof attachChartTools === 'function'
+        ? attachChartTools({ chart, series, container, chartKey: `${row.symbol}|${dateString}` })
+        : null;
+
     tradeViewChartState = {
-        chart, series, container, entryExitLine, markersApi,
+        chart, series, container, entryExitLine, markersApi, chartTools,
         filesByInterval: buildDailyChartFilenames(dateString, symbolMatch.filePrefix),
         currentInterval: null,
         data: [],
@@ -1156,6 +1167,58 @@ function renderTradeLog() {
 
     // Updates the News tab's Trade Levels overlay if a chart for an affected date is open
     if (typeof refreshAllTradeOverlays === 'function') refreshAllTradeOverlays();
+
+    renderRiskGuardrailBanner();
+}
+
+// ---- Risk guardrails: Max Daily Loss / Max Trades Per Day (Settings >
+// Account Settings). Deliberately computed from ALL of today's trades, not
+// the filtered view - a filter hiding losing trades shouldn't silence the
+// warning. row.date is wall-clock GMT+2 (same as the user's own timezone),
+// so "today" is just the local calendar date.
+function renderRiskGuardrailBanner() {
+    const banner = document.getElementById('risk-guardrail-banner');
+    if (!banner) return;
+
+    const maxLoss = typeof appSettings !== 'undefined' ? (parseFloat(appSettings.maxDailyLoss) || 0) : 0;
+    const maxTrades = typeof appSettings !== 'undefined' ? (parseInt(appSettings.maxDailyTrades, 10) || 0) : 0;
+    if (maxLoss <= 0 && maxTrades <= 0) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    const account = getActiveAccount();
+    const todayRows = ((account && account.trades) || [])
+        .map(computeTradeSummary)
+        .filter(r => r.date.slice(0, 10) === todayStr);
+
+    const todayPnl = todayRows.reduce((sum, r) => sum + (r.returnAmount || 0), 0);
+    const todayCount = todayRows.length;
+
+    const messages = [];
+    if (maxLoss > 0 && todayPnl <= -maxLoss) {
+        messages.push({ level: 'breach', html: `<i class="fa-solid fa-hand"></i> <strong>Daily loss limit hit</strong> - you're down ${formatTotal(todayPnl)} today (limit ${formatTotal(-maxLoss)}). Step away and come back tomorrow.` });
+    } else if (maxLoss > 0 && todayPnl <= -0.8 * maxLoss) {
+        messages.push({ level: 'warn', html: `<i class="fa-solid fa-triangle-exclamation"></i> <strong>Approaching daily loss limit</strong> - down ${formatTotal(todayPnl)} of your ${formatTotal(-maxLoss)} limit.` });
+    }
+    if (maxTrades > 0 && todayCount >= maxTrades) {
+        messages.push({ level: 'breach', html: `<i class="fa-solid fa-hand"></i> <strong>Max trades reached</strong> - ${todayCount} of ${maxTrades} trades taken today. Adding more is usually overtrading.` });
+    } else if (maxTrades > 0 && todayCount >= Math.ceil(maxTrades * 0.8)) {
+        messages.push({ level: 'warn', html: `<i class="fa-solid fa-triangle-exclamation"></i> <strong>Nearing trade cap</strong> - ${todayCount} of ${maxTrades} trades taken today.` });
+    }
+
+    if (messages.length === 0) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    banner.style.display = 'flex';
+    banner.className = messages.some(m => m.level === 'breach') ? 'risk-banner risk-banner-breach' : 'risk-banner risk-banner-warn';
+    banner.innerHTML = messages.map(m => `<div class="risk-banner-line">${m.html}</div>`).join('');
 }
 
 // Notes and trades interleave purely by recency (across days: the later

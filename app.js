@@ -223,6 +223,9 @@ function showPage(pageId, clickedElement) {
     if (pageId === 'page-calendar') {
         window.setTimeout(function () { renderCalendarPage(); }, 50);
     }
+    if (pageId === 'page-review') {
+        window.setTimeout(function () { renderReviewPage(); }, 50);
+    }
     if (pageId === 'page-settings') {
         window.setTimeout(function () { renderSettingsPage(); }, 50);
     }
@@ -334,7 +337,7 @@ function initCpiChart() {
         .catch(err => {
             console.error("Data folder listing error:", err.message);
             container.innerHTML = `
-                <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
+                <div style="color: var(--text-muted); text-align: center; padding: 40px; font-family: sans-serif;">
                     <div style="color: #f6465d; font-size: 1.1rem; font-weight: bold; margin-bottom: 6px;">Could not list /data folder</div>
                     ${err.message}
                 </div>`;
@@ -379,7 +382,10 @@ function loadNextChartBatch(container, template) {
 
 // Wipes whatever chart blocks are currently rendered and starts back at the first batch of 10
 function resetChartBatches(container, template) {
-    cpiChartInstances.forEach(({ chart }) => chart.remove());
+    cpiChartInstances.forEach(({ chart, chartTools }) => {
+        if (chartTools) chartTools.dispose();
+        chart.remove();
+    });
     cpiChartInstances.clear();
     container.innerHTML = '';
     renderedChartFileCount = 0;
@@ -390,7 +396,7 @@ function resetChartBatches(container, template) {
         if (chartDateFrom || chartDateTo) noteParts.push('the selected date range');
         const filterNote = noteParts.length > 0 ? ` matching ${noteParts.join(' and ')}` : '';
         container.innerHTML = `
-            <div style="color: #848e9c; text-align: center; padding: 40px; font-family: sans-serif;">
+            <div style="color: var(--text-muted); text-align: center; padding: 40px; font-family: sans-serif;">
                 No ${activeChartSymbol.label} chart data found in /data${filterNote}.
             </div>`;
     } else {
@@ -875,9 +881,14 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
     attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true, showAxisPriceLabel: true });
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
+    // Drawing tools/indicators/object tree (chart-tools.js). Keyed by
+    // symbol+day so the same drawings appear on this day's Trade View chart.
+    const chartTools = typeof attachChartTools === 'function'
+        ? attachChartTools({ chart, series, container: chartContainer, chartKey: `${tradeSymbol}|${dateString}` })
+        : null;
     cpiChartInstances.set(dateString, {
         chart, series, container: chartContainer, events: events || [], markersApi,
-        filesByInterval, currentInterval: null, tradeSymbol
+        filesByInterval, currentInterval: null, tradeSymbol, chartTools
     });
 
     // Trade Levels overlay needs repositioning whenever the visible range pans/zooms
@@ -940,6 +951,9 @@ function loadChartInterval(dateString, interval) {
                 instance.data = cleanData;
                 applyNewsTimeMarkers(dateString);
                 applyTradeOverlays(dateString);
+                // Recompute indicators + re-render saved drawings against the
+                // freshly loaded interval's bars
+                if (instance.chartTools) instance.chartTools.setData(cleanData);
             } else {
                 throw new Error("No readable rows found.");
             }
@@ -947,7 +961,7 @@ function loadChartInterval(dateString, interval) {
         .catch(err => {
             console.error("Data load trace error:", err.message);
             chartContainer.innerHTML = `
-                <div style="color: #848e9c; text-align: center; padding-top: 200px; font-family: sans-serif;">
+                <div style="color: var(--text-muted); text-align: center; padding-top: 200px; font-family: sans-serif;">
                     <div style="color: #f6465d; font-size: 1.1rem; font-weight: bold; margin-bottom: 6px;">Offline Chart File Missing</div>
                     Looking for path: <code style="color: #2979ff;">${targetPath}</code>
                 </div>`;

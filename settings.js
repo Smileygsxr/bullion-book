@@ -17,8 +17,63 @@ let appSettings = {
     defaultFee: 0,
     defaultTagId: '',
     pnlCalcType: 'capital',
-    breakevenRange: 0
+    breakevenRange: 0,
+    theme: 'slate',
+    // Risk guardrails (Dashboard warning banner) - 0 = disabled
+    maxDailyLoss: 0,
+    maxDailyTrades: 0
 };
+
+// ---- Color themes (Settings > Appearance) ----
+// Each theme's real palette lives in styles.css as an html[data-theme="..."]
+// variable override block - this list only drives the picker UI. The preview
+// swatch colors here should visually match that CSS block, but nothing breaks
+// if they drift; they're just the thumbnail.
+const THEMES = [
+    { id: 'slate', label: 'Slate', preview: { bg: '#171b26', card: '#1c2030', accent: '#2979ff', gold: '#dfb15b' } },
+    { id: 'midnight', label: 'Midnight', preview: { bg: '#0d1117', card: '#151b26', accent: '#4d9fff', gold: '#dfb15b' } },
+    { id: 'ocean', label: 'Ocean', preview: { bg: '#0e1a20', card: '#132630', accent: '#26b8cf', gold: '#e8c06a' } },
+    { id: 'forest', label: 'Forest', preview: { bg: '#111a14', card: '#17251c', accent: '#43b97a', gold: '#d8c06c' } },
+    { id: 'amethyst', label: 'Amethyst', preview: { bg: '#151223', card: '#1e1a32', accent: '#9d6bff', gold: '#e5b566' } },
+    { id: 'ember', label: 'Ember', preview: { bg: '#1a1412', card: '#251c18', accent: '#ff8a3d', gold: '#f0b45c' } },
+    { id: 'bullion', label: 'Bullion', preview: { bg: '#14120d', card: '#1e1a12', accent: '#dfb15b', gold: '#dfb15b' } }
+];
+
+// Sets the palette on <html> and mirrors it into localStorage so the inline
+// pre-paint script in index.html's <head> can re-apply it instantly on the
+// next load, before any JS or Firestore fetch runs (no color flash).
+function applyTheme(themeId) {
+    const valid = THEMES.some(t => t.id === themeId) ? themeId : 'slate';
+    if (valid === 'slate') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', valid);
+    }
+    try { localStorage.setItem('bb_theme', valid); } catch (e) { /* ignore */ }
+}
+
+function selectTheme(themeId) {
+    applyTheme(themeId);
+    appSettings.theme = themeId;
+    saveAppSettings();
+    renderThemeSwatchGrid();
+}
+
+function renderThemeSwatchGrid() {
+    const grid = document.getElementById('theme-swatch-grid');
+    if (!grid) return;
+    const current = appSettings.theme || 'slate';
+    grid.innerHTML = THEMES.map(t => `
+        <button type="button" class="theme-swatch${t.id === current ? ' active' : ''}" onclick="selectTheme('${t.id}')">
+            <span class="theme-swatch-preview" style="background: ${t.preview.bg};">
+                <span class="theme-swatch-dot" style="background: ${t.preview.card};"></span>
+                <span class="theme-swatch-dot" style="background: ${t.preview.accent};"></span>
+                <span class="theme-swatch-dot" style="background: ${t.preview.gold};"></span>
+            </span>
+            <span class="theme-swatch-label">${t.label} <i class="fa-solid fa-circle-check"></i></span>
+        </button>
+    `).join('');
+}
 
 let customAvatarDataUrl = null;
 let currentSettingsTab = 'personal';
@@ -92,6 +147,10 @@ function loadAppSettings() {
 
 function applyLoadedSettings(saved) {
     if (saved) appSettings = Object.assign({}, appSettings, saved);
+    // Re-sync the theme from the account's saved settings - the pre-paint
+    // localStorage copy usually already matches, but this covers logging in
+    // on a different device/browser for the first time.
+    applyTheme(appSettings.theme);
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
 }
@@ -184,7 +243,7 @@ function renderSettingsPage() {
 
 function switchSettingsPanel(tab) {
     currentSettingsTab = tab;
-    ['personal', 'account', 'tags', 'contracts', 'playbooks', 'import', 'security', 'danger'].forEach(t => {
+    ['personal', 'account', 'appearance', 'tags', 'contracts', 'playbooks', 'import', 'security', 'danger'].forEach(t => {
         const panel = document.getElementById(`settings-panel-${t}`);
         const navItem = document.getElementById(`settings-tab-${t}`);
         if (panel) panel.style.display = t === tab ? 'block' : 'none';
@@ -193,6 +252,7 @@ function switchSettingsPanel(tab) {
 
     if (tab === 'personal') populatePersonalInfoPanel();
     if (tab === 'account') populateAccountSettingsPanel();
+    if (tab === 'appearance') renderThemeSwatchGrid();
     if (tab === 'tags') renderTagTable();
     if (tab === 'contracts') renderContractSizeTable();
     if (tab === 'playbooks') renderPlaybookList();
@@ -258,6 +318,8 @@ function populateAccountSettingsPanel() {
     document.getElementById('settings-default-fee').value = appSettings.defaultFee;
     document.getElementById('settings-pnl-calc-type').value = appSettings.pnlCalcType;
     document.getElementById('settings-breakeven-range').value = appSettings.breakevenRange || 0;
+    document.getElementById('settings-max-daily-loss').value = appSettings.maxDailyLoss || 0;
+    document.getElementById('settings-max-daily-trades').value = appSettings.maxDailyTrades || 0;
     populateDefaultTagSelect();
     showSettingsStatus('settings-account-status', '');
     document.getElementById('settings-public-link-result').innerHTML = '';
@@ -281,6 +343,8 @@ function saveAccountSettings() {
     appSettings.defaultTagId = document.getElementById('settings-default-tag').value;
     appSettings.pnlCalcType = document.getElementById('settings-pnl-calc-type').value;
     appSettings.breakevenRange = parseFloat(document.getElementById('settings-breakeven-range').value) || 0;
+    appSettings.maxDailyLoss = Math.abs(parseFloat(document.getElementById('settings-max-daily-loss').value)) || 0;
+    appSettings.maxDailyTrades = Math.max(0, parseInt(document.getElementById('settings-max-daily-trades').value, 10)) || 0;
 
     saveAppSettings();
     renderSidebarAccount();

@@ -4,46 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shared Trading Journal - Bullion Book</title>
+    <meta name="description" content="A shared trading journal snapshot from Bullion Book, a free trading journal.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         :root {
             --bg-dark: #131722;
+            --bg-body: #171b26;
             --bg-card: #1c2030;
             --border-color: #2a2e39;
             --text-muted: #848e9c;
             --text-light: #d1d4dc;
             --accent-blue: #2979ff;
+            --accent-gold: #dfb15b;
+            --win: #2ebd85;
+            --loss: #f6465d;
         }
         body {
             margin: 0;
-            background: var(--bg-dark);
+            background: var(--bg-body);
             color: var(--text-light);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             padding: 40px 24px;
         }
-        .journal-wrap {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+        .journal-wrap { max-width: 960px; margin: 0 auto; }
         .journal-brand {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 28px;
         }
-        .journal-brand svg { font-size: 1.7rem; }
         .journal-brand span { font-weight: 700; font-size: 1.1rem; color: #fff; }
-        .logo-mark { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
-        .journal-title {
-            font-size: 1.4rem;
-            margin: 0 0 4px;
+        .logo-mark { width: 1.7em; height: 1.7em; display: inline-block; flex-shrink: 0; }
+        .journal-brand a {
+            margin-left: auto;
+            color: var(--accent-gold);
+            text-decoration: none;
+            font-size: 0.8rem;
+            border: 1px solid rgba(223, 177, 91, 0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
         }
+        .journal-brand a:hover { background: rgba(223, 177, 91, 0.1); }
+        .journal-title { font-size: 1.5rem; margin: 0 0 4px; }
         .journal-meta {
             color: var(--text-muted);
             font-size: 0.85rem;
             margin-bottom: 24px;
         }
+        .journal-tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .journal-tile {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .journal-tile-label {
+            color: var(--text-muted);
+            font-size: 0.66rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+        .journal-tile-value { font-size: 1.25rem; font-weight: 700; }
+        .journal-tile-sub { color: var(--text-muted); font-size: 0.72rem; margin-top: 2px; }
+        .journal-equity-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .journal-panel-title {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+        .journal-equity-svg { width: 100%; height: 160px; display: block; }
         .journal-table {
             width: 100%;
             border-collapse: collapse;
@@ -63,17 +107,31 @@
             font-size: 0.72rem;
             text-transform: uppercase;
         }
-        .value-positive { color: #2ebd85; font-weight: 600; }
-        .value-negative { color: #f6465d; font-weight: 600; }
-        .journal-empty {
-            color: var(--text-muted);
-            text-align: center;
-            padding: 40px;
+        .journal-table tr:last-child td { border-bottom: none; }
+        .value-positive { color: var(--win); font-weight: 600; }
+        .value-negative { color: var(--loss); font-weight: 600; }
+        .journal-side-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
         }
+        .journal-side-chip.long { background: rgba(46, 189, 133, 0.12); color: var(--win); }
+        .journal-side-chip.short { background: rgba(246, 70, 93, 0.12); color: var(--loss); }
+        .journal-empty { color: var(--text-muted); text-align: center; padding: 40px; }
         .journal-note {
             margin-top: 20px;
             color: var(--text-muted);
             font-size: 0.78rem;
+        }
+        @media (max-width: 600px) {
+            body { padding: 20px 10px; }
+            .journal-table th:nth-child(4), .journal-table td:nth-child(4),
+            .journal-table th:nth-child(5), .journal-table td:nth-child(5),
+            .journal-table th:nth-child(6), .journal-table td:nth-child(6) { display: none; }
         }
     </style>
 </head>
@@ -85,6 +143,7 @@
                 <text x="50" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" letter-spacing="-6" fill="#131722">BB</text>
             </svg>
             <span>Bullion Book</span>
+            <a href="signup.html">Start your own journal - free</a>
         </div>
         <h1 class="journal-title" id="journal-title">Shared Trading Journal</h1>
         <div class="journal-meta" id="journal-meta"></div>
@@ -96,6 +155,35 @@
         function formatTotal(value, symbol) {
             const sign = value < 0 ? '-' : '';
             return `${sign}${symbol}${Math.abs(value).toFixed(2)}`;
+        }
+
+        // Cumulative P&L polyline, oldest trade first. Plain SVG - no chart
+        // library needed for a static snapshot sparkline.
+        function buildEquitySvg(trades, symbol) {
+            const ordered = trades.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+            let running = 0;
+            const points = [0].concat(ordered.map(t => (running += t.ret)));
+            if (points.length < 2) return '';
+
+            const w = 900, h = 160, padX = 6, padY = 12;
+            const min = Math.min(...points), max = Math.max(...points);
+            const span = (max - min) || 1;
+            const stepX = (w - padX * 2) / (points.length - 1);
+            const toY = v => padY + (h - padY * 2) * (1 - (v - min) / span);
+            const coords = points.map((v, i) => `${(padX + i * stepX).toFixed(1)},${toY(v).toFixed(1)}`);
+
+            const finalUp = points[points.length - 1] >= 0;
+            const lineColor = finalUp ? 'var(--win)' : 'var(--loss)';
+            const zeroY = toY(0).toFixed(1);
+
+            return `
+                <div class="journal-equity-panel">
+                    <div class="journal-panel-title">EQUITY CURVE (CUMULATIVE P&amp;L, ${trades.length} TRADES)</div>
+                    <svg class="journal-equity-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                        <line x1="0" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4" stroke-width="1"/>
+                        <polyline points="${coords.join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                    </svg>
+                </div>`;
         }
 
         function renderJournal() {
@@ -127,16 +215,52 @@
                 return;
             }
 
-            const rows = payload.trades.map(t => {
+            // Summary stats derived on the fly from the shared trades - the
+            // link payload stays minimal and older links render these too.
+            const trades = payload.trades;
+            const netPnl = trades.reduce((s, t) => s + t.ret, 0);
+            const winners = trades.filter(t => t.ret > 0);
+            const losers = trades.filter(t => t.ret < 0);
+            const winRate = Math.round((winners.length / trades.length) * 100);
+            const grossProfit = winners.reduce((s, t) => s + t.ret, 0);
+            const grossLoss = Math.abs(losers.reduce((s, t) => s + t.ret, 0));
+            const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '&infin;' : '0');
+            const best = trades.slice().sort((a, b) => b.ret - a.ret)[0];
+
+            const netClass = netPnl < 0 ? 'value-negative' : 'value-positive';
+            const tilesHtml = `
+                <div class="journal-tiles">
+                    <div class="journal-tile">
+                        <div class="journal-tile-label">NET P&amp;L</div>
+                        <div class="journal-tile-value ${netClass}">${formatTotal(netPnl, symbol)}</div>
+                        <div class="journal-tile-sub">${trades.length} trades</div>
+                    </div>
+                    <div class="journal-tile">
+                        <div class="journal-tile-label">WIN RATE</div>
+                        <div class="journal-tile-value">${winRate}%</div>
+                        <div class="journal-tile-sub">${winners.length}W / ${losers.length}L</div>
+                    </div>
+                    <div class="journal-tile">
+                        <div class="journal-tile-label">PROFIT FACTOR</div>
+                        <div class="journal-tile-value">${profitFactor}</div>
+                    </div>
+                    <div class="journal-tile">
+                        <div class="journal-tile-label">BEST TRADE</div>
+                        <div class="journal-tile-value value-positive">${formatTotal(best.ret, symbol)}</div>
+                        <div class="journal-tile-sub">${best.symbol}</div>
+                    </div>
+                </div>`;
+
+            const rows = trades.map(t => {
                 const returnClass = t.ret < 0 ? 'value-negative' : 'value-positive';
-                const sideIcon = t.direction === 'long'
-                    ? '<i class="fa-solid fa-arrow-trend-up" style="color:#2ebd85;"></i>'
-                    : '<i class="fa-solid fa-arrow-trend-down" style="color:#f6465d;"></i>';
+                const sideChip = t.direction === 'long'
+                    ? '<span class="journal-side-chip long"><i class="fa-solid fa-arrow-trend-up"></i> LONG</span>'
+                    : '<span class="journal-side-chip short"><i class="fa-solid fa-arrow-trend-down"></i> SHORT</span>';
                 return `
                     <tr>
                         <td>${new Date(t.date).toLocaleDateString()}</td>
                         <td>${t.symbol}</td>
-                        <td>${sideIcon}</td>
+                        <td>${sideChip}</td>
                         <td>${t.qty}</td>
                         <td>${symbol}${t.entry.toFixed(3)}</td>
                         <td>${t.exit ? symbol + t.exit.toFixed(3) : '-'}</td>
@@ -145,7 +269,7 @@
                     </tr>`;
             }).join('');
 
-            content.innerHTML = `
+            content.innerHTML = tilesHtml + buildEquitySvg(trades, symbol) + `
                 <table class="journal-table">
                     <thead>
                         <tr><th>Date</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Exit</th><th>Return</th><th>Return %</th></tr>
