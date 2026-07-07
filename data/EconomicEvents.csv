@@ -1859,28 +1859,29 @@ date,time,name,actual,forecast,previous,importance
 2026-07-02,7:00pm,Baker Hughes US Oil Rig Count,445,,440,moderate
 2026-07-02,7:00pm,Baker Hughes US Total Rig Count,580,,573,moderate
 2026-07-04,2:00am,Independence Day,,,,none
-2026-07-06,3:45pm,S&P Global Services PMI,,50.9,50.7,high
-2026-07-06,3:45pm,S&P Global Composite PMI,,53.1,51.7,moderate
-2026-07-06,4:00pm,CB Employment Trends Index,,105.79,107.01,low
+2026-07-06,3:45pm,S&P Global Services PMI,51.2,50.9,50.7,high
+2026-07-06,3:45pm,S&P Global Composite PMI,52.2,53.1,51.7,moderate
+2026-07-06,4:00pm,CB Employment Trends Index,106.69,105.79,107.01,low
 2026-07-06,4:00pm,ISM Non-Manufacturing PMI,,,,high
 2026-07-06,4:00pm,ISM Non-Manufacturing Employment,,,,moderate
 2026-07-06,4:00pm,ISM Non-Manufacturing New Orders,,,,low
 2026-07-06,4:00pm,ISM Non-Manufacturing Prices Paid,,,,high
 2026-07-06,4:00pm,ISM Non-Manufacturing Business Activity,,,,low
 2026-07-06,5:00pm,Fed Governor Waller Speech,,,,moderate
-2026-07-06,5:30pm,3-Month Bill Auction,,,3.740,low
-2026-07-06,5:30pm,6-Month Bill Auction,,,3.840,low
-2026-07-06,9:30pm,CFTC Copper Non-Commercial Net Positions,,,71.6,low
-2026-07-06,9:30pm,CFTC Silver Non-Commercial Net Positions,,,23.8,low
-2026-07-06,9:30pm,CFTC Gold Non-Commercial Net Positions,,,181.3,moderate
-2026-07-06,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,114.6,moderate
-2026-07-06,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,-35.4,moderate
-2026-07-06,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,0.8,low
-2026-07-06,9:30pm,CFTC Corn Non-Commercial Net Positions,,,58.3,low
-2026-07-06,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,-176.7,low
-2026-07-06,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,100.8,low
-2026-07-06,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-48.4,low
-2026-07-06,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,-9.1,moderate
+2026-07-06,5:30pm,3-Month Bill Auction,3.735,,3.740,low
+2026-07-06,5:30pm,6-Month Bill Auction,3.830,,3.840,low
+2026-07-06,9:30pm,CFTC Copper Non-Commercial Net Positions,64.8,,71.6,low
+2026-07-06,9:30pm,CFTC Silver Non-Commercial Net Positions,27.4,,23.8,low
+2026-07-06,9:30pm,CFTC Gold Non-Commercial Net Positions,194.0,,181.3,moderate
+2026-07-06,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,110.5,,114.6,moderate
+2026-07-06,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,-37.6,,-35.4,moderate
+2026-07-06,9:30pm,CFTC Aluminium Non-Commercial Net Positions,0.6,,0.8,low
+2026-07-06,9:30pm,CFTC Corn Non-Commercial Net Positions,64.2,,58.3,low
+2026-07-06,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,-170.8,,-176.7,low
+2026-07-06,9:30pm,CFTC Soybeans Non-Commercial Net Positions,76.6,,100.8,low
+2026-07-06,9:30pm,CFTC Wheat Non-Commercial Net Positions,-55.0,,-48.4,low
+2026-07-06,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,-7.6,,-9.1,moderate
+2026-07-07,1:00pm,Fed Governor Bowman Speech,,,,moderate
 2026-07-07,2:30pm,Trade Balance,,-58.217,-55.881,moderate
 2026-07-07,2:30pm,Exports,,,327.101,moderate
 2026-07-07,2:30pm,Imports,,,382.982,moderate
@@ -1912,19 +1913,19 @@ date,time,name,actual,forecast,previous,importance
 2026-07-10,6:00pm,WASDE Report,,,,moderate
 2026-07-10,7:00pm,Baker Hughes US Oil Rig Count,,,445,moderate
 2026-07-10,7:00pm,Baker Hughes US Total Rig Count,,,580,moderate
-2026-07-10,9:30pm,CFTC Copper Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Silver Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Gold Non-Commercial Net Positions,,,,moderate
-2026-07-10,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,,moderate
-2026-07-10,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,,moderate
-2026-07-10,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Corn Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,,low
-2026-07-10,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,,moderate
-2026-07-13,5:30pm,3-Month Bill Auction,,,,low
-2026-07-13,5:30pm,6-Month Bill Auction,,,,low
+2026-07-10,9:30pm,CFTC Copper Non-Commercial Net Positions,,,64.8,low
+2026-07-10,9:30pm,CFTC Silver Non-Commercial Net Positions,,,27.4,low
+2026-07-10,9:30pm,CFTC Gold Non-Commercial Net Positions,,,194.0,moderate
+2026-07-10,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,110.5,moderate
+2026-07-10,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,-37.6,moderate
+2026-07-10,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,0.6,low
+2026-07-10,9:30pm,CFTC Corn Non-Commercial Net Positions,,,64.2,low
+2026-07-10,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,-170.8,low
+2026-07-10,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,76.6,low
+2026-07-10,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-55.0,low
+2026-07-10,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,-7.6,moderate
+2026-07-13,5:30pm,3-Month Bill Auction,,,3.735,low
+2026-07-13,5:30pm,6-Month Bill Auction,,,3.830,low
 2026-07-13,8:00pm,Federal Budget Balance,,,,moderate
 2026-07-14,2:30pm,CPI m/m,,0.5,0.5,high
 2026-07-14,2:30pm,Core CPI m/m,,0.2,0.2,high
@@ -2153,8 +2154,8 @@ date,time,name,actual,forecast,previous,importance
 2026-08-04,4:00pm,JOLTS Job Openings,,6.948,7.594,high
 2026-08-04,5:30pm,52-Week Bill Auction,,,,low
 2026-08-05,2:15pm,ADP Nonfarm Employment Change,,,,high
-2026-08-05,3:45pm,S&P Global Services PMI,,,,high
-2026-08-05,3:45pm,S&P Global Composite PMI,,,,moderate
+2026-08-05,3:45pm,S&P Global Services PMI,,52.7,51.2,high
+2026-08-05,3:45pm,S&P Global Composite PMI,,53.0,52.2,moderate
 2026-08-05,4:00pm,ISM Non-Manufacturing PMI,,,,high
 2026-08-05,4:00pm,ISM Non-Manufacturing Employment,,,,moderate
 2026-08-05,4:00pm,ISM Non-Manufacturing New Orders,,,,low
@@ -2204,7 +2205,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-07,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,,low
 2026-08-07,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,,low
 2026-08-07,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,,moderate
-2026-08-10,4:00pm,CB Employment Trends Index,,,,low
+2026-08-10,4:00pm,CB Employment Trends Index,,106.34,106.69,low
 2026-08-10,5:30pm,3-Month Bill Auction,,,,low
 2026-08-10,5:30pm,6-Month Bill Auction,,,,low
 2026-08-11,4:00pm,Existing Home Sales,,,,high
