@@ -5407,11 +5407,21 @@ body.privacy-mode .equity-crosshair-label.price {
    other instead of wrapping. Everything below only kicks in under the
    breakpoints - wide desktop layout is untouched. */
 
-@media (max-width: 1366px) {
-    /* Trade log: 16 columns can't fit - scroll the table sideways instead
-       of letting the cells crush into unreadable slivers. (Scoped to this
-       breakpoint so the row ... menu popover is never clipped on desktop.) */
-    .table-container { overflow-x: auto; }
+/* Pages must NEVER scroll sideways as a whole - a too-wide element (like
+   the 16-column trade table) previously made the entire view pan
+   horizontally, dragging the top cards off-screen with it. Wide content
+   now scrolls inside its own container instead. */
+.view-section { overflow-x: hidden; }
+
+/* The 11 date-preset buttons wrap at any width instead of forcing overflow */
+.page-date-range-bar { flex-wrap: wrap; }
+
+@media (max-width: 1550px) {
+    /* Trade log: 16 columns can't fit - scroll the table sideways inside
+       its own container instead of letting the cells crush into
+       unreadable slivers. (Scoped so the row ... menu popover is never
+       clipped on large desktop screens, where the table fits anyway.) */
+    .table-container { overflow-x: auto; max-width: 100%; }
     .table-header-row, .table-row { min-width: 1150px; }
 }
 
@@ -5420,9 +5430,6 @@ body.privacy-mode .equity-crosshair-label.price {
     .stats-row { flex-wrap: wrap; }
     .stats-row > * { flex: 1 1 220px; }
     .pnl-card { margin-left: 0; }
-
-    /* Quick date-range bar: wrap the preset buttons */
-    .page-date-range-bar { flex-wrap: nowrap; overflow-x: auto; }
 
     /* Stats page: stack every side-by-side panel pair */
     .stats-charts-row { flex-direction: column; }
@@ -5568,4 +5575,49 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     color: var(--accent-blue) !important;
     border-color: rgba(var(--accent-blue-rgb), 0.55) !important;
     background: rgba(var(--accent-blue-rgb), 0.1) !important;
+}
+
+/* ==== Phone-portrait trade log: rows become compact cards ==============
+   A 16-column table has no chance on a ~400px screen, and sideways
+   scrolling through it is miserable. Below 640px each trade renders as a
+   two-line card with the fields that matter at a glance (Date / Symbol /
+   Status, then Side / Return / Return %) - tap it for the full Trade View,
+   which still has everything. Cell indexes match buildTradeRowHtml's fixed
+   column order (same as the table header row). */
+@media (max-width: 640px) {
+    .table-container { overflow-x: visible; }
+    .table-header-row { display: none; }
+
+    .table-row {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px 10px;
+        align-items: center;
+        padding: 12px 48px 12px 12px;
+        margin-bottom: 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+
+    /* Hide: Time(2), Qty(6), Entry(7), Exit(8), EntTot(9), ExtTot(10),
+       Pos(11), Hold(12), R(15), Confidence(16) */
+    .table-row .table-cell:nth-child(2),
+    .table-row .table-cell:nth-child(6),
+    .table-row .table-cell:nth-child(7),
+    .table-row .table-cell:nth-child(8),
+    .table-row .table-cell:nth-child(9),
+    .table-row .table-cell:nth-child(10),
+    .table-row .table-cell:nth-child(11),
+    .table-row .table-cell:nth-child(12),
+    .table-row .table-cell:nth-child(15),
+    .table-row .table-cell:nth-child(16) { display: none; }
+
+    /* Symbol pops as the card's anchor */
+    .table-row .table-cell:nth-child(3) { font-weight: 700; }
+
+    /* Return values right-ish alignment for a tidy money column */
+    .table-row .table-cell:nth-child(13),
+    .table-row .table-cell:nth-child(14) { font-weight: 600; }
 }
