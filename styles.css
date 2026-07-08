@@ -5621,3 +5621,58 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .table-row .table-cell:nth-child(13),
     .table-row .table-cell:nth-child(14) { font-weight: 600; }
 }
+
+/* ==== Calendar: week labels + narrow-screen layout ==== */
+.calendar-week-label {
+    color: var(--text-muted);
+    font-size: 0.62rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Desktop: day cells and weekly-summary cards share one fixed row height
+   (both columns already use the same 6px gap), so every calendar row lines
+   up exactly with its week card. The summary card gets a hard height (not
+   min-) because its content - now including the week label - is what grew
+   past the old shared 95px minimum and caused the drift. */
+@media (min-width: 1025px) {
+    .calendar-day { min-height: 106px; }
+
+    .calendar-week-card {
+        height: 106px;
+        min-height: 0;
+        padding: 8px 10px;
+        gap: 3px;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 1024px) {
+    /* Weekly summary sits below the grid here (stacked layout): show the
+       week cards as a wrapping grid instead of six full-width stripes, and
+       drop the empty placeholder cards (they only exist to row-align with
+       the month grid when the rail sits beside it). */
+    #calendar-weekly-summary-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+    }
+
+    .calendar-weekly-summary .calendar-week-card:empty { display: none; }
+    .calendar-weekly-summary .calendar-week-card { min-height: 80px; }
+}
+
+@media (max-width: 640px) {
+    /* Phone: compact day cells so the 7-column month fits cleanly */
+    .calendar-grid { gap: 4px; }
+
+    .calendar-day {
+        min-height: 62px;
+        padding: 5px 4px;
+        border-radius: 6px;
+    }
+
+    .calendar-day-number { font-size: 0.66rem; }
+    .calendar-day-pnl { font-size: 0.6rem; font-weight: 700; }
+    .calendar-day-count { font-size: 0.56rem; }
+}

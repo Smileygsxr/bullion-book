@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=42">
+    <link rel="stylesheet" href="styles.css?v=44">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -981,6 +981,7 @@
                 <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
                 <a href="#help-calendar" class="help-quicklink"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
                 <a href="#help-review" class="help-quicklink"><i class="fa-solid fa-clipboard-check"></i> Weekly Review</a>
+                <a href="#help-community" class="help-quicklink"><i class="fa-solid fa-users"></i> Community</a>
                 <a href="#help-stats" class="help-quicklink"><i class="fa-solid fa-chart-simple"></i> Stats</a>
                 <a href="#help-news" class="help-quicklink"><i class="fa-solid fa-newspaper"></i> News & Charts</a>
                 <a href="#help-charttools" class="help-quicklink"><i class="fa-solid fa-pen-ruler"></i> Chart Tools</a>
@@ -1279,7 +1280,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-calendar-week"></i>
                         <h3>Weekly Summary</h3>
-                        <p>The right-hand rail totals each visible week's P&amp;L, win rate and win/loss count at a glance.</p>
+                        <p>The right-hand rail totals each visible week's P&amp;L, return % and win/loss count at a glance, labeled with its date range (e.g. "11 - 17 May"). On narrow screens it moves below the month grid.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-list"></i>
@@ -1330,6 +1331,52 @@
                         <i class="fa-solid fa-trophy"></i>
                         <h3>Record Week</h3>
                         <p>A gold trophy chip appears on the grade card when the selected week's net P&amp;L is the best in your entire trading history.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-share-nodes"></i>
+                        <h3>Share Week</h3>
+                        <p>The Share Week button on the grade card posts your week's grade, win rate, profit factor and trade count to the Community Trade Wall - percentages and R only, never dollar amounts.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Community -->
+            <section class="help-section" id="help-community">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-users"></i>
+                    <h2>Community</h2>
+                </div>
+                <p class="help-section-note">Everything on the Community page is opt-in and privacy-first: shares only ever contain symbols, percentages, R-multiples and grades - <strong>dollar amounts and account sizes are never shared</strong>. You need to be logged in to view or post.</p>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-table-cells-large"></i>
+                        <h3>Trade Wall</h3>
+                        <p>A public feed of trades and week reviews shared by other traders. Trade cards show the symbol, direction, win/loss, R-multiple and return % - week cards show the grade and weekly stats.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-share-nodes"></i>
+                        <h3>Sharing</h3>
+                        <p>Share a closed trade from its Trade View (<strong>Share with Community</strong> button), or share a whole week from the Weekly Review's grade card. Sharing is always a deliberate action - nothing is ever posted automatically.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-fire"></i>
+                        <h3>Reactions</h3>
+                        <p>React to any card with &#128293; &#128640; &#128079; - one of each per card. Click a reaction again to take it back.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-trash"></i>
+                        <h3>Your Cards</h3>
+                        <p>Cards you posted show a "you" chip and a delete button. Removing a share deletes it for everyone but never touches your actual journal data.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-ranking-star"></i>
+                        <h3>Weekly Leaderboard</h3>
+                        <p>Strictly opt-in: hit <strong>Publish my week</strong> to appear on the board, re-publish any time to refresh your numbers, or leave with one click. Rank by Total R, Win Rate or Profit Factor, for this week or last week.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-crown"></i>
+                        <h3>The Podium</h3>
+                        <p>The top 3 get podium cards - gold takes center stage with the crown. Your own entry is always highlighted wherever you rank.</p>
                     </div>
                 </div>
             </section>
@@ -1496,7 +1543,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-palette"></i>
                         <h3>Appearance</h3>
-                        <p>Pick from 7 color themes - Slate, Midnight, Ocean, Forest, Amethyst, Ember and Bullion (black &amp; gold). Applies instantly and follows your login between devices.</p>
+                        <p>Pick from 7 color themes - Slate, Midnight, Ocean, Forest, Amethyst, Ember and Bullion (black &amp; gold) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
@@ -1579,7 +1626,11 @@
                     </details>
                     <details class="help-faq-item">
                         <summary>Is my data private?</summary>
-                        <p>Yes. If you're logged in, your data is scoped to your account and only accessible by you. Guest mode keeps everything local to your browser only.</p>
+                        <p>Yes. If you're logged in, your data is scoped to your account and only accessible by you. Guest mode keeps everything local to your browser only. Community sharing is entirely opt-in, and shared cards never contain dollar amounts - only symbols, percentages, R-multiples and grades.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>Does it work on my phone?</summary>
+                        <p>Yes - the layout adapts automatically. On phones the menu lives behind the &#9776; hamburger button, the dashboard's trade log becomes compact tap-able cards (tap one for the full Trade View), and every page reflows to fit the screen with no sideways scrolling. On desktop you can choose between the hamburger and a pinned sidebar under Settings → Appearance.</p>
                     </details>
                     <details class="help-faq-item">
                         <summary>What happens to my data if I delete an account?</summary>
@@ -2113,7 +2164,7 @@
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
 
 </body>
 </html>

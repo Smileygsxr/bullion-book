@@ -126,8 +126,19 @@ function renderCalendarGrid() {
         const losses = weekTrades.filter(r => r.status === 'LOSS').length;
         const pnlClass = pnl < 0 ? 'value-negative' : 'value-positive';
 
+        // "11 - 17 May" style label so cards stay identifiable when the
+        // summary stacks below the grid on narrow screens
+        const weekStart = cells[week * 7];
+        const weekEnd = cells[week * 7 + 6];
+        const startMonth = CALENDAR_MONTH_NAMES[weekStart.getMonth()].slice(0, 3);
+        const endMonth = CALENDAR_MONTH_NAMES[weekEnd.getMonth()].slice(0, 3);
+        const weekLabel = startMonth === endMonth
+            ? `${weekStart.getDate()} - ${weekEnd.getDate()} ${endMonth}`
+            : `${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth}`;
+
         summaryBody.innerHTML += `
             <div class="calendar-week-card">
+                <div class="calendar-week-label">${weekLabel}</div>
                 <div class="calendar-week-pnl ${pnlClass}">${formatTotal(pnl)}</div>
                 <div class="calendar-week-pct ${pnlClass}">${pct.toFixed(2)}%</div>
                 <div class="calendar-week-badges">

@@ -204,6 +204,13 @@ function toggleEventTabsCollapse() {
 function showPage(pageId, clickedElement) {
     // In drawer mode, picking a page closes the menu (mobile UX)
     if (typeof closeSidebarDrawer === 'function') closeSidebarDrawer();
+    // Touch screens fire "hover" on tap but never un-hover, so floating
+    // tooltips (stats bars, review strip, settings "?" hints) can get stuck
+    // on screen and follow you across pages - clear them on any page switch.
+    ['stats-bar-tooltip', 'settings-info-tooltip'].forEach(id => {
+        const tooltip = document.getElementById(id);
+        if (tooltip) tooltip.style.display = 'none';
+    });
     const views = document.querySelectorAll('.view-section');
     views.forEach(view => { view.style.display = 'none'; });
     const targetView = document.getElementById(pageId);
