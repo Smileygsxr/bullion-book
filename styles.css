@@ -5368,9 +5368,11 @@ body.privacy-mode .equity-crosshair-label.price {
     background: linear-gradient(90deg, transparent, rgba(var(--accent-gold-rgb), 0.7), transparent);
 }
 
-/* Support block: compact single card so it never crowds the profile row */
+/* Support block: compact single card, flows right after the action buttons
+   (margin-top: 0 overrides the original rule's margin-top: auto, which
+   pinned it - and the profile row after it - to the bottom of the sidebar) */
 .sidebar-support {
-    margin-top: auto;
+    margin-top: 0;
     padding: 10px;
     gap: 8px;
     background: rgba(var(--accent-gold-rgb), 0.05);
@@ -5396,4 +5398,174 @@ body.privacy-mode .equity-crosshair-label.price {
 .sidebar-profile:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(var(--accent-blue-rgb), 0.45);
+}
+
+/* ==== Responsive layer =================================================
+   The app was designed desktop-first with fixed side-by-side rows; on
+   narrower viewports (tablets, or phones in "Desktop site" mode, which lay
+   out at roughly 980-1280px) those rows crushed their children into each
+   other instead of wrapping. Everything below only kicks in under the
+   breakpoints - wide desktop layout is untouched. */
+
+@media (max-width: 1366px) {
+    /* Trade log: 16 columns can't fit - scroll the table sideways instead
+       of letting the cells crush into unreadable slivers. (Scoped to this
+       breakpoint so the row ... menu popover is never clipped on desktop.) */
+    .table-container { overflow-x: auto; }
+    .table-header-row, .table-row { min-width: 1150px; }
+}
+
+@media (max-width: 1280px) {
+    /* Dashboard top cards: wrap into rows instead of clipping off-screen */
+    .stats-row { flex-wrap: wrap; }
+    .stats-row > * { flex: 1 1 220px; }
+    .pnl-card { margin-left: 0; }
+
+    /* Quick date-range bar: wrap the preset buttons */
+    .page-date-range-bar { flex-wrap: nowrap; overflow-x: auto; }
+
+    /* Stats page: stack every side-by-side panel pair */
+    .stats-charts-row { flex-direction: column; }
+
+    /* Trade View modal: chart panel + details card + screenshots can't sit
+       three-across - let them wrap and scroll */
+    #trade-view-modal-overlay { flex-wrap: wrap; overflow-y: auto; align-items: flex-start; }
+    .trade-view-chart-panel { width: 100%; max-width: 620px; }
+}
+
+@media (max-width: 1024px) {
+    /* Sidebar: slightly slimmer so content keeps more room */
+    .sidebar { width: 200px; padding: 14px 10px; }
+
+    /* Settings: subnav becomes a wrapping tab row above the content */
+    .settings-layout { flex-direction: column; }
+    .settings-subnav { width: 100%; display: flex; flex-wrap: wrap; }
+    .settings-subnav-item { flex: 1 1 46%; min-width: 150px; }
+
+    /* Calendar: weekly-summary rail drops below the month grid */
+    .calendar-layout { flex-direction: column; }
+    .calendar-weekly-summary { width: 100%; }
+
+    /* News page: keep chart blocks inside the viewport */
+    .cpi-chart-toolbar { flex-wrap: wrap; }
+
+    /* Modals never wider than the screen */
+    .modal-card { max-width: calc(100vw - 24px); margin: 12px; }
+}
+
+/* ==== Hamburger / drawer sidebar ========================================
+   html.sidebar-drawer-mode is set pre-paint (head script) from
+   localStorage, then kept in sync by applySidebarMode() in settings.js.
+   In drawer mode the sidebar floats off-canvas and slides in over a scrim;
+   small screens always use it regardless of the saved setting. */
+
+.sidebar-hamburger-btn {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 880;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-light);
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.sidebar-hamburger-btn:hover { border-color: rgba(var(--accent-blue-rgb), 0.55); }
+.sidebar-hamburger-btn:active { transform: scale(0.94); }
+
+html.sidebar-drawer-mode .sidebar-hamburger-btn { display: flex; }
+
+.sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 890;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+html.sidebar-drawer-mode .sidebar-scrim.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+html.sidebar-drawer-mode .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh; /* mobile browsers: exclude the URL bar */
+    width: 262px;
+    z-index: 900;
+    transform: translateX(-105%);
+    transition: transform 0.25s ease;
+    box-shadow: 14px 0 42px rgba(0, 0, 0, 0.45);
+}
+
+html.sidebar-drawer-mode .sidebar.open { transform: translateX(0); }
+
+/* Close (X) inside the drawer */
+.sidebar-drawer-close {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.sidebar-drawer-close:hover { color: var(--text-light); border-color: rgba(var(--loss-rgb), 0.5); }
+
+html.sidebar-drawer-mode .sidebar-drawer-close { display: flex; }
+
+/* Content takes the full width; keep clearance for the floating burger */
+html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
+
+/* ==== True-mobile polish (phone portrait, no desktop-mode toggle) ==== */
+@media (max-width: 640px) {
+    .dashboard-main { padding: 0 10px 14px 62px; gap: 12px; }
+
+    .stats-row { gap: 10px; }
+    .stats-row > * { flex: 1 1 150px; }
+
+    .review-tiles { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+
+    .community-header { padding-left: 2px; }
+    .cw-grid { grid-template-columns: 1fr; }
+
+    .settings-subnav-item { flex: 1 1 100%; }
+
+    .help-hero h1 { font-size: 1.3rem; }
+
+    /* Popovers/panels never wider than the screen */
+    .custom-date-popover { max-width: calc(100vw - 20px); flex-wrap: wrap; }
+    .chart-tools-panel { max-width: calc(100vw - 70px); }
+}
+
+/* Sidebar-style picker buttons (Settings > Appearance) */
+.sidebar-mode-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.sidebar-mode-btn.active {
+    color: var(--accent-blue) !important;
+    border-color: rgba(var(--accent-blue-rgb), 0.55) !important;
+    background: rgba(var(--accent-blue-rgb), 0.1) !important;
 }

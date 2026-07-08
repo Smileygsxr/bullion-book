@@ -19,10 +19,59 @@ let appSettings = {
     pnlCalcType: 'capital',
     breakevenRange: 0,
     theme: 'slate',
+    // 'hamburger' (drawer behind the ☰ button, mobile-friendly default) or
+    // 'fixed' (classic pinned sidebar). Small screens force the drawer.
+    sidebarMode: 'hamburger',
     // Risk guardrails (Dashboard warning banner) - 0 = disabled
     maxDailyLoss: 0,
     maxDailyTrades: 0
 };
+
+// ---- Sidebar mode: hamburger drawer vs fixed ----
+function applySidebarMode() {
+    const mode = appSettings.sidebarMode === 'fixed' ? 'fixed' : 'hamburger';
+    try { localStorage.setItem('bb_sidebar_mode', mode); } catch (e) { /* ignore */ }
+    const useDrawer = mode === 'hamburger' || window.innerWidth <= 900;
+    document.documentElement.classList.toggle('sidebar-drawer-mode', useDrawer);
+    if (!useDrawer) closeSidebarDrawer();
+}
+
+function selectSidebarMode(mode) {
+    appSettings.sidebarMode = mode;
+    saveAppSettings();
+    applySidebarMode();
+    renderSidebarModeButtons();
+}
+
+function renderSidebarModeButtons() {
+    const current = appSettings.sidebarMode === 'fixed' ? 'fixed' : 'hamburger';
+    document.querySelectorAll('.sidebar-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === current);
+    });
+}
+
+function toggleSidebarDrawer() {
+    const sidebar = document.querySelector('.sidebar');
+    const scrim = document.getElementById('sidebar-scrim');
+    if (!sidebar) return;
+    const open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    if (scrim) scrim.classList.toggle('show', open);
+}
+
+function closeSidebarDrawer() {
+    const sidebar = document.querySelector('.sidebar');
+    const scrim = document.getElementById('sidebar-scrim');
+    if (sidebar) sidebar.classList.remove('open');
+    if (scrim) scrim.classList.remove('show');
+}
+
+// Crossing the 900px line (e.g. rotating a tablet) re-evaluates whether the
+// fixed sidebar is allowed; Esc always closes an open drawer.
+window.addEventListener('resize', () => applySidebarMode());
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSidebarDrawer();
+});
 
 // ---- Color themes (Settings > Appearance) ----
 // Each theme's real palette lives in styles.css as an html[data-theme="..."]
@@ -147,10 +196,11 @@ function loadAppSettings() {
 
 function applyLoadedSettings(saved) {
     if (saved) appSettings = Object.assign({}, appSettings, saved);
-    // Re-sync the theme from the account's saved settings - the pre-paint
-    // localStorage copy usually already matches, but this covers logging in
-    // on a different device/browser for the first time.
+    // Re-sync the theme + sidebar mode from the account's saved settings -
+    // the pre-paint localStorage copies usually already match, but this
+    // covers logging in on a different device/browser for the first time.
     applyTheme(appSettings.theme);
+    applySidebarMode();
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
 }
@@ -252,7 +302,7 @@ function switchSettingsPanel(tab) {
 
     if (tab === 'personal') populatePersonalInfoPanel();
     if (tab === 'account') populateAccountSettingsPanel();
-    if (tab === 'appearance') renderThemeSwatchGrid();
+    if (tab === 'appearance') { renderThemeSwatchGrid(); renderSidebarModeButtons(); }
     if (tab === 'tags') renderTagTable();
     if (tab === 'contracts') renderContractSizeTable();
     if (tab === 'playbooks') renderPlaybookList();

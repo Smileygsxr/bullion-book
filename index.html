@@ -5,16 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=37">
+    <link rel="stylesheet" href="styles.css?v=40">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
-    <script>try { var bbTheme = localStorage.getItem('bb_theme'); if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme); } catch (e) { }</script>
+    <script>
+        try {
+            var bbTheme = localStorage.getItem('bb_theme');
+            if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme);
+            // Sidebar mode before first paint: hamburger drawer unless the user
+            // opted into the fixed sidebar - and always a drawer on small screens.
+            var bbSidebar = localStorage.getItem('bb_sidebar_mode') || 'hamburger';
+            if (bbSidebar !== 'fixed' || window.innerWidth <= 900) document.documentElement.classList.add('sidebar-drawer-mode');
+        } catch (e) { }
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 
+    <!-- Hamburger button + scrim for the drawer sidebar mode (Settings >
+         Appearance > Sidebar Style; always used on small screens) -->
+    <button type="button" class="sidebar-hamburger-btn" id="sidebar-hamburger-btn" onclick="toggleSidebarDrawer()" title="Menu">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="sidebar-scrim" id="sidebar-scrim" onclick="closeSidebarDrawer()"></div>
+
     <!-- Left Sidebar Wrapper (Stays identical across all views) -->
     <aside class="sidebar">
+        <button type="button" class="sidebar-drawer-close" onclick="closeSidebarDrawer()" title="Close menu"><i class="fa-solid fa-xmark"></i></button>
         <!-- 1. Top Left Brand Title Links to Dashboard -->
         <div class="brand">
             <a href="#" class="brand-link" onclick="showPage('page-dashboard', this)">
@@ -73,7 +90,6 @@
             <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
             <a href="#" class="nav-link" onclick="showPage('page-help', this)"><i class="fa-solid fa-circle-question"></i> Help</a>
-            <a href="#" class="nav-link" id="nav-logout-link" onclick="logOut()"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
         </nav>
 
         <div class="sidebar-actions">
@@ -499,7 +515,7 @@
     
             <!-- News Filter Segment Header Row -->
             <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); width: 100%;">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
                     <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
                     <div class="event-tab-search-wrap">
@@ -529,7 +545,7 @@
             <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
             <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
 
-            <div style="display: flex; align-items: center; gap: 8px; margin: -14px 0;">
+            <div style="display: flex; align-items: center; gap: 8px; margin: -14px 0; flex-wrap: wrap;">
                 <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">
                     <i class="fa-solid fa-arrow-up"></i> News Time Markers
                 </button>
@@ -786,6 +802,15 @@
                         <h3 class="settings-subtitle">Color Theme</h3>
                         <p class="settings-share-desc">Pick a color theme for the whole app. Applies instantly and is saved to your account, so it follows you between devices.</p>
                         <div class="theme-swatch-grid" id="theme-swatch-grid"></div>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Sidebar Style</h3>
+                        <p class="settings-share-desc">Hamburger tucks the menu behind the &#9776; button until you need it - Fixed pins it open on the left. Small screens always use the hamburger, whatever you pick here.</p>
+                        <div class="sidebar-mode-btns">
+                            <button type="button" class="news-tab sidebar-mode-btn" data-mode="hamburger" onclick="selectSidebarMode('hamburger')"><i class="fa-solid fa-bars"></i> Hamburger</button>
+                            <button type="button" class="news-tab sidebar-mode-btn" data-mode="fixed" onclick="selectSidebarMode('fixed')"><i class="fa-solid fa-table-columns"></i> Fixed Sidebar</button>
+                        </div>
                     </div>
 
                     <!-- Tag Management -->
@@ -2088,7 +2113,7 @@
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=21"></script>
 
 </body>
 </html>

@@ -202,6 +202,8 @@ function toggleEventTabsCollapse() {
 }
 
 function showPage(pageId, clickedElement) {
+    // In drawer mode, picking a page closes the menu (mobile UX)
+    if (typeof closeSidebarDrawer === 'function') closeSidebarDrawer();
     const views = document.querySelectorAll('.view-section');
     views.forEach(view => { view.style.display = 'none'; });
     const targetView = document.getElementById(pageId);
