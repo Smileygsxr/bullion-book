@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=36">
+    <link rel="stylesheet" href="styles.css?v=37">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>try { var bbTheme = localStorage.getItem('bb_theme'); if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme); } catch (e) { }</script>
@@ -63,6 +63,7 @@
         </div>
 
         <!-- 3. Vertical Navigation Menu -->
+        <span class="sidebar-section-label">Menu</span>
         <nav class="nav-menu">
             <a href="#" class="nav-link active" onclick="showPage('page-dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
             <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
@@ -1997,7 +1998,7 @@
             </div>
 
             <div class="modal-card-footer">
-                <button class="btn-action btn-neutral" onclick="shareTradeToCommunity()" title="Post this trade to the Community Trade Wall - symbol, direction, R and % only, never dollar amounts"><i class="fa-solid fa-share-nodes"></i> Share</button>
+                <button class="btn-action btn-neutral" onclick="shareTradeToCommunity()" title="Post this trade to the Community Trade Wall - symbol, direction, R and % only, never dollar amounts"><i class="fa-solid fa-share-nodes"></i> Share with Community</button>
                 <button class="btn-action btn-blue" onclick="editTradeFromView()">Edit</button>
             </div>
         </div>
@@ -2086,7 +2087,7 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=2"></script>
-    <script src="community.js?v=1"></script>
+    <script src="community.js?v=2"></script>
     <script src="app.js?v=20"></script>
 
 </body>

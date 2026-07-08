@@ -211,27 +211,34 @@ function buildShareCardHtml(doc) {
     return `<div class="cw-card">${header}${body}${buildReactionsRowHtml(doc)}</div>`;
 }
 
+// Toggles: first click adds the reaction, clicking again takes it back.
 function reactToShare(shareId, key, btn) {
     if (communityRequiresLogin() || !db) return;
 
     const mine = myReactionSet();
     const mineKey = `${shareId}_${key}`;
-    if (mine.has(mineKey)) {
-        communityToast('You already reacted to this one.', true);
-        return;
-    }
-    mine.add(mineKey);
+    const removing = mine.has(mineKey);
+
+    if (removing) mine.delete(mineKey);
+    else mine.add(mineKey);
     localStorage.setItem('bb_my_reactions', JSON.stringify(Array.from(mine)));
 
-    // Optimistic UI - bump immediately, sync in the background
+    // Optimistic UI - update immediately, sync in the background
     if (btn) {
-        btn.classList.add('reacted', 'pop');
+        btn.classList.toggle('reacted', !removing);
+        if (!removing) {
+            btn.classList.add('pop');
+            setTimeout(() => btn.classList.remove('pop'), 350);
+        }
         const countEl = btn.querySelector('.cw-react-count');
-        if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+        if (countEl) {
+            const next = (parseInt(countEl.textContent, 10) || 0) + (removing ? -1 : 1);
+            countEl.textContent = Math.max(0, next);
+        }
     }
 
     db.collection('communityShares').doc(shareId)
-        .update({ [`reactions.${key}`]: firebase.firestore.FieldValue.increment(1) })
+        .update({ [`reactions.${key}`]: firebase.firestore.FieldValue.increment(removing ? -1 : 1) })
         .catch(err => communityToast(communityErrorNote(err), true));
 }
 
