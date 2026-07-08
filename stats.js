@@ -1600,6 +1600,9 @@ function renderReviewPage() {
                 <div class="review-grade-title">WEEK GRADE</div>
                 <div class="review-grade-sub">${grade.score}/100 &middot; win rate, profit factor & green days</div>
                 ${isRecordWeek && allClosed.length > week.length ? '<div class="review-record-chip"><i class="fa-solid fa-trophy"></i> Best week on record</div>' : ''}
+                <button type="button" class="review-share-week-btn" onclick="shareWeekToCommunity()" title="Post this week's grade and stats to the Community Trade Wall - percentages and R only, never dollar amounts">
+                    <i class="fa-solid fa-share-nodes"></i> Share Week
+                </button>
             </div>
 
             <div class="review-tiles">

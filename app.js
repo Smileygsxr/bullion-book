@@ -226,6 +226,9 @@ function showPage(pageId, clickedElement) {
     if (pageId === 'page-review') {
         window.setTimeout(function () { renderReviewPage(); }, 50);
     }
+    if (pageId === 'page-community') {
+        window.setTimeout(function () { renderCommunityPage(); }, 50);
+    }
     if (pageId === 'page-settings') {
         window.setTimeout(function () { renderSettingsPage(); }, 50);
     }
