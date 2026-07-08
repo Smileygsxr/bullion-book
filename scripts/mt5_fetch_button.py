@@ -56,6 +56,13 @@ EARLIEST_DATE = datetime(2026, 1, 1)
 # already GMT+2/GMT+3-no-DST).
 SERVER_TO_APP_OFFSET_HOURS = 2
 
+# The N most recent saved days are ALWAYS re-fetched and overwritten on
+# every run. Files get written with whatever bars existed at import time
+# (fetching at 08:00 saves a file cut off at 08:00), so recent days must be
+# refreshed until they're guaranteed complete - and once newer days exist,
+# a cut-off older day would otherwise never heal.
+REFRESH_RECENT_DAYS = 5
+
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
@@ -79,26 +86,47 @@ def fetch_symbol_interval(mt5_symbol, filename_symbol, interval_label, mt5_timef
     # which hits less-liquid pairs first since they also cache less local
     # M1 history to begin with. A tight, recent range avoids that entirely.
     #
-    # The MOST RECENT saved day is always re-fetched and overwritten: it was
-    # almost certainly written mid-day on a previous run (e.g. fetching at
-    # 08:00 saves a file with bars only up to 08:00), so skipping it forever
-    # would leave that day permanently cut off at whatever time you last ran
-    # this. Range starts SERVER_TO_APP_OFFSET_HOURS earlier in server time so
-    # the rebuilt file keeps that day's first wall-clock hours too.
+    # The REFRESH_RECENT_DAYS most recent saved days are dropped from the
+    # skip-list so they get re-fetched and overwritten in full (see the
+    # constant's comment for why). Range starts SERVER_TO_APP_OFFSET_HOURS
+    # earlier in server time so the oldest rebuilt file keeps that day's
+    # first wall-clock hours too.
     range_start = EARLIEST_DATE
     if existing:
-        latest_str = max(existing)
-        latest_existing = datetime.strptime(latest_str, "%Y-%m-%d")
-        existing.discard(latest_str)
-        range_start = latest_existing - timedelta(hours=SERVER_TO_APP_OFFSET_HOURS)
+        refresh_days = sorted(existing)[-REFRESH_RECENT_DAYS:]
+        for day in refresh_days:
+            existing.discard(day)
+        oldest_refresh = datetime.strptime(refresh_days[0], "%Y-%m-%d")
+        range_start = oldest_refresh - timedelta(hours=SERVER_TO_APP_OFFSET_HOURS)
 
-    rates = mt5.copy_rates_range(mt5_symbol, mt5_timeframe, range_start, range_end)
-    if rates is None or len(rates) == 0:
+    # MT5 rejects very large requests outright with error -2 "Invalid params"
+    # instead of truncating them - a symbol with no saved M1 files yet asks
+    # for everything since EARLIEST_DATE (6+ months of 1-minute bars) in one
+    # go and always fails, so it never gets its first file and stays broken
+    # forever. Fetch in 21-day windows (~30k M1 bars each, comfortably under
+    # any terminal cap) and stitch the results together instead.
+    all_rates = []
+    last_time = None
+    chunk_start = range_start
+    while chunk_start < range_end:
+        chunk_end = min(chunk_start + timedelta(days=21), range_end)
+        rates = mt5.copy_rates_range(mt5_symbol, mt5_timeframe, chunk_start, chunk_end)
+        if rates is not None:
+            for r in rates:
+                t = int(r["time"])
+                # copy_rates_range is inclusive on both ends - skip any bar
+                # already captured at the previous chunk's boundary
+                if last_time is None or t > last_time:
+                    all_rates.append(r)
+                    last_time = t
+        chunk_start = chunk_end
+
+    if len(all_rates) == 0:
         print(f"{mt5_symbol} ({interval_label}m): no data returned from MT5 (error: {mt5.last_error()}).")
         return
 
     rows_by_day = defaultdict(list)
-    for r in rates:
+    for r in all_rates:
         dt_shifted = datetime.utcfromtimestamp(int(r["time"])) + timedelta(hours=SERVER_TO_APP_OFFSET_HOURS)
         day_str = dt_shifted.strftime("%Y-%m-%d")
         timestamp = dt_shifted.strftime("%Y-%m-%dT%H:%M:%S") + "+02:00"
