@@ -1882,12 +1882,12 @@ date,time,name,actual,forecast,previous,importance
 2026-07-06,9:30pm,CFTC Wheat Non-Commercial Net Positions,-55.0,,-48.4,low
 2026-07-06,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,-7.6,,-9.1,moderate
 2026-07-07,1:00pm,Fed Governor Bowman Speech,,,,moderate
-2026-07-07,2:30pm,Trade Balance,,-58.217,-55.881,moderate
-2026-07-07,2:30pm,Exports,,,327.101,moderate
-2026-07-07,2:30pm,Imports,,,382.982,moderate
-2026-07-07,5:30pm,52-Week Bill Auction,,,3.750,low
+2026-07-07,2:30pm,Trade Balance,-77.585,-58.217,-55.881,moderate
+2026-07-07,2:30pm,Exports,317.677,,327.101,moderate
+2026-07-07,2:30pm,Imports,395.263,,382.982,moderate
+2026-07-07,5:30pm,52-Week Bill Auction,3.860,,3.750,low
 2026-07-07,6:00pm,EIA Short-Term Energy Outlook,,,,moderate
-2026-07-07,7:00pm,3-Year Note Auction,,,4.192,moderate
+2026-07-07,7:00pm,3-Year Note Auction,4.179,,4.192,moderate
 2026-07-08,4:00pm,Wholesale Inventories m/m,,0.3,0.3,low
 2026-07-08,4:00pm,Wholesale Sales m/m,,-1.0,2.0,low
 2026-07-08,4:30pm,EIA Crude Oil Stocks Change,,-1.504,-3.775,high
@@ -1909,6 +1909,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-09,4:00pm,Existing Home Sales,,4.02,4.17,high
 2026-07-09,4:00pm,Existing Home Sales m/m,,0.4,3.2,moderate
 2026-07-09,4:30pm,EIA Natural Gas Storage Change,,62,87,low
+2026-07-09,5:30pm,4-Week Bill Auction,,,3.605,low
+2026-07-09,5:30pm,8-Week Bill Auction,,,3.650,low
 2026-07-09,7:00pm,30-Year Bond Auction,,,5.020,high
 2026-07-10,6:00pm,WASDE Report,,,,moderate
 2026-07-10,7:00pm,Baker Hughes US Oil Rig Count,,,445,moderate
@@ -1982,8 +1984,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-16,4:00pm,Pending Home Sales Index,,,76.8,low
 2026-07-16,4:00pm,NAHB Housing Market Index,,35,35,low
 2026-07-16,4:30pm,EIA Natural Gas Storage Change,,,,low
-2026-07-16,5:30pm,4-Week Bill Auction,,,3.605,low
-2026-07-16,5:30pm,8-Week Bill Auction,,,3.650,low
+2026-07-16,5:30pm,4-Week Bill Auction,,,,low
+2026-07-16,5:30pm,8-Week Bill Auction,,,,low
 2026-07-17,2:30pm,Housing Starts,,1.204,1.177,moderate
 2026-07-17,2:30pm,Building Permits,,1.391,1.413,moderate
 2026-07-17,2:30pm,Housing Starts m/m,,-3.8,-15.4,moderate
@@ -2145,14 +2147,14 @@ date,time,name,actual,forecast,previous,importance
 2026-08-03,5:30pm,3-Month Bill Auction,,,,low
 2026-08-03,5:30pm,6-Month Bill Auction,,,,low
 2026-08-03,8:00pm,Fed Senior Loan Officer Opinion Survey on Bank Lending Practices,,,,low
-2026-08-04,2:30pm,Trade Balance,,,,moderate
-2026-08-04,2:30pm,Exports,,,,moderate
-2026-08-04,2:30pm,Imports,,,,moderate
+2026-08-04,2:30pm,Trade Balance,,-67.134,-77.585,moderate
+2026-08-04,2:30pm,Exports,,,317.677,moderate
+2026-08-04,2:30pm,Imports,,,395.263,moderate
 2026-08-04,4:00pm,Factory Orders m/m,,0.1,-1.3,moderate
 2026-08-04,4:00pm,Factory Orders excl. Transportation m/m,,1.1,1.9,low
 2026-08-04,4:00pm,Nondefense Capital Goods Shipments excl. Aircraft m/m,,,,low
 2026-08-04,4:00pm,JOLTS Job Openings,,6.948,7.594,high
-2026-08-04,5:30pm,52-Week Bill Auction,,,,low
+2026-08-04,5:30pm,52-Week Bill Auction,,,3.860,low
 2026-08-05,2:15pm,ADP Nonfarm Employment Change,,,,high
 2026-08-05,3:45pm,S&P Global Services PMI,,52.7,51.2,high
 2026-08-05,3:45pm,S&P Global Composite PMI,,53.0,52.2,moderate
@@ -2212,7 +2214,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-11,4:00pm,Existing Home Sales m/m,,,,moderate
 2026-08-11,6:00pm,EIA Short-Term Energy Outlook,,,,moderate
 2026-08-11,6:00pm,NFIB Small Business Optimism,,,,low
-2026-08-11,7:00pm,3-Year Note Auction,,,,moderate
+2026-08-11,7:00pm,3-Year Note Auction,,,4.179,moderate
 2026-08-12,2:30pm,CPI m/m,,,,high
 2026-08-12,2:30pm,Core CPI m/m,,,,high
 2026-08-12,2:30pm,CPI y/y,,,,high
