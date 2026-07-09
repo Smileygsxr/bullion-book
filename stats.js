@@ -14,6 +14,10 @@ function getAllTradeRows() {
     return rows;
 }
 
+// The closed rows currently shown on the Stats page - the day/hour bar
+// charts and the heatmap resolve their click-to-drill-down against this.
+let statsBucketRows = [];
+
 function renderStatsPage() {
     if (!document.getElementById('stats-metrics-row-1')) return;
 
@@ -21,11 +25,13 @@ function renderStatsPage() {
     const closed = rows.filter(r => r.returnAmount !== null);
     const wins = closed.filter(r => r.status === 'WIN');
     const losses = closed.filter(r => r.status === 'LOSS');
+    statsBucketRows = closed;
 
     renderStatsMetricCards(rows, closed, wins, losses);
     renderProScore(closed, wins, losses);
     renderStatsEquityChart(closed);
     renderWinsLossesCompare(wins, losses);
+    renderTotalTradesPanel(rows, closed, wins, losses);
     renderStatsDayOfWeekChart(closed);
     renderStatsHourChart(closed);
     renderStatsHeatmap(closed);
@@ -267,8 +273,17 @@ function renderStatsPlaybookTable(closed) {
 // same calendar day, since that's the only price history this app has. Runs
 // asynchronously (CSV fetches) and fills the card in once done, rather than
 // blocking the rest of the (synchronous) Stats render.
-const maeMfeCandleCache = new Map(); // "date_interval" -> parsed [{time, high, low}] or null
+const maeMfeCandleCache = new Map(); // "prefix_date_interval" -> parsed [{time, high, low}] or null
 const MAE_MFE_INTERVALS = ['1', '5', '15'];
+
+// Trade symbol -> chart filename prefix (e.g. XAUUSD -> "XAU-USD"), via the
+// same CHART_SYMBOLS registry the News page uses. Null = no chart data
+// exists for that symbol, so chart-based stats skip the trade.
+function chartPrefixForSymbol(symbol) {
+    if (typeof CHART_SYMBOLS === 'undefined') return null;
+    const match = CHART_SYMBOLS.find(s => s.symbol === symbol);
+    return match ? match.filePrefix : null;
+}
 
 // leg.datetime strings are naive "GMT+2 wall clock" (see csv-import.js/
 // getWallClockHour) - converts to a true UTC timestamp so it's comparable
@@ -280,15 +295,15 @@ function gmt2WallClockToUtcMillis(datetimeStr) {
     return Date.UTC(y, m - 1, d, hh, mm) - 2 * 3600000;
 }
 
-function fetchMaeMfeCandles(dateStr, intervalIndex) {
+function fetchMaeMfeCandles(prefix, dateStr, intervalIndex) {
     intervalIndex = intervalIndex || 0;
     if (intervalIndex >= MAE_MFE_INTERVALS.length) return Promise.resolve(null);
 
     const interval = MAE_MFE_INTERVALS[intervalIndex];
-    const cacheKey = `${dateStr}_${interval}`;
+    const cacheKey = `${prefix}_${dateStr}_${interval}`;
     if (maeMfeCandleCache.has(cacheKey)) return Promise.resolve(maeMfeCandleCache.get(cacheKey));
 
-    const filename = `XAU-USD_${interval}Minute_BID_${dateStr}_00_00-23_59_Africa_Johannesburg.csv`;
+    const filename = `${prefix}_${interval}Minute_BID_${dateStr}_00_00-23_59_Africa_Johannesburg.csv`;
     return fetch(`./data/${filename}`)
         .then(response => {
             if (!response.ok) throw new Error('missing');
@@ -306,7 +321,7 @@ function fetchMaeMfeCandles(dateStr, intervalIndex) {
             maeMfeCandleCache.set(cacheKey, candles);
             return candles;
         })
-        .catch(() => fetchMaeMfeCandles(dateStr, intervalIndex + 1));
+        .catch(() => fetchMaeMfeCandles(prefix, dateStr, intervalIndex + 1));
 }
 
 function getTradeEntryExitWindow(trade, direction) {
@@ -319,7 +334,11 @@ function getTradeEntryExitWindow(trade, direction) {
     return { entryLeg: firstEntry, exitLeg: lastExit };
 }
 
-function computeMaeMfeForTrade(row, trade, contractSize) {
+function computeMaeMfeForTrade(row, trade) {
+    const prefix = chartPrefixForSymbol(row.symbol);
+    if (!prefix) return Promise.resolve(null);
+    const contractSize = getContractSizeForSymbol(row.symbol);
+
     const window = getTradeEntryExitWindow(trade, row.direction);
     if (!window) return Promise.resolve(null);
 
@@ -327,7 +346,7 @@ function computeMaeMfeForTrade(row, trade, contractSize) {
     const exitDay = window.exitLeg.datetime.slice(0, 10);
     if (entryDay !== exitDay) return Promise.resolve(null); // spans multiple days - not supported yet
 
-    return fetchMaeMfeCandles(entryDay).then(candles => {
+    return fetchMaeMfeCandles(prefix, entryDay).then(candles => {
         if (!candles || candles.length === 0) return null;
 
         const entryTime = gmt2WallClockToUtcMillis(window.entryLeg.datetime);
@@ -362,19 +381,19 @@ function renderMaeMfeStats(closed) {
 
     const account = getActiveAccount();
     const trades = account.trades || [];
-    const eligible = closed.filter(r => r.symbol === 'XAUUSD');
+    // Any symbol with chart data on the News page qualifies now, not just gold
+    const eligible = closed.filter(r => chartPrefixForSymbol(r.symbol));
 
     if (eligible.length === 0) {
-        el.textContent = 'No closed XAUUSD trades in view - MAE/MFE needs real chart data, which this app only auto-fetches for XAUUSD.';
+        el.textContent = 'No closed trades in view for symbols with chart data (XAUUSD, BTCUSD, US500 and the major forex pairs).';
         return;
     }
 
     el.textContent = 'Calculating from chart data...';
 
-    const contractSize = getContractSizeForSymbol('XAUUSD');
     Promise.all(eligible.map(row => {
         const trade = trades.find(t => t.id === row.id);
-        return trade ? computeMaeMfeForTrade(row, trade, contractSize) : Promise.resolve(null);
+        return trade ? computeMaeMfeForTrade(row, trade) : Promise.resolve(null);
     })).then(results => {
         const valid = results.filter(Boolean);
         if (valid.length === 0) {
@@ -384,7 +403,12 @@ function renderMaeMfeStats(closed) {
 
         const avgMae = average(valid.map(v => v.mae));
         const avgMfe = average(valid.map(v => v.mfe));
+        // Edge ratio: how much the market moved in your favor vs against you
+        // while in trades - above 1 means your entries see more favorable
+        // excursion than adverse.
+        const edgeRatio = avgMae !== 0 ? Math.abs(avgMfe / avgMae) : null;
 
+        const symbolCount = new Set(eligible.map(r => r.symbol)).size;
         el.innerHTML = `
             <div class="mae-mfe-item">
                 <span class="mae-mfe-label">Avg MAE (worst drawdown)</span>
@@ -394,7 +418,12 @@ function renderMaeMfeStats(closed) {
                 <span class="mae-mfe-label">Avg MFE (best unrealized)</span>
                 <span class="mae-mfe-value value-positive sensitive-value">${formatTotal(avgMfe)}</span>
             </div>
-            <p class="mae-mfe-note">Based on ${valid.length} of ${eligible.length} XAUUSD trade${eligible.length === 1 ? '' : 's'} in view with available chart data (same-day trades only).</p>`;
+            ${edgeRatio !== null ? `
+            <div class="mae-mfe-item">
+                <span class="mae-mfe-label">MFE : MAE edge ratio</span>
+                <span class="mae-mfe-value ${edgeRatio >= 1 ? 'value-positive' : 'value-negative'}">${edgeRatio.toFixed(2)}x</span>
+            </div>` : ''}
+            <p class="mae-mfe-note">Based on ${valid.length} of ${eligible.length} trade${eligible.length === 1 ? '' : 's'} in view across ${symbolCount} symbol${symbolCount === 1 ? '' : 's'} with available chart data (same-day trades only).</p>`;
     });
 }
 
@@ -404,21 +433,26 @@ function renderMaeMfeStats(closed) {
 // the same chart data/cache as MAE/MFE), then compares win rate and P&L
 // across the two buckets. Only possible because this app fetches real gold
 // chart data daily - no generic trade journal has this.
-const dailyRangeCache = new Map(); // dateStr -> range number or null
+const dailyRangeCache = new Map(); // "prefix_dateStr" -> range % or null
 
-function computeDailyRange(dateStr) {
-    if (dailyRangeCache.has(dateStr)) return Promise.resolve(dailyRangeCache.get(dateStr));
+// Day range as a PERCENT of price (high-low over the day's midpoint), not
+// dollars - the only way a $125 gold day and a 0.005 EURUSD day can be
+// compared on one "was this a volatile day?" scale across symbols.
+function computeDailyRange(prefix, dateStr) {
+    const cacheKey = `${prefix}_${dateStr}`;
+    if (dailyRangeCache.has(cacheKey)) return Promise.resolve(dailyRangeCache.get(cacheKey));
 
-    return fetchMaeMfeCandles(dateStr).then(candles => {
+    return fetchMaeMfeCandles(prefix, dateStr).then(candles => {
         if (!candles || candles.length === 0) {
-            dailyRangeCache.set(dateStr, null);
+            dailyRangeCache.set(cacheKey, null);
             return null;
         }
-        const highs = candles.map(c => c.high);
-        const lows = candles.map(c => c.low);
-        const range = Math.max(...highs) - Math.min(...lows);
-        dailyRangeCache.set(dateStr, range);
-        return range;
+        const high = Math.max(...candles.map(c => c.high));
+        const low = Math.min(...candles.map(c => c.low));
+        const mid = (high + low) / 2;
+        const rangePct = mid > 0 ? ((high - low) / mid) * 100 : null;
+        dailyRangeCache.set(cacheKey, rangePct);
+        return rangePct;
     });
 }
 
@@ -434,20 +468,25 @@ function renderVolatilityStats(closed) {
 
     if (typeof Papa === 'undefined') return; // PapaParse loads after this file - skip if unavailable
 
-    const eligible = closed.filter(r => r.symbol === 'XAUUSD');
+    const eligible = closed.filter(r => chartPrefixForSymbol(r.symbol));
     if (eligible.length === 0) {
-        container.innerHTML = '<p class="mae-mfe-note">No closed XAUUSD trades in view - this stat needs real chart data, which this app only auto-fetches for XAUUSD.</p>';
+        container.innerHTML = '<p class="mae-mfe-note">No closed trades in view for symbols with chart data (XAUUSD, BTCUSD, US500 and the major forex pairs).</p>';
         return;
     }
 
     container.innerHTML = '<p class="mae-mfe-note">Calculating from chart data...</p>';
 
-    const uniqueDays = Array.from(new Set(eligible.map(r => r.date.slice(0, 10))));
-    Promise.all(uniqueDays.map(day => computeDailyRange(day).then(range => [day, range])))
+    // One range per symbol+day - each trade's day is measured on ITS OWN
+    // symbol's chart, then all days share one percent-based median split.
+    const uniqueSymbolDays = Array.from(new Set(eligible.map(r => `${chartPrefixForSymbol(r.symbol)}|${r.date.slice(0, 10)}`)));
+    Promise.all(uniqueSymbolDays.map(key => {
+        const [prefix, day] = key.split('|');
+        return computeDailyRange(prefix, day).then(range => [key, range]);
+    }))
         .then(entries => {
             const rangeByDay = new Map(entries.filter(([, range]) => range !== null));
             const scoredTrades = eligible
-                .map(r => ({ row: r, range: rangeByDay.get(r.date.slice(0, 10)) }))
+                .map(r => ({ row: r, range: rangeByDay.get(`${chartPrefixForSymbol(r.symbol)}|${r.date.slice(0, 10)}`) }))
                 .filter(t => t.range !== undefined);
 
             if (scoredTrades.length === 0 || rangeByDay.size < 2) {
@@ -491,11 +530,111 @@ function renderVolatilityStats(closed) {
                     <div class="wl-compare-label">${label}</div>
                     <div class="wl-compare-value right">${lowVal}</div>
                 </div>`).join('')}
-                <p class="mae-mfe-note">Split at the median daily range (${formatTotal(dayMedian)}) across ${rangeByDay.size} day${rangeByDay.size === 1 ? '' : 's'} with chart data.</p>`;
+                <p class="mae-mfe-note">Split at the median daily range (${dayMedian.toFixed(2)}% of price) across ${rangeByDay.size} symbol-day${rangeByDay.size === 1 ? '' : 's'} with chart data - percent-based so different symbols compare fairly.</p>`;
         });
 }
 
 // ---- Wins vs Losses comparison ----
+// ---- Total Account Trades: count-up hero number, a hoverable win/loss/
+// wash/open composition bar, this week/month counts, and a progress bar
+// toward the next round-number milestone. ----
+const TRADE_MILESTONES = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+
+function renderTotalTradesPanel(rows, closed, wins, losses) {
+    const body = document.getElementById('total-trades-body');
+    if (!body) return;
+
+    const total = rows.length;
+    const washes = closed.length - wins.length - losses.length;
+    const open = rows.length - closed.length;
+
+    // Wall-clock date prefixes (trade dates are GMT+2 strings, same zone as
+    // the user) for the "this week / this month" mini-counts
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const monthPrefix = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const weekDates = new Set();
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+        weekDates.add(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    }
+    const thisWeek = rows.filter(r => weekDates.has(r.date.slice(0, 10))).length;
+    const thisMonth = rows.filter(r => r.date.slice(0, 7) === monthPrefix).length;
+
+    const nextMilestone = TRADE_MILESTONES.find(m => m > total) || (total + 500);
+    const prevMilestone = TRADE_MILESTONES.filter(m => m <= total).pop() || 0;
+    const milestonePct = Math.min(100, Math.round(((total - prevMilestone) / (nextMilestone - prevMilestone)) * 100));
+
+    const segments = [
+        { key: 'Wins', count: wins.length, cls: 'win' },
+        { key: 'Losses', count: losses.length, cls: 'loss' },
+        { key: 'Wash', count: washes, cls: 'wash' },
+        { key: 'Open', count: open, cls: 'open' }
+    ].filter(s => s.count > 0);
+
+    const segmentsHtml = total === 0 ? '' : `
+        <div class="tt-seg-bar">${segments.map(s => `
+            <div class="tt-seg ${s.cls}" style="width:${(s.count / total * 100).toFixed(1)}%"
+                data-heat-label="${s.key}" data-heat-pnl="" data-heat-count="${s.count} of ${total} (${Math.round(s.count / total * 100)}%)"></div>`).join('')}
+        </div>
+        <div class="tt-seg-legend">${segments.map(s => `
+            <span class="tt-legend-item"><span class="tt-legend-dot ${s.cls}"></span>${s.key} ${s.count}</span>`).join('')}
+        </div>`;
+
+    body.innerHTML = `
+        <div class="tt-number" id="tt-number">${total}</div>
+        ${segmentsHtml}
+        <div class="tt-sub-row">
+            <span title="Trades dated inside the current Mon-Sun week"><i class="fa-solid fa-calendar-week"></i> ${thisWeek} this week</span>
+            <span title="Trades dated inside the current calendar month"><i class="fa-solid fa-calendar-days"></i> ${thisMonth} this month</span>
+        </div>
+        <div class="tt-milestone" title="${nextMilestone - total} more trade(s) to reach ${nextMilestone}">
+            <div class="tt-milestone-track"><div class="tt-milestone-fill" style="width:${milestonePct}%"></div></div>
+            <div class="tt-milestone-label">${total >= nextMilestone ? 'Milestone reached!' : `${nextMilestone - total} to go &rarr; <strong>${nextMilestone}</strong>`}</div>
+        </div>`;
+
+    // Count-up on the hero number (skipped under reduced motion)
+    const numberEl = document.getElementById('tt-number');
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (numberEl && !reduced && total > 0) {
+        const start = performance.now();
+        const duration = 700;
+        const step = nowTs => {
+            const t = Math.min(1, (nowTs - start) / duration);
+            numberEl.textContent = Math.round(total * (1 - Math.pow(1 - t, 3)));
+            if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }
+
+    // Segment hover tooltips (shared stats tooltip element)
+    if (!body.dataset.tooltipBound) {
+        body.dataset.tooltipBound = 'true';
+        const tooltip = getStatsBarTooltip();
+        body.addEventListener('mouseover', event => {
+            const seg = event.target.closest('.tt-seg[data-heat-label]');
+            if (!seg) return;
+            tooltip.innerHTML = `
+                <div class="stats-bar-tooltip-label">${seg.dataset.heatLabel}</div>
+                <div class="stats-bar-tooltip-label">${seg.dataset.heatCount}</div>`;
+            tooltip.style.display = 'block';
+        });
+        body.addEventListener('mousemove', event => {
+            const seg = event.target.closest('.tt-seg[data-heat-label]');
+            if (!seg || tooltip.style.display === 'none') return;
+            tooltip.style.left = `${event.clientX + 14}px`;
+            tooltip.style.top = `${event.clientY - 12}px`;
+        });
+        body.addEventListener('mouseout', event => {
+            const seg = event.target.closest('.tt-seg[data-heat-label]');
+            const toSeg = event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('.tt-seg[data-heat-label]');
+            if (seg && seg !== toSeg) tooltip.style.display = 'none';
+        });
+    }
+}
+
 function renderWinsLossesCompare(wins, losses) {
     const container = document.getElementById('wins-losses-compare');
     if (!container) return;
@@ -891,11 +1030,58 @@ function getWallClockWeekday(dateStr) {
     return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+// ---- Click-to-drill-down: any day/hour bar or heatmap cell opens the
+// trades behind it in the (reused) day-trades modal, rendered in the same
+// interactive row style as the Weekly Review - click a row for Trade View. ----
+function openStatsTradesModal(title, rows) {
+    const titleEl = document.getElementById('day-trades-modal-title');
+    const listEl = document.getElementById('day-trades-list');
+    const overlay = document.getElementById('day-trades-modal-overlay');
+    if (!titleEl || !listEl || !overlay) return;
+
+    const ordered = rows.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    titleEl.textContent = `${title} - ${rows.length} trade${rows.length === 1 ? '' : 's'}`;
+    listEl.innerHTML = ordered.map(r => `
+        <div class="review-day-trade-line" onclick="statsTradesModalOpenTrade('${r.id}')">
+            <i class="fa-solid ${r.direction === 'long' ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i>
+            <span class="review-day-trade-time">${formatTradeDate(r.date)} ${formatTradeTime(r.date)}</span>
+            <span class="review-day-trade-symbol">${escapeHtml(r.symbol)}</span>
+            <span class="review-day-trade-fill"></span>
+            <span class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}${r.rMultiple !== null ? ` <span class="review-day-trade-r">(${r.rMultiple.toFixed(1)}R)</span>` : ''}</span>
+            <i class="fa-solid fa-up-right-from-square review-day-trade-open"></i>
+        </div>`).join('');
+    overlay.style.display = 'flex';
+}
+
+function statsTradesModalOpenTrade(tradeId) {
+    closeDayTradesModal();
+    openTradeViewModal(null, tradeId);
+}
+
+// One delegated click handler per bar chart container (survives re-renders)
+function bindStatsBarClicks(containerId, resolveRows) {
+    const container = document.getElementById(containerId);
+    if (!container || container.dataset.clickBound) return;
+    container.dataset.clickBound = 'true';
+
+    container.addEventListener('click', event => {
+        const bar = event.target.closest('.stats-bar-row[data-bar-label]');
+        if (!bar) return;
+        const { title, rows } = resolveRows(bar.dataset.barLabel);
+        if (rows.length > 0) openStatsTradesModal(title, rows);
+    });
+}
+
 function renderStatsDayOfWeekChart(closed) {
     const totals = new Array(7).fill(0);
     closed.forEach(r => { totals[getWallClockWeekday(r.date)] += r.returnAmount; });
     const items = WEEKDAY_LABELS.map((label, i) => ({ label, value: totals[i] }));
     renderDivergingBarChart('stats-day-chart', items);
+
+    bindStatsBarClicks('stats-day-chart', label => ({
+        title: `${label}s`,
+        rows: statsBucketRows.filter(r => WEEKDAY_LABELS[getWallClockWeekday(r.date)] === label)
+    }));
 }
 
 function formatHourLabel(hour) {
@@ -916,6 +1102,11 @@ function renderStatsHourChart(closed) {
         .map(hour => ({ label: formatHourLabel(hour), value: totals.get(hour) }));
 
     renderDivergingBarChart('stats-hour-chart', items);
+
+    bindStatsBarClicks('stats-hour-chart', label => ({
+        title: `Trades at ${label}`,
+        rows: statsBucketRows.filter(r => formatHourLabel(getWallClockHour(r.date)) === label)
+    }));
 }
 
 // ---- Day-of-week x hour P&L heatmap ----
@@ -982,6 +1173,7 @@ function renderStatsHeatmap(closed) {
             const winRate = Math.round((cell.wins / cell.count) * 100);
             html += `<div class="stats-heatmap-cell" style="background:${color};"
                 data-heat-label="${WEEKDAY_LABELS[day]} ${formatHourLabel(hour)}"
+                data-heat-day="${day}" data-heat-hour="${hour}"
                 data-heat-count="${cell.count}" data-heat-winrate="${winRate}" data-heat-pnl="${cell.pnl}"></div>`;
         });
     });
@@ -994,6 +1186,16 @@ function renderStatsHeatmap(closed) {
 function bindHeatmapTooltip(container) {
     if (container.dataset.tooltipBound) return;
     container.dataset.tooltipBound = 'true';
+
+    // Click a cell -> all trades from that weekday+hour combination
+    container.addEventListener('click', event => {
+        const cell = event.target.closest('.stats-heatmap-cell[data-heat-day]');
+        if (!cell) return;
+        const day = parseInt(cell.dataset.heatDay, 10);
+        const hour = parseInt(cell.dataset.heatHour, 10);
+        const rows = statsBucketRows.filter(r => getWallClockWeekday(r.date) === day && getWallClockHour(r.date) === hour);
+        if (rows.length > 0) openStatsTradesModal(cell.dataset.heatLabel, rows);
+    });
 
     const tooltip = getStatsBarTooltip();
 

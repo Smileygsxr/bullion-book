@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=44">
+    <link rel="stylesheet" href="styles.css?v=46">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -334,21 +334,31 @@
                 </div>
 
                 <div class="stats-panel-half stats-stack-col">
-                    <div class="stats-panel">
-                        <div class="stats-panel-title">WINS VS LOSSES</div>
-                        <div class="wl-compare" id="wins-losses-compare"></div>
+                    <div class="stats-stack-row">
+                        <div class="stats-panel stats-panel-half">
+                            <div class="stats-panel-title">WINS VS LOSSES</div>
+                            <div class="wl-compare" id="wins-losses-compare"></div>
+                        </div>
+
+                        <div class="stats-panel stats-panel-half total-trades-panel">
+                            <div class="stats-panel-title">TOTAL ACCOUNT TRADES</div>
+                            <div id="total-trades-body"></div>
+                        </div>
                     </div>
 
                     <div class="stats-stack-row">
                         <div class="stats-panel stats-panel-half">
-                            <div class="stats-panel-title">MAE / MFE (XAUUSD, SAME-DAY TRADES)</div>
+                            <div class="pro-score-title-row">
+                                <span class="stats-panel-title" style="margin-bottom: 0;">MAE / MFE (SAME-DAY TRADES)</span>
+                                <button type="button" class="settings-info-btn" data-tooltip="Replays each trade against that day's real chart candles. MAE (Maximum Adverse Excursion) = the worst the trade went AGAINST you before you closed it - your average 'pain' per trade. MFE (Maximum Favorable Excursion) = the best unrealized profit it reached - what was on the table. The edge ratio divides avg MFE by avg MAE: above 1x means the market moves further in your favor than against you while you're in trades; well below 1x suggests entries are poorly timed or stops too wide. Uses each symbol's own chart data; only same-day trades count." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                            </div>
                             <div class="mae-mfe-panel" id="stats-mae-mfe-result"></div>
                         </div>
 
                         <div class="stats-panel stats-panel-half">
                             <div class="pro-score-title-row">
-                                <span class="stats-panel-title" style="margin-bottom: 0;">PERFORMANCE VS VOLATILITY (XAUUSD)</span>
-                                <button type="button" class="settings-info-btn" data-tooltip="Splits your closed XAUUSD trades by that day's real intraday price range (high minus low), at the median across days with chart data, then compares win rate and P&L between the higher-range ('high volatility') and lower-range ('low volatility') halves." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
+                                <span class="stats-panel-title" style="margin-bottom: 0;">PERFORMANCE VS VOLATILITY</span>
+                                <button type="button" class="settings-info-btn" data-tooltip="Splits your closed trades (any symbol with chart data) by that day's real intraday range measured as a percent of price - so gold days and forex days compare fairly - at the median across symbol-days, then compares win rate and P&L between the higher-range ('high volatility') and lower-range ('low volatility') halves." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                             </div>
                             <div class="wl-compare" id="stats-volatility-result"></div>
                         </div>
@@ -363,17 +373,17 @@
 
             <div class="stats-charts-row">
                 <div class="stats-panel stats-panel-half">
-                    <div class="stats-panel-title">PERFORMANCE BY DAY OF WEEK</div>
+                    <div class="stats-panel-title">PERFORMANCE BY DAY OF WEEK <span class="review-panel-hint">click a bar for its trades</span></div>
                     <div id="stats-day-chart" class="stats-bar-chart"></div>
                 </div>
                 <div class="stats-panel stats-panel-half">
-                    <div class="stats-panel-title">PERFORMANCE BY HOUR</div>
+                    <div class="stats-panel-title">PERFORMANCE BY HOUR <span class="review-panel-hint">click a bar for its trades</span></div>
                     <div id="stats-hour-chart" class="stats-bar-chart"></div>
                 </div>
             </div>
 
             <div class="stats-panel">
-                <div class="stats-panel-title">P&amp;L HEATMAP - DAY &times; HOUR</div>
+                <div class="stats-panel-title">P&amp;L HEATMAP - DAY &times; HOUR <span class="review-panel-hint">click a cell for its trades</span></div>
                 <div id="stats-heatmap"></div>
             </div>
 
@@ -722,8 +732,8 @@
                                     <button type="button" class="settings-info-btn" data-tooltip="Controls which date represents a trade on the Dashboard, Calendar, and Stats charts: its most recent action (exit), or when it was originally opened." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-default-grid-date" class="modal-input">
-                                    <option value="last-action">Last Action Date</option>
                                     <option value="trade-open">Trade Open Date</option>
+                                    <option value="last-action">Last Action Date</option>
                                 </select>
                             </div>
                             <div class="modal-field">
@@ -1426,12 +1436,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-arrows-up-down"></i>
                         <h3>MAE / MFE</h3>
-                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade. Only computable for same-day XAUUSD trades, since that's the only price history this app has.</p>
+                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade - plus an MFE:MAE edge ratio (above 1x = the market moves in your favor more than against you). Works for any symbol with chart data (XAUUSD, BTCUSD, US500 and the majors); same-day trades only.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-wave-square"></i>
                         <h3>Performance vs. Volatility</h3>
-                        <p>Splits your closed XAUUSD trades into "high" and "low" volatility days, based on each day's real intraday price range, then compares win rate and P&amp;L between the two - see if your edge holds up when gold really moves. Click the <strong>?</strong> for the exact split method.</p>
+                        <p>Splits your closed trades into "high" and "low" volatility days based on each day's real intraday range, measured as a percent of price so every symbol compares fairly - see if your edge holds up when the market really moves. Works for any symbol with chart data. Click the <strong>?</strong> for the exact split method.</p>
                     </div>
                 </div>
             </section>

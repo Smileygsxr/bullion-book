@@ -5676,3 +5676,112 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .calendar-day-pnl { font-size: 0.6rem; font-weight: 700; }
     .calendar-day-count { font-size: 0.56rem; }
 }
+
+/* ==== Stats: Total Account Trades panel ==== */
+.total-trades-panel { display: flex; flex-direction: column; }
+
+#total-trades-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.tt-number {
+    font-size: 3.4rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(180deg, var(--text-light) 30%, var(--text-muted) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.tt-seg-bar {
+    display: flex;
+    width: 100%;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    gap: 2px;
+}
+
+.tt-seg {
+    min-width: 4px;
+    transition: filter 0.12s ease, transform 0.12s ease;
+    cursor: default;
+}
+
+.tt-seg:hover { filter: brightness(1.35); }
+
+.tt-seg.win { background: var(--win); }
+.tt-seg.loss { background: var(--loss); }
+.tt-seg.wash { background: #6b7280; }
+.tt-seg.open { background: var(--accent-blue); }
+
+.tt-seg-legend {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.tt-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+
+.tt-legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.tt-legend-dot.win { background: var(--win); }
+.tt-legend-dot.loss { background: var(--loss); }
+.tt-legend-dot.wash { background: #6b7280; }
+.tt-legend-dot.open { background: var(--accent-blue); }
+
+.tt-sub-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+}
+
+.tt-sub-row i { color: var(--accent-blue); margin-right: 4px; }
+
+.tt-milestone { width: 100%; }
+
+.tt-milestone-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.tt-milestone-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.55), var(--accent-gold));
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tt-milestone-label {
+    margin-top: 5px;
+    font-size: 0.66rem;
+    color: var(--text-muted);
+}
+
+.tt-milestone-label strong { color: var(--accent-gold); }
+
+/* Day/hour bars + heatmap cells are click-to-drill-down */
+.stats-bar-row[data-bar-label] { cursor: pointer; }
+.stats-bar-row[data-bar-label]:hover .stats-bar-row-label { color: var(--text-light); }
+.stats-heatmap-cell:not(.empty) { cursor: pointer; }
