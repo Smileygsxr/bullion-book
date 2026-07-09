@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=46">
+    <link rel="stylesheet" href="styles.css?v=49">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -321,14 +321,18 @@
                         <button type="button" class="settings-info-btn" data-tooltip="Pro Score averages 6 normalized metrics (each scored out of 100): Win %, Profit Factor, Avg Win/Loss ratio, Recovery Factor, Max Drawdown, and Consistency (how much of your profit came from a single best day)." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                     </div>
                     <div id="pro-score-radar" class="pro-score-radar"></div>
-                    <div class="pro-score-summary">
-                        <div class="pro-score-label">Your Pro Score</div>
-                        <div class="pro-score-value" id="pro-score-value">-</div>
-                        <div class="pro-score-gradient-bar">
-                            <div class="pro-score-marker" id="pro-score-marker" style="left: 0%;"></div>
+                    <div class="pro-score-summary pro-score-summary-row">
+                        <div class="pro-score-summary-left">
+                            <div class="pro-score-label">Your Pro Score</div>
+                            <div class="pro-score-value" id="pro-score-value">-</div>
                         </div>
-                        <div class="pro-score-scale-labels">
-                            <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
+                        <div class="pro-score-summary-bar">
+                            <div class="pro-score-gradient-bar">
+                                <div class="pro-score-marker" id="pro-score-marker" style="left: 0%;"></div>
+                            </div>
+                            <div class="pro-score-scale-labels">
+                                <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
+                            </div>
                         </div>
                     </div>
                 </div>

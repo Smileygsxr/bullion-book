@@ -100,6 +100,26 @@ function computeProScoreMetrics(closed, wins, losses) {
     ];
 }
 
+// How-to-improve tips per Pro Score metric, written to match exactly how
+// each score is computed in computeProScoreMetrics above.
+const PRO_SCORE_TIPS = {
+    'Win %': '<strong>What it is:</strong> the share of your closed trades that ended green - 60 means 60% winners.<br><strong>How to improve:</strong> take fewer, higher-quality setups instead of more trades. Check your Tag table and the P&L heatmap for the setups, days and hours that keep losing, and simply stop taking those. A realistic target (not a home-run) also converts more trades into wins - but don\'t chase win rate by letting losers run; that trades this score for a worse Avg Win/Loss.',
+    'Profit Factor': '<strong>What it is:</strong> every dollar you\'ve lost vs every dollar you\'ve won - gross profit &divide; gross loss, where 2.0 scores 100.<br><strong>How to improve:</strong> the fastest lever is cutting your few biggest losers - one -$50 trade needs ten +$5 winners just to break even. Respect your stop-loss with no "one more candle" exceptions, and use the Max Daily Loss guardrail (Settings) so a bad day can\'t crater the ratio.',
+    'Avg Win/Loss': '<strong>What it is:</strong> your average winning trade vs your average losing trade - 2:1 scores 100.<br><strong>How to improve:</strong> this is the risk/reward metric. Aim for setups paying at least 2R, stop taking profits at the first wobble (your MAE/MFE panel shows how much profit you leave on the table), and keep losses uniform - if your average loss is bigger than your average win, tighten stops or size down on low-confidence trades.',
+    'Recovery Factor': '<strong>What it is:</strong> total net profit vs your worst equity dip - how many times over you\'ve earned back your deepest drawdown. 4x scores 100.<br><strong>How to improve:</strong> two ways up: grow net profit steadily, or keep drawdowns shallow. The second is faster - stop trading after 2-3 consecutive losses (set Max Trades Per Day in Settings), and never add size to make a losing streak back quickly; that\'s how shallow dips become deep ones.',
+    'Max Drawdown': '<strong>What it is:</strong> your worst peak-to-valley slide in cumulative P&L, measured against your gross profits - smaller dip = higher score.<br><strong>How to improve:</strong> risk a small, fixed amount per trade (e.g. 1% of account) so no single trade or streak can dig a hole. Losing streaks happen to every strategy - the score punishes how DEEP they cut, not that they happen. The Risk Guardrails banner on the Dashboard is built exactly for this.',
+    'Consistency': '<strong>What it is:</strong> how spread out your profits are - it drops when one lucky day is carrying your whole P&L. If your best day is 30% of all profits, you score 70.<br><strong>How to improve:</strong> trade a repeatable playbook with even position sizing, rather than swinging big on one idea. Many small green days beat one monster day here. If this score is low, ask honestly: was the best day skill you can repeat, or a one-off you\'ve been trying to relive?'
+};
+
+// One tip open at a time, accordion-style
+function toggleProScoreTip(rowEl) {
+    const item = rowEl.closest('.ps-break-item');
+    if (!item) return;
+    const wasOpen = item.classList.contains('open');
+    item.parentElement.querySelectorAll('.ps-break-item.open').forEach(el => el.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+}
+
 // Returns "x,y" pairs for 6 axes spaced 60° apart starting at 12 o'clock -
 // valuesFrac is 6 numbers in [0,1], the fraction of maxRadius for that axis.
 function hexPoints(cx, cy, radius, valuesFrac) {
@@ -168,18 +188,36 @@ function renderProScore(closed, wins, losses) {
         return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" class="pro-score-axis-label">${escapeHtml(m.label)}</text>`;
     }).join('');
 
+    // Per-metric breakdown bars fill the space beside the radar - the same
+    // numbers the vertex tooltips show, but always visible. Hovering a row
+    // highlights its vertex on the radar; clicking one expands a tip on how
+    // to improve that specific score.
+    const breakdownHtml = metrics.map((m, i) => `
+        <div class="ps-break-item">
+            <div class="ps-break-row" data-vertex-index="${i}" onclick="toggleProScoreTip(this)" title="Click for how to improve this">
+                <span class="ps-break-label">${escapeHtml(m.label)}</span>
+                <div class="ps-break-track"><div class="ps-break-fill" style="width:${Math.max(2, m.value).toFixed(0)}%"></div></div>
+                <span class="ps-break-val">${m.value.toFixed(0)}</span>
+                <i class="fa-solid fa-chevron-right ps-break-chevron"></i>
+            </div>
+            <div class="ps-break-tip">${PRO_SCORE_TIPS[m.label] || ''}</div>
+        </div>`).join('');
+
     // Wide margins on both sides of the hexagon - SVG clips anything outside its
     // viewBox by default, and axis label text (e.g. "Profit Factor") extends well
     // past the hexagon's own radius, so the viewBox needs real room for it.
     container.innerHTML = `
-        <svg viewBox="0 0 300 210" class="pro-score-svg">
-            ${gridPolygons}
-            ${axisLines}
-            <polygon points="${dataPoints}" class="pro-score-data-polygon"/>
-            ${vertexDots}
-            ${labels}
-            ${hitTargets}
-        </svg>`;
+        <div class="pro-score-flex">
+            <svg viewBox="0 0 300 210" class="pro-score-svg">
+                ${gridPolygons}
+                ${axisLines}
+                <polygon points="${dataPoints}" class="pro-score-data-polygon"/>
+                ${vertexDots}
+                ${labels}
+                ${hitTargets}
+            </svg>
+            <div class="pro-score-breakdown">${breakdownHtml}</div>
+        </div>`;
 
     scoreEl.textContent = overallScore.toFixed(2);
     if (markerEl) markerEl.style.left = `${Math.max(0, Math.min(100, overallScore))}%`;
@@ -223,6 +261,22 @@ function bindProScoreTooltip(container) {
         if (hit && hit !== toHit) {
             tooltip.style.display = 'none';
             const vertex = container.querySelector(`.pro-score-vertex[data-vertex-index="${hit.dataset.vertexIndex}"]`);
+            if (vertex) vertex.classList.remove('hovered');
+        }
+    });
+
+    // Breakdown rows <-> radar vertices hover sync
+    container.addEventListener('mouseover', event => {
+        const row = event.target.closest('.ps-break-row');
+        if (!row) return;
+        const vertex = container.querySelector(`.pro-score-vertex[data-vertex-index="${row.dataset.vertexIndex}"]`);
+        if (vertex) vertex.classList.add('hovered');
+    });
+    container.addEventListener('mouseout', event => {
+        const row = event.target.closest('.ps-break-row');
+        const toRow = event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('.ps-break-row');
+        if (row && row !== toRow) {
+            const vertex = container.querySelector(`.pro-score-vertex[data-vertex-index="${row.dataset.vertexIndex}"]`);
             if (vertex) vertex.classList.remove('hovered');
         }
     });
@@ -1074,7 +1128,14 @@ function bindStatsBarClicks(containerId, resolveRows) {
 
 function renderStatsDayOfWeekChart(closed) {
     const totals = new Array(7).fill(0);
-    closed.forEach(r => { totals[getWallClockWeekday(r.date)] += r.returnAmount; });
+    const counts = new Array(7).fill(0);
+    const winCounts = new Array(7).fill(0);
+    closed.forEach(r => {
+        const day = getWallClockWeekday(r.date);
+        totals[day] += r.returnAmount;
+        counts[day] += 1;
+        if (r.status === 'WIN') winCounts[day] += 1;
+    });
     const items = WEEKDAY_LABELS.map((label, i) => ({ label, value: totals[i] }));
     renderDivergingBarChart('stats-day-chart', items);
 
@@ -1082,6 +1143,43 @@ function renderStatsDayOfWeekChart(closed) {
         title: `${label}s`,
         rows: statsBucketRows.filter(r => WEEKDAY_LABELS[getWallClockWeekday(r.date)] === label)
     }));
+
+    // Insights strip under the chart - this panel is shorter than the hour
+    // chart beside it, so use the leftover space for the actual takeaways.
+    if (closed.length === 0) return;
+    const tradedDays = WEEKDAY_LABELS.map((_, i) => i).filter(i => counts[i] > 0);
+    if (tradedDays.length === 0) return;
+
+    const bestDay = tradedDays.slice().sort((a, b) => totals[b] - totals[a])[0];
+    const worstDay = tradedDays.slice().sort((a, b) => totals[a] - totals[b])[0];
+    const busiestDay = tradedDays.slice().sort((a, b) => counts[b] - counts[a])[0];
+    // Best win rate needs a meaningful sample - 3+ trades on that weekday
+    const rateDays = tradedDays.filter(i => counts[i] >= 3);
+    const bestRateDay = rateDays.slice().sort((a, b) => (winCounts[b] / counts[b]) - (winCounts[a] / counts[a]))[0];
+
+    const insights = [];
+    if (totals[bestDay] > 0) {
+        insights.push({ icon: 'fa-trophy', label: 'Best day', day: WEEKDAY_LABELS[bestDay], value: `<span class="value-positive sensitive-value">${formatTotal(totals[bestDay])}</span>` });
+    }
+    if (worstDay !== bestDay && totals[worstDay] < 0) {
+        insights.push({ icon: 'fa-cloud-rain', label: 'Toughest day', day: WEEKDAY_LABELS[worstDay], value: `<span class="value-negative sensitive-value">${formatTotal(totals[worstDay])}</span>` });
+    }
+    insights.push({ icon: 'fa-bolt', label: 'Most active', day: WEEKDAY_LABELS[busiestDay], value: `${counts[busiestDay]} trades` });
+    if (bestRateDay !== undefined) {
+        insights.push({ icon: 'fa-bullseye', label: 'Best win rate', day: WEEKDAY_LABELS[bestRateDay], value: `${Math.round(winCounts[bestRateDay] / counts[bestRateDay] * 100)}% of ${counts[bestRateDay]}` });
+    }
+
+    document.getElementById('stats-day-chart').insertAdjacentHTML('beforeend', `
+        <div class="day-insights">${insights.map(ins => `
+            <div class="day-insight">
+                <i class="fa-solid ${ins.icon}"></i>
+                <div class="day-insight-text">
+                    <span class="day-insight-label">${ins.label}</span>
+                    <span class="day-insight-day">${ins.day}</span>
+                </div>
+                <span class="day-insight-value">${ins.value}</span>
+            </div>`).join('')}
+        </div>`);
 }
 
 function formatHourLabel(hour) {
