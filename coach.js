@@ -312,6 +312,70 @@ function renderCoachPage() {
                 ${strengths.length} strength${strengths.length === 1 ? '' : 's'}, ${weaknesses.length} thing${weaknesses.length === 1 ? '' : 's'} to work on.
                 ${focus ? 'Your training focus is below.' : 'No major leaks found - keep doing what you\'re doing.'}</p>
             </div>
+            <div class="coach-bull" title="Stay golden. Stay bullish.">
+                <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="coach-bull-gold" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#f7dc94"/>
+                            <stop offset="45%" stop-color="#dfb15b"/>
+                            <stop offset="100%" stop-color="#9c6d1f"/>
+                        </linearGradient>
+                        <linearGradient id="coach-bull-horn" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#fdeebc"/>
+                            <stop offset="100%" stop-color="#d9a94e"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Charging body: head down at the left, shoulder hump,
+                         braced legs, side profile like the Wall Street bull -->
+                    <path fill="url(#coach-bull-gold)" d="
+                        M30 62
+                        C34 54 38 50 44 48
+                        C52 32 66 24 84 24
+                        C106 24 122 28 138 32
+                        C154 34 168 38 175 46
+                        C180 52 179 60 176 66
+                        C174 74 172 88 169 98
+                        C168 104 167 108 166 112
+                        L159 112
+                        C160 104 161 96 161 88
+                        C160 80 158 76 154 72
+                        C150 78 148 86 147 94
+                        C146 100 146 106 146 112
+                        L138 112
+                        C138 102 138 92 139 84
+                        C132 80 124 78 116 77
+                        C108 76 100 78 95 80
+                        C96 88 97 96 98 104
+                        C98 107 99 110 99 112
+                        L91 112
+                        C90 102 88 92 87 84
+                        C82 86 78 90 76 96
+                        C74 102 73 107 73 112
+                        L65 112
+                        C65 102 67 92 70 84
+                        C64 80 58 76 56 70
+                        C52 78 46 84 40 86
+                        C34 88 28 87 24 84
+                        C20 80 18 74 20 70
+                        C24 74 28 75 32 73
+                        C28 70 27 66 30 62 Z"/>
+                    <!-- Near horn: sweeping up and forward -->
+                    <path fill="url(#coach-bull-horn)" d="M44 50 C36 44 28 36 26 24 C34 30 44 38 50 44 C52 46 50 50 44 50 Z"/>
+                    <!-- Far horn peeking over the head -->
+                    <path fill="#c79a3f" d="M56 44 C52 36 50 28 52 20 C58 26 62 34 63 42 C61 45 58 45 56 44 Z"/>
+                    <!-- Ear -->
+                    <path fill="#c79a3f" d="M60 48 C64 45 69 45 72 48 C69 52 64 53 60 51 Z"/>
+                    <!-- Curled tail -->
+                    <path fill="none" stroke="url(#coach-bull-gold)" stroke-width="5" stroke-linecap="round" d="M175 50 C186 44 190 34 183 28 C177 24 170 28 172 35"/>
+                    <!-- Eye + nostril -->
+                    <circle cx="40" cy="62" r="2.6" fill="#14120d"/>
+                    <ellipse cx="27" cy="76" rx="2" ry="1.4" fill="#14120d"/>
+                    <!-- Muscle sheen on the shoulder -->
+                    <path fill="rgba(255,255,255,0.18)" d="M78 32 C90 28 104 28 114 31 C104 34 90 36 80 40 C76 38 75 35 78 32 Z"/>
+                    <!-- Ground shadow -->
+                    <ellipse cx="100" cy="114" rx="72" ry="4" fill="rgba(0,0,0,0.25)"/>
+                </svg>
+            </div>
         </div>
 
         <div class="coach-cols">
@@ -439,3 +503,16 @@ function abandonCoachGoal() {
         }
     });
 }
+
+// Easter egg: the bull stays still until you hover the sidebar's coffee
+// button - then it charges. (Delegated listeners so it works even though
+// the bull is re-rendered with the page.)
+document.addEventListener('mouseover', event => {
+    if (!event.target.closest || !event.target.closest('.sidebar-support-btn')) return;
+    document.querySelectorAll('.coach-bull').forEach(el => el.classList.add('charging'));
+});
+document.addEventListener('mouseout', event => {
+    if (!event.target.closest || !event.target.closest('.sidebar-support-btn')) return;
+    if (event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest('.sidebar-support-btn')) return;
+    document.querySelectorAll('.coach-bull').forEach(el => el.classList.remove('charging'));
+});

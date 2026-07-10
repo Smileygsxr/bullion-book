@@ -6398,3 +6398,55 @@ html[data-theme="blossom"] {
 .profile-avatar-fallback { font-size: 1.5rem; }
 .profile-name { font-size: 0.8rem; }
 .sidebar-profile-wrap { padding-bottom: 2px; }
+
+/* Coach mascot: the golden bull */
+.coach-bull {
+    margin-left: auto;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 4px 14px rgba(var(--accent-gold-rgb), 0.35));
+    animation: coach-bull-float 4s ease-in-out infinite;
+}
+
+.coach-bull svg { width: 100%; height: 100%; }
+
+@keyframes coach-bull-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@media (max-width: 700px) {
+    .coach-bull { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coach-bull { animation: none; }
+}
+
+/* Bull v2: full-body charging statue. Static by default - it only charges
+   while hovering the bull itself or the sidebar coffee button (see the
+   easter-egg listeners in coach.js). */
+.coach-bull {
+    width: 170px;
+    height: 102px;
+    animation: none;
+    transition: filter 0.2s ease;
+}
+
+.coach-bull:hover,
+.coach-bull.charging {
+    filter: drop-shadow(0 4px 20px rgba(var(--accent-gold-rgb), 0.65));
+    animation: coach-bull-charge 0.5s ease-in-out infinite;
+}
+
+@keyframes coach-bull-charge {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    25% { transform: translateX(-7px) rotate(-2.5deg); }
+    50% { transform: translateX(-2px) rotate(0.5deg); }
+    75% { transform: translateX(-9px) rotate(-3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coach-bull:hover, .coach-bull.charging { animation: none; }
+}
