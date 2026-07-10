@@ -1903,15 +1903,15 @@ date,time,name,actual,forecast,previous,importance
 2026-07-08,7:00pm,10-Year Note Auction,4.580,,4.538,high
 2026-07-08,8:00pm,FOMC Minutes,,,,moderate
 2026-07-08,9:00pm,Fed Consumer Credit m/m,-0.18,11.70,20.73,moderate
-2026-07-09,2:30pm,Initial Jobless Claims,,210,215,high
-2026-07-09,2:30pm,Continuing Jobless Claims,,1.831,1.814,moderate
-2026-07-09,2:30pm,Initial Jobless Claims 4-Week Average,,219.992,222.000,low
-2026-07-09,4:00pm,Existing Home Sales,,4.02,4.17,high
-2026-07-09,4:00pm,Existing Home Sales m/m,,0.4,3.2,moderate
-2026-07-09,4:30pm,EIA Natural Gas Storage Change,,62,87,low
-2026-07-09,5:30pm,4-Week Bill Auction,,,3.605,low
-2026-07-09,5:30pm,8-Week Bill Auction,,,3.650,low
-2026-07-09,7:00pm,30-Year Bond Auction,,,5.020,high
+2026-07-09,2:30pm,Initial Jobless Claims,215,210,215,high
+2026-07-09,2:30pm,Continuing Jobless Claims,1.814,1.831,1.814,moderate
+2026-07-09,2:30pm,Initial Jobless Claims 4-Week Average,218.750,219.992,222.000,low
+2026-07-09,4:00pm,Existing Home Sales,4.09,4.02,4.17,high
+2026-07-09,4:00pm,Existing Home Sales m/m,-2.4,0.4,3.2,moderate
+2026-07-09,4:30pm,EIA Natural Gas Storage Change,61,62,87,low
+2026-07-09,5:30pm,4-Week Bill Auction,3.630,,3.605,low
+2026-07-09,5:30pm,8-Week Bill Auction,3.635,,3.650,low
+2026-07-09,7:00pm,30-Year Bond Auction,5.058,,5.020,high
 2026-07-10,6:00pm,WASDE Report,,,,moderate
 2026-07-10,7:00pm,Baker Hughes US Oil Rig Count,,,445,moderate
 2026-07-10,7:00pm,Baker Hughes US Total Rig Count,,,580,moderate
@@ -1926,8 +1926,10 @@ date,time,name,actual,forecast,previous,importance
 2026-07-10,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,76.6,low
 2026-07-10,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-55.0,low
 2026-07-10,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,-7.6,moderate
+2026-07-13,11:25am,Fed Governor Bowman Speech,,,,moderate
 2026-07-13,5:30pm,3-Month Bill Auction,,,3.735,low
 2026-07-13,5:30pm,6-Month Bill Auction,,,3.830,low
+2026-07-13,6:30pm,Fed Governor Waller Speech,,,,moderate
 2026-07-13,8:00pm,Federal Budget Balance,,,,moderate
 2026-07-14,2:30pm,CPI m/m,,0.5,0.5,high
 2026-07-14,2:30pm,Core CPI m/m,,0.2,0.2,high
@@ -1942,6 +1944,10 @@ date,time,name,actual,forecast,previous,importance
 2026-07-14,2:30pm,Core CPI n.s.a.,,,336.846,low
 2026-07-14,5:00pm,Cleveland Fed Median CPI m/m,,0.2,0.3,low
 2026-07-14,6:00pm,NFIB Small Business Optimism,,98.6,95.3,low
+2026-07-14,6:40pm,Fed Vice Chair for Supervision Barr Speech,,,,moderate
+2026-07-14,6:55pm,Fed Vice Chair for Supervision Barr Speech,,,,moderate
+2026-07-14,7:30pm,Fed Governor Cook Speech,,,,moderate
+2026-07-14,8:55pm,Fed Governor Bowman Speech,,,,moderate
 2026-07-14,10:00pm,TIC Net Long-Term Transactions,,91.6,103.1,moderate
 2026-07-14,10:00pm,TIC Net Long-Term Transactions incl. Swaps,,184.4,103.1,low
 2026-07-14,10:00pm,TIC Overall Net Capital Flow,,187.7,26.1,low
@@ -1961,6 +1967,7 @@ date,time,name,actual,forecast,previous,importance
 2026-07-15,4:30pm,EIA Gasoline Stocks Change,,0.323,-1.904,low
 2026-07-15,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,-0.172,low
 2026-07-15,4:30pm,EIA Refinery Utilization Rate Change,,,-0.8,low
+2026-07-15,7:00pm,Fed Governor Cook Speech,,,,moderate
 2026-07-15,8:00pm,Fed Beige Book,,,,moderate
 2026-07-16,2:30pm,Retail Sales m/m,,-0.2,0.9,high
 2026-07-16,2:30pm,Core Retail Sales m/m,,0.6,0.8,high
@@ -1973,9 +1980,9 @@ date,time,name,actual,forecast,previous,importance
 2026-07-16,2:30pm,Philadelphia Fed Prices Paid,,47.2,53.2,low
 2026-07-16,2:30pm,Philadelphia Fed New Orders,,7.4,27.3,low
 2026-07-16,2:30pm,Philadelphia Fed Capex Index,,34.2,41.2,low
-2026-07-16,2:30pm,Initial Jobless Claims,,,,high
-2026-07-16,2:30pm,Continuing Jobless Claims,,,,moderate
-2026-07-16,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
+2026-07-16,2:30pm,Initial Jobless Claims,,222,215,high
+2026-07-16,2:30pm,Continuing Jobless Claims,,1.831,1.814,moderate
+2026-07-16,2:30pm,Initial Jobless Claims 4-Week Average,,214.870,218.750,low
 2026-07-16,4:00pm,Business Inventories m/m,,0.4,0.5,moderate
 2026-07-16,4:00pm,Retail Inventories m/m,,0.6,0.6,moderate
 2026-07-16,4:00pm,Retail Inventories excl. Autos m/m,,,0.4,moderate
@@ -1983,9 +1990,10 @@ date,time,name,actual,forecast,previous,importance
 2026-07-16,4:00pm,Pending Home Sales y/y,,3.5,4.8,low
 2026-07-16,4:00pm,Pending Home Sales Index,,,76.8,low
 2026-07-16,4:00pm,NAHB Housing Market Index,,35,35,low
-2026-07-16,4:30pm,EIA Natural Gas Storage Change,,,,low
-2026-07-16,5:30pm,4-Week Bill Auction,,,,low
-2026-07-16,5:30pm,8-Week Bill Auction,,,,low
+2026-07-16,4:30pm,EIA Natural Gas Storage Change,,49,61,low
+2026-07-16,5:30pm,4-Week Bill Auction,,,3.630,low
+2026-07-16,5:30pm,8-Week Bill Auction,,,3.635,low
+2026-07-17,1:00am,Fed Governor Jefferson Speech,,,,moderate
 2026-07-17,2:30pm,Housing Starts,,1.204,1.177,moderate
 2026-07-17,2:30pm,Building Permits,,1.391,1.413,moderate
 2026-07-17,2:30pm,Housing Starts m/m,,-3.8,-15.4,moderate
@@ -2210,8 +2218,8 @@ date,time,name,actual,forecast,previous,importance
 2026-08-10,4:00pm,CB Employment Trends Index,,106.34,106.69,low
 2026-08-10,5:30pm,3-Month Bill Auction,,,,low
 2026-08-10,5:30pm,6-Month Bill Auction,,,,low
-2026-08-11,4:00pm,Existing Home Sales,,,,high
-2026-08-11,4:00pm,Existing Home Sales m/m,,,,moderate
+2026-08-11,4:00pm,Existing Home Sales,,4.00,4.09,high
+2026-08-11,4:00pm,Existing Home Sales m/m,,-0.6,-2.4,moderate
 2026-08-11,6:00pm,EIA Short-Term Energy Outlook,,,,moderate
 2026-08-11,6:00pm,NFIB Small Business Optimism,,,,low
 2026-08-11,7:00pm,3-Year Note Auction,,,4.179,moderate
@@ -2249,7 +2257,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-13,4:30pm,EIA Natural Gas Storage Change,,,,low
 2026-08-13,5:30pm,4-Week Bill Auction,,,,low
 2026-08-13,5:30pm,8-Week Bill Auction,,,,low
-2026-08-13,7:00pm,30-Year Bond Auction,,,,high
+2026-08-13,7:00pm,30-Year Bond Auction,,,5.058,high
 2026-08-14,2:30pm,Retail Sales m/m,,,,high
 2026-08-14,2:30pm,Core Retail Sales m/m,,,,high
 2026-08-14,2:30pm,Retail Control m/m,,,,moderate
@@ -2495,6 +2503,7 @@ date,time,name,actual,forecast,previous,importance
 2026-09-10,4:00pm,Wholesale Sales m/m,,,,low
 2026-09-10,4:00pm,Existing Home Sales,,,,high
 2026-09-10,4:00pm,Existing Home Sales m/m,,,,moderate
+2026-09-10,4:30pm,EIA Natural Gas Storage Change,,,,low
 2026-09-10,5:30pm,4-Week Bill Auction,,,,low
 2026-09-10,5:30pm,8-Week Bill Auction,,,,low
 2026-09-10,6:00pm,EIA Crude Oil Stocks Change,,,,high
