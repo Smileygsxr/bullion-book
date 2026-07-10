@@ -5961,3 +5961,440 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     color: var(--text-muted);
     white-space: nowrap;
 }
+
+/* ==== Support widget v2: steaming, wiggling, heart-bursting coffee ==== */
+
+/* The button: gold-blue gradient, gentle idle bob, and a periodic
+   "hey, I'm here" wiggle every 8 seconds */
+.sidebar-support-btn {
+    position: relative;
+    overflow: visible;
+    background: linear-gradient(135deg, var(--accent-blue) 0%, #7c5cff 100%);
+    animation: support-wiggle 8s ease-in-out infinite;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sidebar-support-btn:hover {
+    transform: scale(1.18) rotate(-6deg);
+    box-shadow: 0 6px 22px rgba(var(--accent-blue-rgb), 0.65),
+                0 0 0 4px rgba(var(--accent-gold-rgb), 0.25);
+    animation-play-state: paused;
+}
+
+.sidebar-support-btn:active { transform: scale(1.05); }
+
+@keyframes support-wiggle {
+    0%, 88%, 100% { transform: rotate(0deg); }
+    90% { transform: rotate(-10deg) scale(1.06); }
+    92% { transform: rotate(9deg) scale(1.06); }
+    94% { transform: rotate(-6deg) scale(1.04); }
+    96% { transform: rotate(4deg) scale(1.02); }
+    98% { transform: rotate(0deg); }
+}
+
+/* Steam: three wisps forever rising off the mug */
+.support-steam {
+    position: absolute;
+    bottom: 78%;
+    width: 4px;
+    height: 12px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.75);
+    filter: blur(1.5px);
+    opacity: 0;
+    pointer-events: none;
+    animation: support-steam-rise 2.6s ease-out infinite;
+}
+
+.support-steam.steam-1 { left: 32%; animation-delay: 0s; }
+.support-steam.steam-2 { left: 50%; animation-delay: 0.9s; height: 15px; }
+.support-steam.steam-3 { left: 66%; animation-delay: 1.7s; }
+
+@keyframes support-steam-rise {
+    0% { opacity: 0; transform: translateY(4px) scaleY(0.6); }
+    25% { opacity: 0.85; }
+    100% { opacity: 0; transform: translateY(-16px) scaleY(1.3) translateX(3px); }
+}
+
+/* Hearts: burst upward when hovered */
+.support-heart {
+    position: absolute;
+    bottom: 60%;
+    font-size: 0.7rem;
+    color: var(--loss);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.support-heart.heart-1 { left: 12%; }
+.support-heart.heart-2 { right: 8%; font-size: 0.55rem; }
+
+.sidebar-support-btn:hover .support-heart.heart-1 {
+    animation: support-heart-float 0.9s ease-out infinite;
+}
+
+.sidebar-support-btn:hover .support-heart.heart-2 {
+    animation: support-heart-float 0.9s ease-out 0.35s infinite;
+}
+
+@keyframes support-heart-float {
+    0% { opacity: 0; transform: translateY(2px) scale(0.6); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-22px) scale(1.2) rotate(12deg); }
+}
+
+/* The card itself: warm glow that breathes, brighter on hover */
+.sidebar-support {
+    position: relative;
+    animation: support-glow 5s ease-in-out infinite;
+    transition: border-color 0.2s ease;
+}
+
+.sidebar-support:hover { border-color: rgba(var(--accent-gold-rgb), 0.55); }
+
+@keyframes support-glow {
+    0%, 100% { box-shadow: 0 0 0 rgba(var(--accent-gold-rgb), 0); }
+    50% { box-shadow: 0 0 14px rgba(var(--accent-gold-rgb), 0.14); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-support-btn, .sidebar-support { animation: none; }
+    .support-steam, .support-heart { display: none; }
+}
+
+/* ==== Light theme ======================================================
+   Palette override plus a fixup layer: the app was built dark-first, so a
+   handful of rules hardcode white text (invisible on white) or use
+   white-alpha hover washes / tracks (invisible on light backgrounds).
+   Everything here is scoped to html[data-theme="light"], and chart
+   canvases deliberately STAY dark - like TradingView's light UI. */
+html[data-theme="light"] {
+    --bg-body: #eef1f6;
+    --bg-dark: #f6f8fb;
+    --bg-card: #ffffff;
+    --bg-chart: #0f1220;
+    --border-color: #dde3ec;
+    --text-muted: #64748b;
+    --text-light: #1e293b;
+    --accent-blue: #2563eb;
+    --accent-blue-rgb: 37, 99, 235;
+    --accent-gold: #a87f24;
+    --accent-gold-rgb: 168, 127, 36;
+    --win: #059669;
+    --win-rgb: 5, 150, 105;
+    --loss: #dc2626;
+    --loss-rgb: 220, 38, 38;
+}
+
+/* -- White text that sat on theme backgrounds -- */
+html.light-base .brand h1,
+html.light-base .text-white,
+html.light-base .stats-metric-value,
+html.light-base .pro-score-value,
+html.light-base .trade-view-symbol,
+html.light-base .help-hero h1,
+html.light-base .help-section-header h2,
+html.light-base .nav-link:hover,
+html.light-base .btn-edit:hover,
+html.light-base .trade-row-menu-btn:hover,
+html.light-base .news-tab.active,
+html.light-base .modal-close-btn:hover,
+html.light-base .note-editor-toolbar button:hover,
+html.light-base .ps-break-val,
+html.light-base .journal-brand span {
+    color: var(--text-light);
+}
+
+/* -- White-alpha hover washes become dark washes -- */
+html.light-base .nav-link:hover { background-color: rgba(0, 0, 0, 0.05); }
+html.light-base .btn-edit:hover { background-color: rgba(0, 0, 0, 0.07); }
+html.light-base .sidebar-profile { background: rgba(0, 0, 0, 0.02); }
+html.light-base .sidebar-profile:hover,
+html.light-base .review-trade-line.clickable:hover,
+html.light-base .review-week-cell:hover,
+html.light-base .cw-react-btn:hover,
+html.light-base .review-day-row.clickable .review-day-head:hover { background: rgba(0, 0, 0, 0.05); }
+html.light-base .cw-react-btn { background: rgba(0, 0, 0, 0.04); }
+
+/* -- Tracks, grids and empty cells drawn with white-alpha -- */
+html.light-base .ps-break-track,
+html.light-base .tt-milestone-track,
+html.light-base .review-day-minibar,
+html.light-base .stats-heatmap-cell.empty { background: rgba(0, 0, 0, 0.06); }
+
+html.light-base .pro-score-grid-ring { stroke: rgba(0, 0, 0, 0.1); }
+html.light-base .pro-score-axis-line { stroke: rgba(0, 0, 0, 0.14); }
+html.light-base .review-week-bar-track::after { border-top-color: rgba(0, 0, 0, 0.15); }
+html.light-base .stats-bar-half { background: rgba(0, 0, 0, 0.035); }
+html.light-base .stats-heatmap-cell:not(.empty):hover { outline-color: rgba(0, 0, 0, 0.4); }
+
+/* -- Scrollbars -- */
+html.light-base .view-section::-webkit-scrollbar-thumb,
+html.light-base .news-content-area::-webkit-scrollbar-thumb,
+html.light-base .sidebar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.22); }
+html.light-base .view-section::-webkit-scrollbar-thumb:hover,
+html.light-base .news-content-area::-webkit-scrollbar-thumb:hover,
+html.light-base .sidebar::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.35); }
+
+/* Cards cast a real shadow on light backgrounds for depth */
+html.light-base .stats-panel,
+html.light-base .review-tile,
+html.light-base .cw-card,
+html.light-base .account-box {
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+/* ==== Neon: near-black with hot pink + violet accents ==== */
+html[data-theme="neon"] {
+    --bg-body: #0f0c13;
+    --bg-dark: #0a080e;
+    --bg-card: #181321;
+    --bg-chart: #0b0910;
+    --border-color: #332544;
+    --text-muted: #9b8ba8;
+    --text-light: #eee6f5;
+    --accent-blue: #f43f8e;
+    --accent-blue-rgb: 244, 63, 142;
+    --accent-gold: #c77dff;
+    --accent-gold-rgb: 199, 125, 255;
+}
+
+/* ==== Blossom: soft pink light theme (shares the light-base fixups) ==== */
+html[data-theme="blossom"] {
+    --bg-body: #fdf1f5;
+    --bg-dark: #fbe9f0;
+    --bg-card: #ffffff;
+    --bg-chart: #0f1220;
+    --border-color: #f2d7e2;
+    --text-muted: #9d7186;
+    --text-light: #43222f;
+    --accent-blue: #e0447c;
+    --accent-blue-rgb: 224, 68, 124;
+    --accent-gold: #b3688c;
+    --accent-gold-rgb: 179, 104, 140;
+    --win: #059669;
+    --win-rgb: 5, 150, 105;
+    --loss: #dc2626;
+    --loss-rgb: 220, 38, 38;
+}
+
+/* ==== Coach page ==== */
+#coach-content { display: flex; flex-direction: column; gap: 16px; }
+
+.coach-hero {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px 24px;
+    flex-wrap: wrap;
+}
+
+.coach-fitness {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 130px;
+}
+
+.coach-fitness-num {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+    color: currentColor;
+}
+
+.coach-fitness-label {
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
+.coach-fitness-word {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: currentColor;
+}
+
+.coach-hero-text { flex: 1; min-width: 240px; }
+
+.coach-hero-text h2 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.coach-hero-text h2 i { color: var(--accent-gold); }
+
+.coach-hero-text p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.coach-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .coach-cols { grid-template-columns: 1fr; }
+}
+
+.coach-title-icon.win { color: var(--win); margin-right: 6px; }
+.coach-title-icon.loss { color: var(--loss); margin-right: 6px; }
+.coach-title-icon.gold { color: var(--accent-gold); margin-right: 6px; }
+
+.coach-finding {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-dark);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.coach-finding:hover { transform: translateX(3px); }
+.coach-finding.strength { border-left: 3px solid var(--win); }
+.coach-finding.weakness { border-left: 3px solid var(--loss); }
+
+.coach-finding > i {
+    width: 18px;
+    text-align: center;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.coach-finding.strength > i { color: var(--win); }
+.coach-finding.weakness > i { color: var(--loss); }
+
+.coach-finding-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.coach-finding-title { font-size: 0.86rem; font-weight: 700; }
+.coach-finding-detail { color: var(--text-muted); font-size: 0.76rem; line-height: 1.5; }
+
+/* Goal panel */
+.coach-goal-panel { border: 1px solid rgba(var(--accent-gold-rgb), 0.35); }
+.coach-goal-suggested { background: linear-gradient(180deg, rgba(var(--accent-gold-rgb), 0.05), transparent 60%), var(--bg-card); }
+
+.coach-goal-title { margin: 4px 0 6px; font-size: 1.1rem; }
+.coach-goal-why { margin: 0 0 10px; color: var(--text-muted); font-size: 0.82rem; line-height: 1.5; }
+
+.coach-goal-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: rgba(var(--accent-gold-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-gold-rgb), 0.4);
+    color: var(--accent-gold);
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.coach-goal-progress { margin-bottom: 14px; }
+
+.coach-goal-progress-track {
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(var(--accent-gold-rgb), 0.12);
+    overflow: hidden;
+}
+
+.coach-goal-progress-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.6), var(--accent-gold));
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.coach-goal-progress-label {
+    display: block;
+    margin-top: 6px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.coach-steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+.coach-step {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+.coach-step.preview { cursor: default; }
+.coach-step.preview i { color: var(--accent-gold); font-size: 0.75rem; }
+
+.coach-step input[type="checkbox"] { accent-color: var(--accent-gold); cursor: pointer; }
+.coach-step.done span { text-decoration: line-through; color: var(--text-muted); }
+
+.coach-goal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.coach-goal-accept, .coach-goal-complete { color: var(--accent-gold) !important; border-color: rgba(var(--accent-gold-rgb), 0.5) !important; }
+.coach-goal-abandon:hover { color: var(--loss) !important; }
+
+/* ==== Sidebar: compact pass ============================================
+   With 9 nav items plus the coach/community additions, the sidebar
+   outgrew a typical laptop viewport. Everything shrinks a notch so the
+   whole column fits without scrolling on ~768px-tall screens. */
+.sidebar {
+    gap: 8px;
+    padding: 12px 14px;
+}
+
+.brand h1 { font-size: 1rem; }
+.logo-mark.brand-icon { width: 1.55em; height: 1.55em; }
+
+.sidebar-toolbar { margin-bottom: -4px; }
+
+.account-switcher-label { font-size: 0.6rem; }
+.account-switcher-select { padding: 4px 8px; font-size: 0.74rem; }
+
+.account-box { padding: 8px 10px; }
+.account-title { font-size: 0.62rem; }
+.transaction-summary { font-size: 0.78rem; }
+
+.sidebar-section-label { font-size: 0.56rem; margin-bottom: -4px; }
+
+.nav-menu { gap: 2px; font-size: 0.82rem; }
+.nav-link { padding: 6px 8px 6px 12px; }
+.nav-link:hover { padding-left: 15px; }
+.nav-link i { font-size: 0.85rem; width: 16px; }
+
+.sidebar-actions .btn-action,
+.sidebar-profile-menu .btn-action {
+    padding: 7px 12px;
+    font-size: 0.76rem;
+}
+
+.sidebar-actions .btn-blue,
+.sidebar-actions .btn-gold { margin-top: 4px; }
+
+.sidebar-support { padding: 8px; gap: 6px; }
+.sidebar-support-text { font-size: 0.64rem; line-height: 1.4; }
+.sidebar-support-btn { width: 34px; height: 34px; font-size: 0.85rem; }
+
+.sidebar-profile { padding: 6px 8px; }
+.profile-avatar, .sidebar-profile img { width: 26px; height: 26px; }
+.profile-avatar-fallback { font-size: 1.5rem; }
+.profile-name { font-size: 0.8rem; }
+.sidebar-profile-wrap { padding-bottom: 2px; }

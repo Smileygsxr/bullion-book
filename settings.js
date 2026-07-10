@@ -80,13 +80,20 @@ document.addEventListener('keydown', e => {
 // if they drift; they're just the thumbnail.
 const THEMES = [
     { id: 'slate', label: 'Slate', preview: { bg: '#171b26', card: '#1c2030', accent: '#2979ff', gold: '#dfb15b' } },
+    { id: 'light', label: 'Light', preview: { bg: '#eef1f6', card: '#ffffff', accent: '#2563eb', gold: '#a87f24' } },
     { id: 'midnight', label: 'Midnight', preview: { bg: '#0d1117', card: '#151b26', accent: '#4d9fff', gold: '#dfb15b' } },
     { id: 'ocean', label: 'Ocean', preview: { bg: '#0e1a20', card: '#132630', accent: '#26b8cf', gold: '#e8c06a' } },
     { id: 'forest', label: 'Forest', preview: { bg: '#111a14', card: '#17251c', accent: '#43b97a', gold: '#d8c06c' } },
     { id: 'amethyst', label: 'Amethyst', preview: { bg: '#151223', card: '#1e1a32', accent: '#9d6bff', gold: '#e5b566' } },
     { id: 'ember', label: 'Ember', preview: { bg: '#1a1412', card: '#251c18', accent: '#ff8a3d', gold: '#f0b45c' } },
-    { id: 'bullion', label: 'Bullion', preview: { bg: '#14120d', card: '#1e1a12', accent: '#dfb15b', gold: '#dfb15b' } }
+    { id: 'bullion', label: 'Bullion', preview: { bg: '#14120d', card: '#1e1a12', accent: '#dfb15b', gold: '#dfb15b' } },
+    { id: 'neon', label: 'Neon', preview: { bg: '#0f0c13', card: '#181321', accent: '#f43f8e', gold: '#c77dff' } },
+    { id: 'blossom', label: 'Blossom', preview: { bg: '#fdf1f5', card: '#ffffff', accent: '#e0447c', gold: '#b3688c' } }
 ];
+
+// Light-family themes share the "dark-first CSS fixups" layer (white text ->
+// dark text, white-alpha washes -> dark-alpha) via the html.light-base class.
+const LIGHT_BASE_THEMES = ['light', 'blossom'];
 
 // Sets the palette on <html> and mirrors it into localStorage so the inline
 // pre-paint script in index.html's <head> can re-apply it instantly on the
@@ -98,6 +105,7 @@ function applyTheme(themeId) {
     } else {
         document.documentElement.setAttribute('data-theme', valid);
     }
+    document.documentElement.classList.toggle('light-base', LIGHT_BASE_THEMES.includes(valid));
     try { localStorage.setItem('bb_theme', valid); } catch (e) { /* ignore */ }
 }
 

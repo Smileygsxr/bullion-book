@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=49">
+    <link rel="stylesheet" href="styles.css?v=54">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
         try {
             var bbTheme = localStorage.getItem('bb_theme');
             if (bbTheme && bbTheme !== 'slate') document.documentElement.setAttribute('data-theme', bbTheme);
+            if (bbTheme === 'light' || bbTheme === 'blossom') document.documentElement.classList.add('light-base');
             // Sidebar mode before first paint: hamburger drawer unless the user
             // opted into the fixed sidebar - and always a drawer on small screens.
             var bbSidebar = localStorage.getItem('bb_sidebar_mode') || 'hamburger';
@@ -86,6 +87,7 @@
             <a href="#" class="nav-link" onclick="showPage('page-stats', this)"><i class="fa-solid fa-chart-simple"></i> Stats</a>
             <a href="#" class="nav-link" onclick="showPage('page-calendar', this)"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
             <a href="#" class="nav-link" onclick="showPage('page-review', this)"><i class="fa-solid fa-clipboard-check"></i> Weekly Review</a>
+            <a href="#" class="nav-link" onclick="showPage('page-coach', this)"><i class="fa-solid fa-dumbbell"></i> Coach</a>
             <a href="#" class="nav-link" onclick="showPage('page-community', this)"><i class="fa-solid fa-users"></i> Community</a>
             <a href="#" class="nav-link" onclick="showPage('page-news', this)"><i class="fa-solid fa-newspaper"></i> News</a>
             <a href="#" class="nav-link" onclick="showPage('page-settings', this)"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -105,10 +107,14 @@
              any amount; membership = R50/month subscription plan). -->
         <div class="sidebar-support">
             <p class="sidebar-support-text">
-                <i class="fa-solid fa-mug-hot"></i>
-                Support this free platform with a <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener">donation</a> or <a href="https://paystack.shop/pay/tq-43ywfcz" target="_blank" rel="noopener">membership</a>.
+                Enjoying Bullion Book? Keep it free with a <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener">donation</a> or <a href="https://paystack.shop/pay/tq-43ywfcz" target="_blank" rel="noopener">membership</a>.
             </p>
-            <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener" class="sidebar-support-btn" title="Support this project with a donation">
+            <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener" class="sidebar-support-btn" title="Buy me a coffee - every bit keeps the platform free!">
+                <span class="support-steam steam-1"></span>
+                <span class="support-steam steam-2"></span>
+                <span class="support-steam steam-3"></span>
+                <span class="support-heart heart-1">&hearts;</span>
+                <span class="support-heart heart-2">&hearts;</span>
                 <i class="fa-solid fa-mug-hot"></i>
             </a>
         </div>
@@ -454,6 +460,13 @@
                 <button class="news-tab" id="review-this-week-btn" onclick="resetReviewWeek()">This Week</button>
             </div>
             <div id="review-content"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- COACH PAGE VIEW (Hidden by Default) -->
+        <!-- ========================================== -->
+        <div id="page-coach" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+            <div id="coach-content"></div>
         </div>
 
         <!-- ========================================== -->
@@ -1557,7 +1570,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-palette"></i>
                         <h3>Appearance</h3>
-                        <p>Pick from 7 color themes - Slate, Midnight, Ocean, Forest, Amethyst, Ember and Bullion (black &amp; gold) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger.</p>
+                        <p>Pick from 10 color themes - Slate, Light, Midnight, Ocean, Forest, Amethyst, Ember, Bullion (black &amp; gold), Neon (black &amp; pink) and Blossom (soft pink) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
@@ -2178,6 +2191,7 @@
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
+    <script src="coach.js?v=1"></script>
     <script src="app.js?v=22"></script>
 
 </body>

@@ -238,6 +238,9 @@ function showPage(pageId, clickedElement) {
     if (pageId === 'page-community') {
         window.setTimeout(function () { renderCommunityPage(); }, 50);
     }
+    if (pageId === 'page-coach') {
+        window.setTimeout(function () { renderCoachPage(); }, 50);
+    }
     if (pageId === 'page-settings') {
         window.setTimeout(function () { renderSettingsPage(); }, 50);
     }
