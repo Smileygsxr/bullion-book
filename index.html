@@ -103,14 +103,14 @@
             </button>
         </div>
 
-        <!-- Support widget - opens the donate modal (PayFast form handoff,
-             donor picks their own amount). Membership still points at the
-             fixed R50 Pay Now link until recurring billing/Patreon exists. -->
+        <!-- Support widget - Ko-fi (PayPal-backed: works for SA creators,
+             donors pick their own amount on Ko-fi's page). Swap the
+             membership href to the Patreon page once it exists. -->
         <div class="sidebar-support">
             <p class="sidebar-support-text">
-                Enjoying Bullion Book? Keep it free with a <a href="#" onclick="openDonateModal('once'); return false;">donation</a> or <a href="#" onclick="openDonateModal('monthly'); return false;">membership</a>.
+                Enjoying Bullion Book? Keep it free with a <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener">donation</a> or <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener">membership</a>.
             </p>
-            <a href="#" onclick="openDonateModal(); return false;" class="sidebar-support-btn" title="Buy me a coffee - every bit keeps the platform free!">
+            <a href="https://ko-fi.com/smileygsxr" target="_blank" rel="noopener" class="sidebar-support-btn" title="Buy me a coffee - every bit keeps the platform free!">
                 <span class="support-steam steam-1"></span>
                 <span class="support-steam steam-2"></span>
                 <span class="support-steam steam-3"></span>
@@ -1701,7 +1701,7 @@
                     </details>
                     <details class="help-faq-item">
                         <summary>How do I cancel my monthly membership?</summary>
-                        <p>Any time, two ways: use the manage/cancel link in the subscription confirmation email PayFast sent you when you joined, or email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you subscribed with and it will be cancelled from our side. Cancelling never removes access - every Bullion Book feature stays free.</p>
+                        <p>Any time, two ways: cancel from your account page on the platform where you subscribed (Ko-fi/PayPal subscriptions have a cancel option), or email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you subscribed with and it will be cancelled from our side. Cancelling never removes access - every Bullion Book feature stays free.</p>
                     </details>
                     <details class="help-faq-item">
                         <summary>Does it work on my phone?</summary>
@@ -1740,22 +1740,22 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-hand-holding-heart"></i>
                         <h3>Donating</h3>
-                        <p>Click the coffee cup (or "donation") in the sidebar, pick a preset amount or type your own (min R5), and you're handed to PayFast's secure payment page. Cards work worldwide - international donors are simply charged in ZAR and their bank converts.</p>
+                        <p>Click the coffee cup (or "donation") in the sidebar to open the Ko-fi support page, where you choose any amount. Pay with PayPal or a card via PayPal's guest checkout - it works from anywhere in the world.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-arrows-rotate"></i>
                         <h3>Monthly Membership</h3>
-                        <p>Same popup, switch to the <strong>Monthly</strong> tab: the amount you pick becomes a recurring monthly contribution, billed automatically by PayFast until you cancel. Memberships fund hosting and daily chart-data imports.</p>
+                        <p>Recurring monthly support keeps the servers on and the daily chart-data imports running. Use the "membership" link in the sidebar for the current membership option.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-ban"></i>
                         <h3>Cancelling a Membership</h3>
-                        <p>Cancel any time, two ways: use the subscription management/cancel link in the confirmation email PayFast sent when you subscribed - or simply email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you used and it'll be cancelled from our side. No questions, no hoops; you keep full access either way, since every feature is free.</p>
+                        <p>Cancel any time from the platform where you subscribed (your Ko-fi/membership account page has a cancel option on the subscription), or email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you used and it'll be sorted from our side. You keep full access either way - every feature is free.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-lock"></i>
                         <h3>Payment Security</h3>
-                        <p>All payments happen on PayFast's secure page (a major South African payment processor) - card details never touch Bullion Book's servers. You'll receive an email receipt from PayFast for every charge.</p>
+                        <p>All payments happen on Ko-fi/PayPal's secure pages - card details never touch Bullion Book's servers. You'll receive an email receipt for every payment.</p>
                     </div>
                 </div>
             </section>
@@ -1780,7 +1780,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-mug-hot"></i>
                         <h3>Support This Platform</h3>
-                        <p>Bullion Book is free to use. If it's helped your trading, the coffee cup near the bottom of the sidebar opens the donate popup - one-time or monthly, any amount, via PayFast. See the Donations &amp; Membership section above for details.</p>
+                        <p>Bullion Book is free to use. If it's helped your trading, the coffee cup near the bottom of the sidebar opens the Ko-fi support page - any amount helps. See the Donations &amp; Membership section above for details.</p>
                     </div>
                 </div>
             </section>
@@ -1841,40 +1841,6 @@
             <div class="confirm-modal-actions">
                 <button class="btn-action btn-danger" onclick="closeGenericConfirmModal()">Cancel</button>
                 <button class="btn-action btn-blue" id="generic-confirm-modal-confirm-btn" onclick="runGenericConfirmModalAction()">Yes, continue</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Donate modal - donor picks an amount, then hands off to PayFast's
-         secure payment page (plain form integration; merchant_id/key are
-         public identifiers, same idea as the Firebase config). -->
-    <div id="donate-modal-overlay" class="modal-overlay" style="display: none;">
-        <div class="modal-card donate-modal-card">
-            <div class="modal-card-header">
-                <span><i class="fa-solid fa-mug-hot" style="color: var(--accent-gold);"></i> Support Bullion Book</span>
-                <button class="modal-close-btn" onclick="closeDonateModal()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="modal-card-body">
-                <p class="donate-modal-lead">Bullion Book is free and runs on support from traders like you. Pick an amount - every rand keeps the servers on and the features coming.</p>
-                <div class="donate-mode-toggle">
-                    <button type="button" class="donate-mode-btn active" data-mode="once" onclick="setDonateMode('once', this)"><i class="fa-solid fa-hand-holding-heart"></i> One-time</button>
-                    <button type="button" class="donate-mode-btn" data-mode="monthly" onclick="setDonateMode('monthly', this)"><i class="fa-solid fa-arrows-rotate"></i> Monthly</button>
-                </div>
-                <div class="donate-presets">
-                    <button type="button" class="donate-preset" onclick="setDonateAmount(25, this)">R25</button>
-                    <button type="button" class="donate-preset active" onclick="setDonateAmount(50, this)">R50</button>
-                    <button type="button" class="donate-preset" onclick="setDonateAmount(100, this)">R100</button>
-                    <button type="button" class="donate-preset" onclick="setDonateAmount(250, this)">R250</button>
-                </div>
-                <div class="donate-custom-row">
-                    <label class="modal-label" for="donate-custom-amount">Or your own amount (min R5)</label>
-                    <div class="donate-custom-input-wrap">
-                        <span>R</span>
-                        <input type="number" id="donate-custom-amount" class="modal-input" min="5" step="1" value="50" oninput="clearDonatePresets()">
-                    </div>
-                </div>
-                <button type="button" class="btn-action btn-gold donate-submit-btn" id="donate-submit-btn" onclick="submitDonation()"><i class="fa-solid fa-heart"></i> Donate securely via PayFast</button>
-                <p class="donate-modal-note"><i class="fa-solid fa-lock"></i> Payment happens on PayFast's secure page - cards, Instant EFT, SnapScan &amp; more. International cards welcome. Monthly memberships can be cancelled any time.</p>
             </div>
         </div>
     </div>
@@ -2317,7 +2283,7 @@
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
-    <script src="app.js?v=29"></script>
+    <script src="app.js?v=30"></script>
 
 </body>
 </html>
