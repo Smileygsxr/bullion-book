@@ -184,6 +184,95 @@ function filterEventTabs(query) {
     });
 }
 
+// ---- Donate modal (PayFast handoff, donor-chosen amount) ----
+// Amounts are signed server-side by /api/payfast-sign (PayFast requires an
+// MD5 signature computed with the account's secret passphrase, which must
+// never reach the browser), then submitted to PayFast's payment page.
+let donateMode = 'once';
+
+function openDonateModal(mode) {
+    donateMode = mode === 'monthly' ? 'monthly' : 'once';
+    document.querySelectorAll('.donate-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === donateMode));
+    const overlay = document.getElementById('donate-modal-overlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function closeDonateModal() {
+    const overlay = document.getElementById('donate-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function setDonateMode(mode, btn) {
+    donateMode = mode;
+    document.querySelectorAll('.donate-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+}
+
+function setDonateAmount(amount, btn) {
+    const input = document.getElementById('donate-custom-amount');
+    if (input) input.value = amount;
+    document.querySelectorAll('.donate-preset').forEach(b => b.classList.toggle('active', b === btn));
+}
+
+function clearDonatePresets() {
+    document.querySelectorAll('.donate-preset').forEach(b => b.classList.remove('active'));
+}
+
+function submitDonation() {
+    const input = document.getElementById('donate-custom-amount');
+    const submitBtn = document.getElementById('donate-submit-btn');
+    const amount = parseFloat(input && input.value);
+    if (isNaN(amount) || amount < 5) {
+        if (typeof communityToast === 'function') communityToast('Minimum amount is R5.', true);
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing secure payment...';
+    }
+
+    fetch('/api/payfast-sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, monthly: donateMode === 'monthly' })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (!data || !data.fields) throw new Error((data && data.error) || 'Signing failed');
+
+            // Build and submit a real form so the browser navigates to
+            // PayFast's page in a new tab with the signed fields
+            const form = document.createElement('form');
+            form.action = data.action;
+            form.method = 'post';
+            form.target = '_blank';
+            Object.keys(data.fields).forEach(name => {
+                const field = document.createElement('input');
+                field.type = 'hidden';
+                field.name = name;
+                field.value = data.fields[name];
+                form.appendChild(field);
+            });
+            document.body.appendChild(form);
+            form.submit();
+            form.remove();
+            closeDonateModal();
+        })
+        .catch(err => {
+            console.error('Donate error:', err);
+            // Fallback: the fixed-amount hosted PayFast link still works even
+            // if the signing function is misconfigured
+            window.open('https://payf.st/31zqj', '_blank', 'noopener');
+            closeDonateModal();
+        })
+        .finally(() => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-heart"></i> Donate securely via PayFast';
+            }
+        });
+}
+
 function toggleNewsInfoPanel() {
     const panel = document.getElementById('news-info-panel');
     const toggleBtn = document.getElementById('news-info-toggle');

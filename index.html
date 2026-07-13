@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=56">
+    <link rel="stylesheet" href="styles.css?v=58">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -103,13 +103,14 @@
             </button>
         </div>
 
-        <!-- Support widget - Paystack payment pages (donations = one-time,
-             any amount; membership = R50/month subscription plan). -->
+        <!-- Support widget - opens the donate modal (PayFast form handoff,
+             donor picks their own amount). Membership still points at the
+             fixed R50 Pay Now link until recurring billing/Patreon exists. -->
         <div class="sidebar-support">
             <p class="sidebar-support-text">
-                Enjoying Bullion Book? Keep it free with a <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener">donation</a> or <a href="https://paystack.shop/pay/tq-43ywfcz" target="_blank" rel="noopener">membership</a>.
+                Enjoying Bullion Book? Keep it free with a <a href="#" onclick="openDonateModal('once'); return false;">donation</a> or <a href="#" onclick="openDonateModal('monthly'); return false;">membership</a>.
             </p>
-            <a href="https://paystack.shop/pay/bullion-book" target="_blank" rel="noopener" class="sidebar-support-btn" title="Buy me a coffee - every bit keeps the platform free!">
+            <a href="#" onclick="openDonateModal(); return false;" class="sidebar-support-btn" title="Buy me a coffee - every bit keeps the platform free!">
                 <span class="support-steam steam-1"></span>
                 <span class="support-steam steam-2"></span>
                 <span class="support-steam steam-3"></span>
@@ -1767,6 +1768,40 @@
         </div>
     </div>
 
+    <!-- Donate modal - donor picks an amount, then hands off to PayFast's
+         secure payment page (plain form integration; merchant_id/key are
+         public identifiers, same idea as the Firebase config). -->
+    <div id="donate-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card donate-modal-card">
+            <div class="modal-card-header">
+                <span><i class="fa-solid fa-mug-hot" style="color: var(--accent-gold);"></i> Support Bullion Book</span>
+                <button class="modal-close-btn" onclick="closeDonateModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-card-body">
+                <p class="donate-modal-lead">Bullion Book is free and runs on support from traders like you. Pick an amount - every rand keeps the servers on and the features coming.</p>
+                <div class="donate-mode-toggle">
+                    <button type="button" class="donate-mode-btn active" data-mode="once" onclick="setDonateMode('once', this)"><i class="fa-solid fa-hand-holding-heart"></i> One-time</button>
+                    <button type="button" class="donate-mode-btn" data-mode="monthly" onclick="setDonateMode('monthly', this)"><i class="fa-solid fa-arrows-rotate"></i> Monthly</button>
+                </div>
+                <div class="donate-presets">
+                    <button type="button" class="donate-preset" onclick="setDonateAmount(25, this)">R25</button>
+                    <button type="button" class="donate-preset active" onclick="setDonateAmount(50, this)">R50</button>
+                    <button type="button" class="donate-preset" onclick="setDonateAmount(100, this)">R100</button>
+                    <button type="button" class="donate-preset" onclick="setDonateAmount(250, this)">R250</button>
+                </div>
+                <div class="donate-custom-row">
+                    <label class="modal-label" for="donate-custom-amount">Or your own amount (min R5)</label>
+                    <div class="donate-custom-input-wrap">
+                        <span>R</span>
+                        <input type="number" id="donate-custom-amount" class="modal-input" min="5" step="1" value="50" oninput="clearDonatePresets()">
+                    </div>
+                </div>
+                <button type="button" class="btn-action btn-gold donate-submit-btn" id="donate-submit-btn" onclick="submitDonation()"><i class="fa-solid fa-heart"></i> Donate securely via PayFast</button>
+                <p class="donate-modal-note"><i class="fa-solid fa-lock"></i> Payment happens on PayFast's secure page - cards, Instant EFT, SnapScan &amp; more. International cards welcome. Monthly memberships can be cancelled any time.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- New Trade Modal -->
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
         <div class="modal-card trade-modal-card">
@@ -2192,7 +2227,7 @@
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=3"></script>
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=24"></script>
 
 </body>
 </html>
