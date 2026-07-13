@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=58">
+    <link rel="stylesheet" href="styles.css?v=60">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -1009,8 +1009,10 @@
                 <a href="#help-notes" class="help-quicklink"><i class="fa-solid fa-bookmark"></i> Day Notes</a>
                 <a href="#help-calendar" class="help-quicklink"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
                 <a href="#help-review" class="help-quicklink"><i class="fa-solid fa-clipboard-check"></i> Weekly Review</a>
+                <a href="#help-coach" class="help-quicklink"><i class="fa-solid fa-dumbbell"></i> Coach</a>
                 <a href="#help-community" class="help-quicklink"><i class="fa-solid fa-users"></i> Community</a>
                 <a href="#help-stats" class="help-quicklink"><i class="fa-solid fa-chart-simple"></i> Stats</a>
+                <a href="#help-support" class="help-quicklink"><i class="fa-solid fa-mug-hot"></i> Donations & Membership</a>
                 <a href="#help-news" class="help-quicklink"><i class="fa-solid fa-newspaper"></i> News & Charts</a>
                 <a href="#help-charttools" class="help-quicklink"><i class="fa-solid fa-pen-ruler"></i> Chart Tools</a>
                 <a href="#help-settings" class="help-quicklink"><i class="fa-solid fa-gear"></i> Settings</a>
@@ -1368,6 +1370,42 @@
                 </div>
             </section>
 
+            <!-- Coach -->
+            <section class="help-section" id="help-coach">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-dumbbell"></i>
+                    <h2>Coach</h2>
+                </div>
+                <p class="help-section-note">Your personal trainer for trading: it studies ALL of the active account's trades (at least 10 closed trades needed) and turns them into strengths, weak points and a training plan.</p>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                        <h3>Trader Fitness</h3>
+                        <p>A 0-100 headline score: 65% performance (win rate, profit factor, drawdowns, consistency) + 35% discipline (stop-loss usage, tagging rate, guardrails set). Discipline counts because it's what keeps performance repeatable.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        <h3>Strengths &amp; Weak Points</h3>
+                        <p>13 behavioural checks, including ones no other page shows: do you hold losers longer than winners, do trades taken within 30 minutes of a loss underperform (revenge trading), and do your heaviest trading days actually lose money (overtrading).</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                        <h3>Goals</h3>
+                        <p>The coach turns your #1 weak point into a measurable goal (e.g. "stop-loss on 100% of your next 20 trades") with concrete steps. Accept it and a progress bar tracks trades since acceptance; tick off steps as you go - it all saves to your account.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-trophy"></i>
+                        <h3>Completing a Goal</h3>
+                        <p>When you've logged 20 trades since accepting (or ticked every step), a Complete button appears and the coach picks your next focus. You can abandon a goal any time for a fresh suggestion.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-hand-point-up"></i>
+                        <h3>The Golden Bull</h3>
+                        <p>The bull on the Coach page stays calm... until you hover it (or the sidebar's coffee cup). Try it.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Community -->
             <section class="help-section" id="help-community">
                 <div class="help-section-header">
@@ -1424,7 +1462,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-line"></i>
                         <h3>Pro Score</h3>
-                        <p>A single 0-100 score averaging 6 normalized metrics on a radar chart: Win %, Profit Factor, Avg Win/Loss, Recovery Factor, Max Drawdown and Consistency. Click the <strong>?</strong> for the exact formula.</p>
+                        <p>A single 0-100 score averaging 6 normalized metrics on a radar chart: Win %, Profit Factor, Avg Win/Loss, Recovery Factor, Max Drawdown and Consistency. The breakdown bars beside the radar show each score - <strong>click any bar for a plain-language tip on how to improve that metric</strong>.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-area"></i>
@@ -1439,12 +1477,17 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-bar"></i>
                         <h3>Day &amp; Hour Breakdown</h3>
-                        <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you - hover a bar to see its exact P&amp;L.</p>
+                        <p>Two diverging bar charts show which weekdays and hours have historically been profitable or costly for you - hover a bar for its exact P&amp;L, <strong>click it to open every trade behind it</strong>. The day chart also shows insight cards: best/toughest day, most active day and best win rate.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table-cells"></i>
                         <h3>P&amp;L Heatmap</h3>
-                        <p>A day-of-week &times; hour grid showing where your money is actually made and lost - green cells profit, red cells bleed, intensity scaled to size. Hover any cell for its trades, win rate and P&amp;L. Great for finding your best (and worst) session habits.</p>
+                        <p>A day-of-week &times; hour grid showing where your money is actually made and lost - green cells profit, red cells bleed, intensity scaled to size. Hover any cell for its trades, win rate and P&amp;L; <strong>click it to list those exact trades</strong> and jump into any of them.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <h3>Total Account Trades</h3>
+                        <p>A count-up of every trade on the account with a hoverable win/loss/wash/open composition bar, this-week and this-month activity, and a progress bar toward your next milestone (50, 100, 250...).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
@@ -1657,6 +1700,10 @@
                         <p>Yes. If you're logged in, your data is scoped to your account and only accessible by you. Guest mode keeps everything local to your browser only. Community sharing is entirely opt-in, and shared cards never contain dollar amounts - only symbols, percentages, R-multiples and grades.</p>
                     </details>
                     <details class="help-faq-item">
+                        <summary>How do I cancel my monthly membership?</summary>
+                        <p>Any time, two ways: use the manage/cancel link in the subscription confirmation email PayFast sent you when you joined, or email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you subscribed with and it will be cancelled from our side. Cancelling never removes access - every Bullion Book feature stays free.</p>
+                    </details>
+                    <details class="help-faq-item">
                         <summary>Does it work on my phone?</summary>
                         <p>Yes - the layout adapts automatically. On phones the menu lives behind the &#9776; hamburger button, the dashboard's trade log becomes compact tap-able cards (tap one for the full Trade View), and every page reflows to fit the screen with no sideways scrolling. On desktop you can choose between the hamburger and a pinned sidebar under Settings → Appearance.</p>
                     </details>
@@ -1683,6 +1730,36 @@
                 </div>
             </section>
 
+            <!-- Donations & Membership -->
+            <section class="help-section" id="help-support">
+                <div class="help-section-header">
+                    <i class="fa-solid fa-mug-hot"></i>
+                    <h2>Donations &amp; Membership</h2>
+                </div>
+                <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-hand-holding-heart"></i>
+                        <h3>Donating</h3>
+                        <p>Click the coffee cup (or "donation") in the sidebar, pick a preset amount or type your own (min R5), and you're handed to PayFast's secure payment page. Cards work worldwide - international donors are simply charged in ZAR and their bank converts.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <h3>Monthly Membership</h3>
+                        <p>Same popup, switch to the <strong>Monthly</strong> tab: the amount you pick becomes a recurring monthly contribution, billed automatically by PayFast until you cancel. Memberships fund hosting and daily chart-data imports.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-ban"></i>
+                        <h3>Cancelling a Membership</h3>
+                        <p>Cancel any time, two ways: use the subscription management/cancel link in the confirmation email PayFast sent when you subscribed - or simply email <a href="mailto:ruanforex@gmail.com">ruanforex@gmail.com</a> from the address you used and it'll be cancelled from our side. No questions, no hoops; you keep full access either way, since every feature is free.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-lock"></i>
+                        <h3>Payment Security</h3>
+                        <p>All payments happen on PayFast's secure page (a major South African payment processor) - card details never touch Bullion Book's servers. You'll receive an email receipt from PayFast for every charge.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Contact & Feedback -->
             <section class="help-section" id="help-contact">
                 <div class="help-section-header">
@@ -1703,7 +1780,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-mug-hot"></i>
                         <h3>Support This Platform</h3>
-                        <p>Bullion Book is free to use. If it's helped your trading, the "Support this platform" card near the bottom of the sidebar links to a Ko-fi where you can donate or become a member - it covers hosting and chart-data costs.</p>
+                        <p>Bullion Book is free to use. If it's helped your trading, the coffee cup near the bottom of the sidebar opens the donate popup - one-time or monthly, any amount, via PayFast. See the Donations &amp; Membership section above for details.</p>
                     </div>
                 </div>
             </section>
@@ -2226,7 +2303,7 @@
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
-    <script src="coach.js?v=3"></script>
+    <script src="coach.js?v=4"></script>
     <script src="app.js?v=24"></script>
 
 </body>
