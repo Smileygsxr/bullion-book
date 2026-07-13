@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=60">
+    <link rel="stylesheet" href="styles.css?v=62">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -1990,8 +1990,9 @@
         <button class="btn-action btn-blue" style="width: auto;" onclick="applyCustomDateRange()">Apply</button>
     </div>
 
-    <!-- Chart date-range popover (News page - filters which dated chart blocks are shown) -->
-    <div id="chart-date-range-popover" class="custom-date-popover" style="display: none;">
+    <!-- Chart date-range popover (News page - filters which dated chart
+         blocks are shown, by From/To range and/or specific weekdays) -->
+    <div id="chart-date-range-popover" class="custom-date-popover chart-date-popover-stack" style="display: none;">
         <div class="modal-field">
             <label class="modal-label">From</label>
             <input type="date" id="chart-date-from" class="modal-input">
@@ -1999,6 +2000,18 @@
         <div class="modal-field">
             <label class="modal-label">To</label>
             <input type="date" id="chart-date-to" class="modal-input">
+        </div>
+        <div class="modal-field">
+            <label class="modal-label">Only these days</label>
+            <div class="chart-day-chips" id="chart-day-chips">
+                <button type="button" class="chart-day-chip" data-day="1" onclick="this.classList.toggle('active')">Mon</button>
+                <button type="button" class="chart-day-chip" data-day="2" onclick="this.classList.toggle('active')">Tue</button>
+                <button type="button" class="chart-day-chip" data-day="3" onclick="this.classList.toggle('active')">Wed</button>
+                <button type="button" class="chart-day-chip" data-day="4" onclick="this.classList.toggle('active')">Thu</button>
+                <button type="button" class="chart-day-chip" data-day="5" onclick="this.classList.toggle('active')">Fri</button>
+                <button type="button" class="chart-day-chip" data-day="6" onclick="this.classList.toggle('active')">Sat</button>
+                <button type="button" class="chart-day-chip" data-day="0" onclick="this.classList.toggle('active')">Sun</button>
+            </div>
         </div>
         <div style="display: flex; gap: 8px; margin-top: 14px;">
             <button class="custom-date-popover-btn btn-blue" onclick="applyChartDateFilter()">Apply</button>
@@ -2304,7 +2317,7 @@
     <script src="chart-tools.js?v=2"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
-    <script src="app.js?v=26"></script>
+    <script src="app.js?v=29"></script>
 
 </body>
 </html>

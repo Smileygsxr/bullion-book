@@ -91,11 +91,18 @@ function clearEventFilters() {
     applyEventFilterAndReload();
 }
 
-// Date range (inclusive, ISO "YYYY-MM-DD" strings) narrowing which chart
-// dates are shown - independent of tradeLogFilters (filters.js), since this
-// filters CSV chart files by date, not trades.
+// Date range (inclusive, ISO "YYYY-MM-DD" strings) plus an optional
+// weekday multi-select (e.g. only Mondays) narrowing which chart dates are
+// shown - independent of tradeLogFilters (filters.js), since this filters
+// CSV chart files by date, not trades.
 let chartDateFrom = null;
 let chartDateTo = null;
+let chartDayFilters = new Set(); // weekday indices, 0=Sunday .. 6=Saturday
+
+function chartDateWeekday(dateString) {
+    const [y, m, d] = dateString.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
 
 function toggleChartDatePopover(event) {
     const popover = document.getElementById('chart-date-range-popover');
@@ -108,6 +115,9 @@ function toggleChartDatePopover(event) {
 
     document.getElementById('chart-date-from').value = chartDateFrom || '';
     document.getElementById('chart-date-to').value = chartDateTo || '';
+    document.querySelectorAll('#chart-day-chips .chart-day-chip').forEach(chip => {
+        chip.classList.toggle('active', chartDayFilters.has(parseInt(chip.dataset.day, 10)));
+    });
 
     const rect = event.currentTarget.getBoundingClientRect();
     popover.style.left = `${rect.left}px`;
@@ -121,8 +131,12 @@ function applyChartDateFilter() {
 
     chartDateFrom = fromVal || null;
     chartDateTo = toVal || null;
+    chartDayFilters = new Set(
+        Array.from(document.querySelectorAll('#chart-day-chips .chart-day-chip.active'))
+            .map(chip => parseInt(chip.dataset.day, 10))
+    );
 
-    document.getElementById('chart-date-filter-btn').classList.toggle('active', !!(chartDateFrom || chartDateTo));
+    document.getElementById('chart-date-filter-btn').classList.toggle('active', !!(chartDateFrom || chartDateTo || chartDayFilters.size > 0));
     document.getElementById('chart-date-range-popover').style.display = 'none';
     applyEventFilterAndReload();
 }
@@ -130,8 +144,10 @@ function applyChartDateFilter() {
 function clearChartDateFilter() {
     chartDateFrom = null;
     chartDateTo = null;
+    chartDayFilters = new Set();
     document.getElementById('chart-date-from').value = '';
     document.getElementById('chart-date-to').value = '';
+    document.querySelectorAll('#chart-day-chips .chart-day-chip').forEach(chip => chip.classList.remove('active'));
     document.getElementById('chart-date-filter-btn').classList.remove('active');
     document.getElementById('chart-date-range-popover').style.display = 'none';
     applyEventFilterAndReload();
@@ -162,6 +178,7 @@ function applyEventFilterAndReload() {
 
     if (chartDateFrom) files = files.filter(({ date }) => date >= chartDateFrom);
     if (chartDateTo) files = files.filter(({ date }) => date <= chartDateTo);
+    if (chartDayFilters.size > 0) files = files.filter(({ date }) => chartDayFilters.has(chartDateWeekday(date)));
 
     displayedChartFiles = selectedEventFilters.size === 0
         ? files
@@ -512,7 +529,7 @@ function resetChartBatches(container, template) {
     if (displayedChartFiles.length === 0) {
         const noteParts = [];
         if (selectedEventFilters.size > 0) noteParts.push('the selected event filter(s)');
-        if (chartDateFrom || chartDateTo) noteParts.push('the selected date range');
+        if (chartDateFrom || chartDateTo || chartDayFilters.size > 0) noteParts.push('the selected date/day filter');
         const filterNote = noteParts.length > 0 ? ` matching ${noteParts.join(' and ')}` : '';
         container.innerHTML = `
             <div style="color: var(--text-muted); text-align: center; padding: 40px; font-family: sans-serif;">
@@ -578,7 +595,13 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         const dateInput = block.querySelector('.cpi-date-input');
         const chartContainer = block.querySelector('.xauusd-lightweight-chart');
 
-        caption.textContent = date;
+        // Weekday next to the date - makes near-empty Sunday charts (forex
+        // only reopens ~23:00) instantly self-explanatory. The raw date
+        // moves to a data attribute since switchChartInterval reads it back.
+        const [yy, mm, dd] = date.split('-').map(Number);
+        const weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay()];
+        caption.dataset.date = date;
+        caption.innerHTML = `<span class="cpi-caption-day${weekday === 'Saturday' || weekday === 'Sunday' ? ' weekend' : ''}">${weekday}</span> ${date}`;
         if (dateInput) dateInput.value = date;
 
         const events = eventsByDate[date] || [];
@@ -601,7 +624,8 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
 function switchChartInterval(buttonEl) {
     if (buttonEl.disabled) return;
     const block = buttonEl.closest('.xauusd-chart-panel');
-    const dateString = block.querySelector('.cpi-chart-caption').textContent.trim();
+    const captionEl = block.querySelector('.cpi-chart-caption');
+    const dateString = captionEl.dataset.date || captionEl.textContent.trim();
 
     block.querySelectorAll('.interval-toggle-btn').forEach(btn => btn.classList.toggle('active', btn === buttonEl));
     loadChartInterval(dateString, buttonEl.dataset.interval);
@@ -628,14 +652,26 @@ function parseEventClockTime(timeStr) {
     return { hour, minute: parseInt(match[2], 10) };
 }
 
+const NEWS_MARKER_COLORS = { high: '#f6465d', moderate: '#dfb15b', low: '#848e9c', none: '#848e9c' };
+
 function buildNewsTimeMarkers(dateString, events) {
     const dateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!dateMatch) return [];
 
+    // Markers mirror the events strip's visibility: hidden entirely while
+    // "None" is active, and narrowed to the selected High/Medium/Low tiers
+    // otherwise - filtering for High should only mark high-impact times.
+    if (hideAllNews) return [];
+    const visibleEvents = selectedImportanceFilters.size === 0
+        ? events
+        : events.filter(({ importance }) => selectedImportanceFilters.has(importance || 'none'));
+
     const seenTimes = new Set();
     const markers = [];
 
-    events.forEach(({ time }) => {
+    // Events are pre-sorted high-to-low importance per day, so when several
+    // events share a time the marker takes the most important one's color.
+    visibleEvents.forEach(({ time, importance }) => {
         const clock = parseEventClockTime(time);
         if (!clock || seenTimes.has(time)) return;
         seenTimes.add(time);
@@ -647,7 +683,7 @@ function buildNewsTimeMarkers(dateString, events) {
         markers.push({
             time: epochSeconds,
             position: 'belowBar',
-            color: '#ffeb3b',
+            color: NEWS_MARKER_COLORS[importance || 'none'] || '#ffeb3b',
             shape: 'arrowUp'
         });
     });
@@ -873,6 +909,8 @@ function toggleImportanceFilter(level, clickedButton) {
         const visible = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
         row.style.display = visible ? '' : 'none';
     });
+    // News Time Markers follow the same importance filter
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
 }
 
 // "None" chip - hides the whole events strip above every chart, regardless
@@ -888,6 +926,8 @@ function toggleNoNewsFilter(clickedButton) {
         });
     }
     refreshNewsVisibility();
+    // News Time Markers hide/show along with the rest of the news
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
 }
 
 // Shows/hides each already-rendered chart's events strip based on

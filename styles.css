@@ -6584,3 +6584,48 @@ html[data-theme="blossom"] {
     .sidebar-support-btn:hover { animation: none; transform: scale(1.1); }
     .sidebar-support-btn:hover .support-steam { animation: none; }
 }
+
+/* Weekday label beside each chart date */
+.cpi-caption-day {
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.cpi-caption-day.weekend { color: var(--accent-gold); }
+
+/* Date-filter popover: stacked layout + weekday chips */
+.chart-date-popover-stack {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 252px;
+}
+
+.chart-date-popover-stack .modal-input { width: 100%; box-sizing: border-box; }
+
+.chart-day-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.chart-day-chip {
+    padding: 5px 10px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+
+.chart-day-chip:hover { color: var(--text-light); }
+
+.chart-day-chip.active {
+    border-color: rgba(var(--accent-blue-rgb), 0.6);
+    background: rgba(var(--accent-blue-rgb), 0.12);
+    color: var(--accent-blue);
+}
