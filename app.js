@@ -231,14 +231,17 @@ function submitDonation() {
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing secure payment...';
     }
 
-    fetch('/api/payfast-sign', {
+    // Serverless functions only exist on the deployed site - a locally
+    // served copy calls the production endpoint instead (CORS-enabled).
+    const apiBase = /vercel\.app$|^bullion-book\.com$/.test(location.hostname) ? '' : 'https://bullion-book.vercel.app';
+    fetch(`${apiBase}/api/payfast-sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount, monthly: donateMode === 'monthly' })
     })
-        .then(response => response.json())
-        .then(data => {
-            if (!data || !data.fields) throw new Error((data && data.error) || 'Signing failed');
+        .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
+        .then(({ ok, status, data }) => {
+            if (!ok || !data || !data.fields) throw new Error((data && data.error) || `Payment service error (HTTP ${status})`);
 
             // Build and submit a real form so the browser navigates to
             // PayFast's page in a new tab with the signed fields
@@ -259,11 +262,13 @@ function submitDonation() {
             closeDonateModal();
         })
         .catch(err => {
+            // No silent fallback: surface the real error so problems are
+            // visible instead of quietly opening the fixed R50 page with
+            // the wrong amount.
             console.error('Donate error:', err);
-            // Fallback: the fixed-amount hosted PayFast link still works even
-            // if the signing function is misconfigured
-            window.open('https://payf.st/31zqj', '_blank', 'noopener');
-            closeDonateModal();
+            if (typeof communityToast === 'function') {
+                communityToast(`Could not start the payment: ${err.message}. Please try again in a moment.`, true);
+            }
         })
         .finally(() => {
             if (submitBtn) {
@@ -271,6 +276,16 @@ function submitDonation() {
                 submitBtn.innerHTML = '<i class="fa-solid fa-heart"></i> Donate securely via PayFast';
             }
         });
+}
+
+// Compatibility shim: an older cached index.html renders the donate modal as
+// a static <form onsubmit="return prepareDonateSubmit()"> with a hidden
+// R50.00 default. Without this function existing, that stale page's submit
+// handler throws and the form falls through natively - sending R50 no matter
+// what amount was typed. Routing it into the signed flow fixes stale tabs.
+function prepareDonateSubmit() {
+    submitDonation();
+    return false;
 }
 
 function toggleNewsInfoPanel() {
