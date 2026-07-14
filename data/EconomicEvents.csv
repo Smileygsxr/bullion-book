@@ -1927,8 +1927,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-10,9:30pm,CFTC Wheat Non-Commercial Net Positions,-49.7,,-55.0,low
 2026-07-10,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,2.1,,-7.6,moderate
 2026-07-13,11:25am,Fed Governor Bowman Speech,,,,moderate
-2026-07-13,5:30pm,3-Month Bill Auction,,,3.735,low
-2026-07-13,5:30pm,6-Month Bill Auction,,,3.830,low
+2026-07-13,5:30pm,3-Month Bill Auction,3.760,,3.735,low
+2026-07-13,5:30pm,6-Month Bill Auction,3.860,,3.830,low
 2026-07-13,6:30pm,Fed Governor Waller Speech,,,,moderate
 2026-07-13,8:00pm,Federal Budget Balance,,,,moderate
 2026-07-14,2:30pm,CPI m/m,,0.5,0.5,high
@@ -2026,8 +2026,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-17,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-49.7,low
 2026-07-17,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,2.1,moderate
 2026-07-20,4:00pm,CB Leading Economic Index m/m,,-0.2,0.1,moderate
-2026-07-20,5:30pm,3-Month Bill Auction,,,,low
-2026-07-20,5:30pm,6-Month Bill Auction,,,,low
+2026-07-20,5:30pm,3-Month Bill Auction,,,3.760,low
+2026-07-20,5:30pm,6-Month Bill Auction,,,3.860,low
 2026-07-22,4:30pm,EIA Crude Oil Stocks Change,,,,high
 2026-07-22,4:30pm,EIA Cushing Crude Oil Stocks Change,,,,moderate
 2026-07-22,4:30pm,EIA Crude Oil Imports Change,,,,low

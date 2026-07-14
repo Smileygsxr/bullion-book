@@ -231,7 +231,15 @@ function showPage(pageId, clickedElement) {
     const views = document.querySelectorAll('.view-section');
     views.forEach(view => { view.style.display = 'none'; });
     const targetView = document.getElementById(pageId);
-    if (targetView) { targetView.style.display = 'flex'; }
+    if (targetView) {
+        targetView.style.display = 'flex';
+        // Pages keep their scroll position while hidden (each view is its
+        // own scroll container) - always arrive at the top instead. The
+        // News page nests a second scroll container for its chart list.
+        targetView.scrollTop = 0;
+        const nestedScroll = targetView.querySelector('.news-content-area');
+        if (nestedScroll) nestedScroll.scrollTop = 0;
+    }
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(link => { link.classList.remove('active'); });
     if (clickedElement && clickedElement.classList.contains('nav-link')) {
