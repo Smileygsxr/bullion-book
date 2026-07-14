@@ -305,6 +305,52 @@ const CHART_SYMBOLS = [
 
 const CHART_FILENAME_PATTERN = /^([A-Z0-9]+(?:-[A-Z0-9]+)?)_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
+// ---- Live chart for TODAY ----
+// The newest day renders as TradingView's embedded widget (their own live
+// feed) instead of a CSV-backed Lightweight Chart - real-time by nature,
+// no data plumbing on our side. Older days stay on the MT5 CSVs.
+const TV_WIDGET_SYMBOLS = {
+    XAUUSD: 'OANDA:XAUUSD',
+    BTCUSD: 'BITSTAMP:BTCUSD',
+    US500: 'FOREXCOM:SPXUSD',
+    EURUSD: 'FX:EURUSD',
+    GBPUSD: 'FX:GBPUSD',
+    USDJPY: 'FX:USDJPY',
+    USDCHF: 'FX:USDCHF',
+    AUDUSD: 'FX:AUDUSD',
+    USDCAD: 'FX:USDCAD',
+    NZDUSD: 'FX:NZDUSD'
+};
+
+// "Today" in the chart data's own timezone (GMT+2 wall clock)
+function todayGmt2String() {
+    return new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10);
+}
+
+function tradingViewWidgetSrc(tvSymbol, interval) {
+    return 'https://s.tradingview.com/widgetembed/?'
+        + `symbol=${encodeURIComponent(tvSymbol)}`
+        + `&interval=${interval}`
+        + '&theme=dark&style=1'
+        + '&timezone=Africa%2FJohannesburg'
+        + '&locale=en&withdateranges=1&hide_volume=1'
+        + '&symboledit=0&saveimage=0&enable_publishing=0';
+}
+
+function renderTradingViewWidget(container, tradeSymbol, interval) {
+    const tvSymbol = TV_WIDGET_SYMBOLS[tradeSymbol];
+    if (!tvSymbol) return false;
+
+    const iframe = document.createElement('iframe');
+    iframe.className = 'tv-widget-frame';
+    iframe.dataset.tvSymbol = tvSymbol;
+    iframe.src = tradingViewWidgetSrc(tvSymbol, interval);
+    iframe.allow = 'fullscreen';
+    container.innerHTML = '';
+    container.appendChild(iframe);
+    return true;
+}
+
 // Chart blocks are heavy (CSV fetch + chart instance each), so load them in
 // batches of CHART_BLOCKS_BATCH_SIZE instead of rendering every date up front.
 const CHART_BLOCKS_BATCH_SIZE = 10;
@@ -505,7 +551,8 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         const [yy, mm, dd] = date.split('-').map(Number);
         const weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay()];
         caption.dataset.date = date;
-        caption.innerHTML = `<span class="cpi-caption-day${weekday === 'Saturday' || weekday === 'Sunday' ? ' weekend' : ''}">${weekday}</span> ${date}`;
+        const liveBadge = date === todayGmt2String() ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span> ' : '';
+        caption.innerHTML = `${liveBadge}<span class="cpi-caption-day${weekday === 'Saturday' || weekday === 'Sunday' ? ' weekend' : ''}">${weekday}</span> ${date}`;
         if (dateInput) dateInput.value = date;
 
         const events = eventsByDate[date] || [];
@@ -532,6 +579,14 @@ function switchChartInterval(buttonEl) {
     const dateString = captionEl.dataset.date || captionEl.textContent.trim();
 
     block.querySelectorAll('.interval-toggle-btn').forEach(btn => btn.classList.toggle('active', btn === buttonEl));
+
+    // Today's block is a TradingView iframe - switch its interval directly
+    const tvFrame = block.querySelector('.tv-widget-frame');
+    if (tvFrame) {
+        tvFrame.src = tradingViewWidgetSrc(tvFrame.dataset.tvSymbol, buttonEl.dataset.interval);
+        return;
+    }
+
     loadChartInterval(dateString, buttonEl.dataset.interval);
 }
 
@@ -903,6 +958,13 @@ function getActualColorClass(name, actual, forecast) {
 // 4. THE CSV READING AND RENDER ENGINE
 function createOneDayChart(dateString, filesByInterval, chartContainer, events, defaultInterval, tradeSymbol) {
     if (!chartContainer) return;
+
+    // Today's chart = TradingView's live widget. No cpiChartInstances entry
+    // is registered, so markers/overlays/chart-tools quietly skip this block
+    // (they can't reach inside an iframe anyway).
+    if (dateString === todayGmt2String() && renderTradingViewWidget(chartContainer, tradeSymbol, defaultInterval)) {
+        return;
+    }
 
     const chart = LightweightCharts.createChart(chartContainer, {
         width: chartContainer.clientWidth || 900,

@@ -6629,3 +6629,46 @@ html[data-theme="blossom"] {
     background: rgba(var(--accent-blue-rgb), 0.12);
     color: var(--accent-blue);
 }
+
+/* LIVE badge on today's chart */
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 11px;
+    background: rgba(var(--loss-rgb), 0.12);
+    border: 1px solid rgba(var(--loss-rgb), 0.45);
+    color: var(--loss);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--loss);
+    animation: live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none; }
+}
+
+/* TradingView live widget frame (today's chart) */
+.tv-widget-frame {
+    display: block;
+    width: 100%;
+    height: 520px;
+    border: 0;
+    border-radius: 8px;
+}
