@@ -6672,3 +6672,80 @@ html[data-theme="blossom"] {
     border: 0;
     border-radius: 8px;
 }
+
+/* Drawing editing: grab + handle cursors */
+.ct-grab { cursor: move; }
+.ct-handle { cursor: grab; }
+.ct-handle:active { cursor: grabbing; }
+
+/* ==== Per-drawing edit bar + collapsible tool rail ==== */
+.ct-edit-bar {
+    position: absolute;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    background: rgba(15, 18, 32, 0.95);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+}
+
+.ct-edit-colors { display: flex; gap: 4px; }
+
+.ct-edit-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s ease;
+}
+
+.ct-edit-color:hover { transform: scale(1.2); }
+.ct-edit-color.active { border-color: #ffffff; }
+
+.ct-edit-sep { width: 1px; height: 18px; margin: 0 3px; background: var(--border-color); }
+
+.ct-edit-btn {
+    min-width: 30px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: #d1d4dc;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+.ct-edit-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.ct-edit-btn.active { color: #dfb15b; }
+.ct-edit-del:hover { color: #f6465d; background: rgba(246, 70, 93, 0.15); }
+
+.ct-style-preview {
+    display: inline-block;
+    width: 22px;
+    border-top: 2px solid #d1d4dc;
+}
+
+.ct-style-preview.dashed { border-top-style: dashed; }
+.ct-style-preview.dotted { border-top-style: dotted; }
+
+/* Collapsed tool rail: only grip + chevron remain */
+.chart-tools-bar.collapsed .chart-tools-btn:not(.chart-tools-collapse),
+.chart-tools-bar.collapsed .chart-tools-sep {
+    display: none;
+}
+
+/* Edit bar in position mode: only lock + delete apply */
+.ct-edit-bar.position-mode .ct-edit-colors,
+.ct-edit-bar.position-mode [data-action="width"],
+.ct-edit-bar.position-mode [data-action="style"],
+.ct-edit-bar.position-mode .ct-edit-sep:first-of-type { display: none; }

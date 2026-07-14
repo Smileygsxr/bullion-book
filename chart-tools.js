@@ -207,16 +207,49 @@ function attachChartTools(opts) {
 
     buildChartToolsToolbar(tools);
     buildChartToolsTreePanel(tools);
+    buildChartEditBar(tools);
 
     tools.chart.subscribeClick(param => handleChartToolsClick(tools, param));
     tools.chart.timeScale().subscribeVisibleLogicalRangeChange(() => renderChartDrawings(tools));
+
+    // Live preview: while a tool is armed, the ghost shape follows the
+    // crosshair (TradingView-style rubber banding).
+    tools.chart.subscribeCrosshairMove(param => {
+        if (!tools.activeTool || tools.data.length === 0) { tools.hoverPoint = null; return; }
+        if (!param.point) { tools.hoverPoint = null; renderChartDrawings(tools); return; }
+        let t = param.time;
+        if (t === undefined && typeof param.logical === 'number') {
+            const idx = Math.max(0, Math.min(tools.data.length - 1, Math.round(param.logical)));
+            t = tools.data[idx].time;
+        }
+        const price = tools.series.coordinateToPrice(param.point.y);
+        if (t === undefined || price === null) { tools.hoverPoint = null; renderChartDrawings(tools); return; }
+        tools.hoverPoint = { t, price };
+        renderChartDrawings(tools);
+    });
+
+    // Editing: drag handles/bodies of placed drawings (mousedown starts on
+    // the SVG shapes, move/up tracked window-wide so fast drags don't slip)
+    tools.svg.addEventListener('mousedown', e => beginChartDrawingDrag(tools, e));
+    tools.windowMoveHandler = e => moveChartDrawingDrag(tools, e);
+    tools.windowUpHandler = () => endChartDrawingDrag(tools);
+    window.addEventListener('mousemove', tools.windowMoveHandler);
+    window.addEventListener('mouseup', tools.windowUpHandler);
 
     tools.resizeObserver = new ResizeObserver(() => renderChartDrawings(tools));
     tools.resizeObserver.observe(tools.container);
 
     tools.keyHandler = e => {
-        if (e.key === 'Escape' && (tools.activeTool || tools.pending)) {
+        if (e.key === 'Escape' && (tools.activeTool || tools.pending || tools.selectedId)) {
+            tools.selectedId = null;
             setChartToolsActive(tools, null);
+        }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && tools.selectedId && !tools.activeTool) {
+            const target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+            e.preventDefault();
+            deleteChartDrawing(tools, tools.selectedId);
+            tools.selectedId = null;
         }
     };
     document.addEventListener('keydown', tools.keyHandler);
@@ -229,12 +262,165 @@ function attachChartTools(opts) {
     tools.dispose = () => {
         tools.disposed = true;
         document.removeEventListener('keydown', tools.keyHandler);
+        window.removeEventListener('mousemove', tools.windowMoveHandler);
+        window.removeEventListener('mouseup', tools.windowUpHandler);
         if (tools.resizeObserver) tools.resizeObserver.disconnect();
         liveChartTools.delete(tools);
     };
 
     liveChartTools.add(tools);
     return tools;
+}
+
+// ---- Drag-to-edit ----
+function chartToolsCoordToTime(tools, x) {
+    const logical = tools.chart.timeScale().coordinateToLogical(x);
+    if (logical === null || tools.data.length === 0) return null;
+    const idx = Math.max(0, Math.min(tools.data.length - 1, Math.round(logical)));
+    return tools.data[idx].time;
+}
+
+function chartToolsMouseXY(tools, e) {
+    const rect = tools.svg.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function beginChartDrawingDrag(tools, e) {
+    if (tools.activeTool) return; // drawing mode: clicks pass through to placement
+    const target = e.target.closest('[data-drawing-id]');
+    if (!target) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const id = target.dataset.drawingId;
+    const rec = getChartToolsRecord(tools.chartKey, false);
+    const drawing = rec.drawings.find(d => d.id === id);
+    if (!drawing) return;
+
+    tools.selectedId = id;
+
+    // Locked drawings can be selected (to unlock/restyle/delete via the
+    // edit bar) but never dragged
+    if (drawing.locked) {
+        renderChartDrawings(tools);
+        return;
+    }
+
+    const { x, y } = chartToolsMouseXY(tools, e);
+    tools.drag = {
+        id,
+        mode: target.dataset.handle || 'move',
+        startX: x,
+        startY: y,
+        orig: JSON.parse(JSON.stringify(drawing)),
+        moved: false
+    };
+    renderChartDrawings(tools);
+}
+
+function moveChartDrawingDrag(tools, e) {
+    if (!tools.drag || tools.disposed) return;
+    const rec = getChartToolsRecord(tools.chartKey, false);
+    const drawing = rec.drawings.find(d => d.id === tools.drag.id);
+    if (!drawing) { tools.drag = null; return; }
+
+    const { x, y } = chartToolsMouseXY(tools, e);
+    const dx = x - tools.drag.startX;
+    const dy = y - tools.drag.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 2) tools.drag.moved = true;
+
+    const orig = tools.drag.orig;
+    const ts = tools.chart.timeScale();
+
+    const movePoint = (origPoint, targetPoint) => {
+        const origX = ts.timeToCoordinate(origPoint.t);
+        const origY = tools.series.priceToCoordinate(origPoint.price);
+        if (origX === null || origY === null) return;
+        const t = chartToolsCoordToTime(tools, origX + dx);
+        const price = tools.series.coordinateToPrice(origY + dy);
+        if (t !== null) targetPoint.t = t;
+        if (price !== null) targetPoint.price = price;
+    };
+
+    if (drawing.type === 'longpos' || drawing.type === 'shortpos') {
+        const long = drawing.type === 'longpos';
+        const priceAt = (origPrice) => {
+            const origY = tools.series.priceToCoordinate(origPrice);
+            return origY === null ? null : tools.series.coordinateToPrice(origY + dy);
+        };
+        const timeAt = (origT) => {
+            const origX = tools.chart.timeScale().timeToCoordinate(origT);
+            return origX === null ? null : chartToolsCoordToTime(tools, origX + dx);
+        };
+
+        if (tools.drag.mode === 'target') {
+            const p = priceAt(orig.target);
+            if (p !== null) drawing.target = long ? Math.max(p, drawing.entry) : Math.min(p, drawing.entry);
+        } else if (tools.drag.mode === 'stop') {
+            const p = priceAt(orig.stop);
+            if (p !== null) drawing.stop = long ? Math.min(p, drawing.entry) : Math.max(p, drawing.entry);
+        } else if (tools.drag.mode === 'entry') {
+            const p = priceAt(orig.entry);
+            if (p !== null) {
+                drawing.entry = long
+                    ? Math.max(drawing.stop, Math.min(drawing.target, p))
+                    : Math.max(drawing.target, Math.min(drawing.stop, p));
+            }
+        } else if (tools.drag.mode === 'left') {
+            const t = timeAt(orig.t1);
+            if (t !== null && t !== drawing.t2) drawing.t1 = t;
+        } else if (tools.drag.mode === 'right') {
+            const t = timeAt(orig.t2);
+            if (t !== null && t !== drawing.t1) drawing.t2 = t;
+        } else {
+            const pEntry = priceAt(orig.entry), pTarget = priceAt(orig.target), pStop = priceAt(orig.stop);
+            const t1 = timeAt(orig.t1), t2 = timeAt(orig.t2);
+            if (pEntry !== null && pTarget !== null && pStop !== null) {
+                drawing.entry = pEntry; drawing.target = pTarget; drawing.stop = pStop;
+            }
+            if (t1 !== null && t2 !== null && t1 !== t2) { drawing.t1 = t1; drawing.t2 = t2; }
+        }
+        renderChartDrawings(tools);
+        return;
+    }
+
+    if (drawing.type === 'hline') {
+        const origY = tools.series.priceToCoordinate(orig.price);
+        if (origY !== null) {
+            const price = tools.series.coordinateToPrice(origY + dy);
+            if (price !== null) {
+                drawing.price = price;
+                if (tools.priceLines[drawing.id]) tools.priceLines[drawing.id].applyOptions({ price });
+            }
+        }
+    } else if (drawing.type === 'vline') {
+        const origX = ts.timeToCoordinate(orig.t);
+        if (origX !== null) {
+            const t = chartToolsCoordToTime(tools, origX + dx);
+            if (t !== null) drawing.t = t;
+        }
+    } else if (tools.drag.mode === 'p1') {
+        movePoint(orig.p1, drawing.p1);
+    } else if (tools.drag.mode === 'p2') {
+        movePoint(orig.p2, drawing.p2);
+    } else {
+        movePoint(orig.p1, drawing.p1);
+        movePoint(orig.p2, drawing.p2);
+    }
+
+    renderChartDrawings(tools);
+}
+
+function endChartDrawingDrag(tools) {
+    if (!tools.drag) return;
+    const moved = tools.drag.moved;
+    tools.drag = null;
+    if (moved) {
+        saveChartToolsStore();
+        renderChartObjectTree(tools);
+    }
+    renderChartDrawings(tools);
 }
 
 // Re-applies everything saved for this chart against the CURRENT data -
@@ -264,9 +450,37 @@ function chartToolsRestore(tools) {
 const CHART_TOOL_DEFS = [
     { id: 'trend', icon: 'fa-slash', title: 'Trend line (2 clicks)' },
     { id: 'hline', icon: 'fa-minus', title: 'Horizontal line (1 click)' },
+    { id: 'vline', icon: 'fa-grip-lines-vertical', title: 'Vertical line (1 click)' },
     { id: 'rect', icon: 'fa-vector-square', title: 'Rectangle zone (2 clicks)' },
-    { id: 'fib', icon: 'fa-bars', title: 'Fib retracement (2 clicks: high, low)' }
+    { id: 'fib', icon: 'fa-bars', title: 'Fib retracement (2 clicks: high, low)' },
+    { id: 'longpos', icon: 'fa-arrow-trend-up', title: 'Long position (1 click - drag target/stop after)' },
+    { id: 'shortpos', icon: 'fa-arrow-trend-down', title: 'Short position (1 click - drag target/stop after)' }
 ];
+
+// Sensible defaults for a freshly placed position: stop 2 ATR(14) away,
+// target 4 ATR (2:1 reward-to-risk), spanning ~20 bars to the right.
+function buildPositionDrawing(tools, type, t, price) {
+    const data = tools.data;
+    const idx = chartToolsNearestIndex(data, t);
+    const recent = data.slice(Math.max(0, idx - 14), idx + 1);
+    const atr = recent.length > 0
+        ? recent.reduce((s, bar) => s + (bar.high - bar.low), 0) / recent.length
+        : price * 0.005;
+    const risk = Math.max(atr * 2, price * 0.0005);
+
+    let endIdx = Math.min(data.length - 1, idx + 20);
+    let t1 = t, t2 = data[endIdx].time;
+    if (endIdx === idx) { t1 = data[Math.max(0, idx - 20)].time; t2 = t; }
+
+    return {
+        id: chartToolsId(),
+        type,
+        t1, t2,
+        entry: price,
+        stop: type === 'longpos' ? price - risk : price + risk,
+        target: type === 'longpos' ? price + risk * 2 : price - risk * 2
+    };
+}
 
 function buildChartToolsToolbar(tools) {
     const bar = document.createElement('div');
@@ -299,6 +513,25 @@ function buildChartToolsToolbar(tools) {
         document.addEventListener('mouseup', onUp);
     });
     bar.appendChild(grip);
+
+    // Collapse/expand the rail down to just the grip + this chevron
+    const collapseBtn = document.createElement('button');
+    collapseBtn.type = 'button';
+    collapseBtn.className = 'chart-tools-btn chart-tools-collapse';
+    collapseBtn.title = 'Minimize toolbar';
+    collapseBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+    collapseBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const collapsed = bar.classList.toggle('collapsed');
+        collapseBtn.querySelector('i').className = `fa-solid ${collapsed ? 'fa-chevron-down' : 'fa-chevron-up'}`;
+        collapseBtn.title = collapsed ? 'Expand toolbar' : 'Minimize toolbar';
+        if (collapsed) {
+            tools.indMenu.style.display = 'none';
+            tools.treePanel.style.display = 'none';
+            setChartToolsActive(tools, null);
+        }
+    });
+    bar.appendChild(collapseBtn);
 
     CHART_TOOL_DEFS.forEach(def => {
         const btn = document.createElement('button');
@@ -377,6 +610,8 @@ function positionChartToolsPanels(tools) {
 function setChartToolsActive(tools, toolId) {
     tools.activeTool = toolId;
     tools.pending = null;
+    tools.hoverPoint = null;
+    tools.selectedId = null;
     tools.toolbar.querySelectorAll('.chart-tools-btn[data-tool]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tool === toolId);
     });
@@ -386,7 +621,16 @@ function setChartToolsActive(tools, toolId) {
 
 // ---- Click handling / drawing placement ----
 function handleChartToolsClick(tools, param) {
-    if (!tools.activeTool || !param.point || tools.data.length === 0) return;
+    // Clicking empty chart with no tool armed deselects (drawing clicks are
+    // captured by the SVG shapes and never reach the chart)
+    if (!tools.activeTool) {
+        if (tools.selectedId) {
+            tools.selectedId = null;
+            renderChartDrawings(tools);
+        }
+        return;
+    }
+    if (!param.point || tools.data.length === 0) return;
 
     // Resolve the clicked bar time: prefer the exact bar, fall back to the
     // nearest logical index for clicks in the margins.
@@ -407,6 +651,23 @@ function handleChartToolsClick(tools, param) {
         rec.drawings.push(drawing);
         ensureChartHLine(tools, drawing);
         finishChartDrawing(tools);
+        return;
+    }
+
+    if (tools.activeTool === 'vline') {
+        rec.drawings.push({ id: chartToolsId(), type: 'vline', t });
+        finishChartDrawing(tools);
+        return;
+    }
+
+    if (tools.activeTool === 'longpos' || tools.activeTool === 'shortpos') {
+        const drawing = buildPositionDrawing(tools, tools.activeTool, t, price);
+        rec.drawings.push(drawing);
+        finishChartDrawing(tools);
+        // Select immediately (after finish clears state) so the target/stop
+        // handles are ready to drag, like TradingView
+        tools.selectedId = drawing.id;
+        renderChartDrawings(tools);
         return;
     }
 
@@ -438,16 +699,63 @@ function chartToolsId() {
     return `ct_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// ---- Per-drawing style (editable via the floating edit bar) ----
+const CHART_DRAWING_DEFAULTS = {
+    trend: { color: '#dfb15b', width: 2, style: 'solid' },
+    hline: { color: '#dfb15b', width: 1, style: 'dashed' },
+    vline: { color: '#dfb15b', width: 1.5, style: 'dashed' },
+    rect: { color: '#2979ff', width: 1, style: 'solid' },
+    fib: { color: '#26b8cf', width: 1, style: 'solid' }
+};
+
+const CHART_EDIT_COLORS = ['#dfb15b', '#2979ff', '#26b8cf', '#2ebd85', '#f6465d', '#9d6bff', '#e8e8e8'];
+
+function drawingColor(d) { return d.color || (CHART_DRAWING_DEFAULTS[d.type] || {}).color || '#dfb15b'; }
+function drawingWidth(d) { return d.width || (CHART_DRAWING_DEFAULTS[d.type] || {}).width || 2; }
+function drawingStyle(d) { return d.style || (CHART_DRAWING_DEFAULTS[d.type] || {}).style || 'solid'; }
+
+function drawingDashArray(d, ghost) {
+    if (ghost) return '6 4';
+    const style = drawingStyle(d);
+    if (style === 'dashed') return '6 4';
+    if (style === 'dotted') return '2 3';
+    return 'none';
+}
+
+function chartHexToRgba(hex, alpha) {
+    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return hex;
+    return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+
+function chartLineStyleEnum(d) {
+    const style = drawingStyle(d);
+    if (style === 'dashed') return LightweightCharts.LineStyle.Dashed;
+    if (style === 'dotted') return LightweightCharts.LineStyle.Dotted;
+    return LightweightCharts.LineStyle.Solid;
+}
+
 // ---- Horizontal lines (native price lines: full width + axis label) ----
 function ensureChartHLine(tools, drawing) {
     if (tools.priceLines[drawing.id]) return;
     tools.priceLines[drawing.id] = tools.series.createPriceLine({
         price: drawing.price,
-        color: '#dfb15b',
-        lineWidth: 1,
-        lineStyle: LightweightCharts.LineStyle.Dashed,
+        color: drawingColor(drawing),
+        lineWidth: Math.round(drawingWidth(drawing)),
+        lineStyle: chartLineStyleEnum(drawing),
         axisLabelVisible: true,
         title: ''
+    });
+}
+
+function refreshChartHLineStyle(tools, drawing) {
+    const line = tools.priceLines[drawing.id];
+    if (!line) return;
+    line.applyOptions({
+        price: drawing.price,
+        color: drawingColor(drawing),
+        lineWidth: Math.round(drawingWidth(drawing)),
+        lineStyle: chartLineStyleEnum(drawing)
     });
 }
 
@@ -460,6 +768,211 @@ function chartToolsSvgEl(name, attrs) {
 
 const CHART_FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
 
+// Renders one drawing's shapes into the svg. opts: { ghost, selected,
+// interactive } - ghost = live preview styling, interactive = shapes accept
+// mouse events (selection/drag) via data-drawing-id.
+function renderChartDrawingShape(tools, svg, d, opts) {
+    const ghost = !!opts.ghost;
+    const selected = !!opts.selected;
+    const pe = opts.interactive && !ghost ? 'stroke' : 'none';
+    const dash = ghost ? '6 4' : 'none';
+    const alpha = ghost ? 0.6 : 1;
+    const grabAttrs = el => {
+        if (!ghost && opts.interactive) {
+            el.setAttribute('data-drawing-id', d.id);
+            el.setAttribute('class', 'ct-grab');
+        }
+        return el;
+    };
+
+    const color = drawingColor(d);
+    const baseWidth = drawingWidth(d);
+    const dashPattern = drawingDashArray(d, ghost);
+
+    const handles = [];
+    const addHandle = (x, y, which) => {
+        if (!selected || d.locked) return;
+        handles.push(chartToolsSvgEl('circle', {
+            cx: x, cy: y, r: 5,
+            fill: '#ffffff', stroke: '#2979ff', 'stroke-width': 2,
+            'data-drawing-id': d.id, 'data-handle': which,
+            'class': 'ct-handle', 'pointer-events': 'all'
+        }));
+    };
+
+    if (d.type === 'hline') {
+        const y = tools.series.priceToCoordinate(d.price);
+        if (y === null) return;
+        const w = svg.clientWidth || tools.container.clientWidth;
+        // Wide invisible grab strip over the native price line
+        const grab = grabAttrs(chartToolsSvgEl('line', {
+            x1: 0, y1: y, x2: w, y2: y,
+            stroke: 'rgba(0,0,0,0)', 'stroke-width': 10, 'pointer-events': pe
+        }));
+        svg.appendChild(grab);
+        if (selected || ghost) {
+            svg.appendChild(chartToolsSvgEl('line', {
+                x1: 0, y1: y, x2: w, y2: y,
+                stroke: color, 'stroke-width': Math.max(2, baseWidth),
+                'stroke-dasharray': ghost ? '6 4' : 'none', opacity: alpha,
+                'pointer-events': 'none'
+            }));
+            if (selected && !ghost) addHandle(w / 2, y, 'move');
+        }
+        handles.forEach(h => svg.appendChild(h));
+        return;
+    }
+
+    if (d.type === 'vline') {
+        const x = chartToolsTimeToX(tools, d.t);
+        if (x === null) return;
+        const h = svg.clientHeight || tools.container.clientHeight;
+        svg.appendChild(chartToolsSvgEl('line', {
+            x1: x, y1: 0, x2: x, y2: h,
+            stroke: color, 'stroke-width': selected ? baseWidth + 0.5 : baseWidth,
+            'stroke-dasharray': dashPattern === 'none' ? '4 3' : dashPattern, opacity: alpha,
+            'pointer-events': 'none'
+        }));
+        const grab = grabAttrs(chartToolsSvgEl('line', {
+            x1: x, y1: 0, x2: x, y2: h,
+            stroke: 'rgba(0,0,0,0)', 'stroke-width': 10, 'pointer-events': pe
+        }));
+        svg.appendChild(grab);
+        addHandle(x, h / 2, 'move');
+        handles.forEach(el => svg.appendChild(el));
+        return;
+    }
+
+    if (d.type === 'longpos' || d.type === 'shortpos') {
+        const xa = chartToolsTimeToX(tools, d.t1);
+        const xb = chartToolsTimeToX(tools, d.t2);
+        const yEntry = tools.series.priceToCoordinate(d.entry);
+        const yTarget = tools.series.priceToCoordinate(d.target);
+        const yStop = tools.series.priceToCoordinate(d.stop);
+        if (xa === null || xb === null || yEntry === null || yTarget === null || yStop === null) return;
+
+        const left = Math.min(xa, xb), right = Math.max(xa, xb);
+        const width = Math.max(right - left, 1);
+        const midX = left + width / 2;
+        const decimals = d.entry < 10 ? 4 : 2;
+        const posPe = opts.interactive && !ghost ? 'all' : 'none';
+
+        const zone = (yA, yB, fillColor, zoneHandle) => {
+            const rect = chartToolsSvgEl('rect', {
+                x: left, y: Math.min(yA, yB),
+                width, height: Math.max(Math.abs(yB - yA), 1),
+                fill: fillColor, stroke: 'none', opacity: alpha,
+                'pointer-events': posPe
+            });
+            if (!ghost && opts.interactive) {
+                rect.setAttribute('data-drawing-id', d.id);
+                rect.setAttribute('class', 'ct-grab');
+            }
+            svg.appendChild(rect);
+        };
+
+        zone(yEntry, yTarget, 'rgba(46, 189, 133, 0.16)');
+        zone(yEntry, yStop, 'rgba(246, 70, 93, 0.16)');
+
+        // Target / stop / entry edge lines
+        [[yTarget, '#2ebd85'], [yStop, '#f6465d'], [yEntry, 'rgba(255,255,255,0.75)']].forEach(([y, stroke]) => {
+            svg.appendChild(chartToolsSvgEl('line', {
+                x1: left, y1: y, x2: right, y2: y,
+                stroke, 'stroke-width': selected ? 2 : 1.2, opacity: alpha, 'pointer-events': 'none'
+            }));
+        });
+
+        if (!ghost) {
+            const risk = Math.abs(d.entry - d.stop);
+            const reward = Math.abs(d.target - d.entry);
+            const rr = risk > 0 ? (reward / risk) : 0;
+            const pct = v => ((v / d.entry) * 100).toFixed(2);
+
+            const addLabel = (x, y, text, fill, anchor) => {
+                const label = chartToolsSvgEl('text', {
+                    x, y, fill, 'font-size': '10', 'font-weight': '700',
+                    'text-anchor': anchor || 'middle', 'pointer-events': 'none'
+                });
+                label.textContent = text;
+                svg.appendChild(label);
+            };
+
+            addLabel(midX, (yEntry + yTarget) / 2 + 3, `Target ${d.target.toFixed(decimals)}  (+${reward.toFixed(decimals)} / ${pct(reward)}%)`, '#2ebd85');
+            addLabel(midX, (yEntry + yStop) / 2 + 3, `Stop ${d.stop.toFixed(decimals)}  (-${risk.toFixed(decimals)} / ${pct(risk)}%)`, '#f6465d');
+            addLabel(left + 4, yEntry - 4, `${d.type === 'longpos' ? 'Long' : 'Short'} ${d.entry.toFixed(decimals)} · RR ${rr.toFixed(2)}`, '#e8e8e8', 'start');
+        }
+
+        addHandle(midX, yTarget, 'target');
+        addHandle(midX, yStop, 'stop');
+        addHandle(midX, yEntry, 'entry');
+        addHandle(left, yEntry, 'left');
+        addHandle(right, yEntry, 'right');
+        handles.forEach(el => svg.appendChild(el));
+        return;
+    }
+
+    const x1 = chartToolsTimeToX(tools, d.p1.t);
+    const x2 = chartToolsTimeToX(tools, d.p2.t);
+    const y1 = tools.series.priceToCoordinate(d.p1.price);
+    const y2 = tools.series.priceToCoordinate(d.p2.price);
+    if (x1 === null || x2 === null || y1 === null || y2 === null) return;
+
+    if (d.type === 'trend') {
+        svg.appendChild(chartToolsSvgEl('line', {
+            x1, y1, x2, y2,
+            stroke: color, 'stroke-width': selected ? baseWidth + 1 : baseWidth,
+            'stroke-linecap': 'round', 'stroke-dasharray': dashPattern, opacity: alpha,
+            'pointer-events': 'none'
+        }));
+        svg.appendChild(grabAttrs(chartToolsSvgEl('line', {
+            x1, y1, x2, y2,
+            stroke: 'rgba(0,0,0,0)', 'stroke-width': 12, 'pointer-events': pe
+        })));
+    } else if (d.type === 'rect') {
+        const rect = grabAttrs(chartToolsSvgEl('rect', {
+            x: Math.min(x1, x2), y: Math.min(y1, y2),
+            width: Math.abs(x2 - x1), height: Math.abs(y2 - y1),
+            fill: chartHexToRgba(color, 0.14), stroke: color,
+            'stroke-width': selected ? baseWidth + 1 : baseWidth, 'stroke-dasharray': dashPattern, opacity: alpha,
+            'pointer-events': opts.interactive && !ghost ? 'all' : 'none'
+        }));
+        svg.appendChild(rect);
+    } else if (d.type === 'fib') {
+        const left = Math.min(x1, x2), right = Math.max(x1, x2);
+        CHART_FIB_LEVELS.forEach(level => {
+            const price = d.p1.price + (d.p2.price - d.p1.price) * level;
+            const y = tools.series.priceToCoordinate(price);
+            if (y === null) return;
+            svg.appendChild(chartToolsSvgEl('line', {
+                x1: left, y1: y, x2: right, y2: y,
+                stroke: color, 'stroke-width': level === 0 || level === 1 ? (selected ? baseWidth + 1 : baseWidth) : baseWidth,
+                'stroke-dasharray': ghost ? '6 4' : (level === 0 || level === 1 ? dashPattern : '4 3'),
+                opacity: ghost ? 0.6 : 0.9,
+                'pointer-events': 'none'
+            }));
+            if (!ghost) {
+                const label = chartToolsSvgEl('text', {
+                    x: left + 4, y: y - 3,
+                    fill: color, 'font-size': '10', 'pointer-events': 'none'
+                });
+                label.textContent = `${level} (${price.toFixed(2)})`;
+                svg.appendChild(label);
+            }
+        });
+        // Grab strips along the two anchor levels
+        [y1, y2].forEach(y => {
+            svg.appendChild(grabAttrs(chartToolsSvgEl('line', {
+                x1: left, y1: y, x2: right, y2: y,
+                stroke: 'rgba(0,0,0,0)', 'stroke-width': 10, 'pointer-events': pe
+            })));
+        });
+    }
+
+    addHandle(x1, y1, 'p1');
+    addHandle(x2, y2, 'p2');
+    handles.forEach(el => svg.appendChild(el));
+}
+
 function renderChartDrawings(tools) {
     if (tools.disposed) return;
     const svg = tools.svg;
@@ -467,59 +980,133 @@ function renderChartDrawings(tools) {
     if (tools.data.length === 0) return;
 
     const rec = getChartToolsRecord(tools.chartKey, false);
+    const interactive = !tools.activeTool;
 
     rec.drawings.forEach(d => {
-        if (d.type === 'hline') return; // native price line handles it
-
-        const x1 = chartToolsTimeToX(tools, d.p1.t);
-        const x2 = chartToolsTimeToX(tools, d.p2.t);
-        const y1 = tools.series.priceToCoordinate(d.p1.price);
-        const y2 = tools.series.priceToCoordinate(d.p2.price);
-        if (x1 === null || x2 === null || y1 === null || y2 === null) return;
-
-        if (d.type === 'trend') {
-            svg.appendChild(chartToolsSvgEl('line', {
-                x1, y1, x2, y2,
-                stroke: '#dfb15b', 'stroke-width': 2, 'stroke-linecap': 'round'
-            }));
-        } else if (d.type === 'rect') {
-            svg.appendChild(chartToolsSvgEl('rect', {
-                x: Math.min(x1, x2), y: Math.min(y1, y2),
-                width: Math.abs(x2 - x1), height: Math.abs(y2 - y1),
-                fill: 'rgba(41, 121, 255, 0.14)', stroke: '#2979ff', 'stroke-width': 1
-            }));
-        } else if (d.type === 'fib') {
-            const left = Math.min(x1, x2), right = Math.max(x1, x2);
-            CHART_FIB_LEVELS.forEach(level => {
-                const price = d.p1.price + (d.p2.price - d.p1.price) * level;
-                const y = tools.series.priceToCoordinate(price);
-                if (y === null) return;
-                svg.appendChild(chartToolsSvgEl('line', {
-                    x1: left, y1: y, x2: right, y2: y,
-                    stroke: '#26b8cf', 'stroke-width': 1,
-                    'stroke-dasharray': level === 0 || level === 1 ? 'none' : '4 3',
-                    opacity: 0.9
-                }));
-                const label = chartToolsSvgEl('text', {
-                    x: left + 4, y: y - 3,
-                    fill: '#26b8cf', 'font-size': '10'
-                });
-                label.textContent = `${level} (${price.toFixed(2)})`;
-                svg.appendChild(label);
-            });
-        }
+        renderChartDrawingShape(tools, svg, d, {
+            interactive,
+            selected: d.id === tools.selectedId && interactive
+        });
     });
 
-    // First click of a two-point drawing: show a dot so it's clear it "took"
+    // Live preview: ghost of the shape being drawn, following the crosshair
+    if (tools.activeTool && tools.hoverPoint) {
+        if (tools.pending) {
+            renderChartDrawingShape(tools, svg, {
+                id: '__preview__', type: tools.activeTool,
+                p1: tools.pending, p2: tools.hoverPoint
+            }, { ghost: true });
+        } else if (tools.activeTool === 'hline') {
+            renderChartDrawingShape(tools, svg, { id: '__preview__', type: 'hline', price: tools.hoverPoint.price }, { ghost: true });
+        } else if (tools.activeTool === 'vline') {
+            renderChartDrawingShape(tools, svg, { id: '__preview__', type: 'vline', t: tools.hoverPoint.t }, { ghost: true });
+        } else if (tools.activeTool === 'longpos' || tools.activeTool === 'shortpos') {
+            const preview = buildPositionDrawing(tools, tools.activeTool, tools.hoverPoint.t, tools.hoverPoint.price);
+            preview.id = '__preview__';
+            renderChartDrawingShape(tools, svg, preview, { ghost: true });
+        }
+    }
+
+    // First click of a two-point drawing: anchor dot
     if (tools.pending) {
         const px = chartToolsTimeToX(tools, tools.pending.t);
         const py = tools.series.priceToCoordinate(tools.pending.price);
         if (px !== null && py !== null) {
             svg.appendChild(chartToolsSvgEl('circle', {
-                cx: px, cy: py, r: 4, fill: '#dfb15b', stroke: '#0f1220', 'stroke-width': 1.5
+                cx: px, cy: py, r: 4, fill: '#dfb15b', stroke: '#0f1220', 'stroke-width': 1.5, 'pointer-events': 'none'
             }));
         }
     }
+
+    updateChartEditBar(tools);
+}
+
+// ---- Floating per-drawing edit bar (color / width / style / lock / delete) ----
+function buildChartEditBar(tools) {
+    const bar = document.createElement('div');
+    bar.className = 'ct-edit-bar';
+    bar.style.display = 'none';
+    bar.addEventListener('mousedown', e => e.stopPropagation());
+
+    bar.innerHTML = `
+        <div class="ct-edit-colors">${CHART_EDIT_COLORS.map(c =>
+            `<button type="button" class="ct-edit-color" data-color="${c}" style="background:${c}" title="Line color"></button>`).join('')}
+        </div>
+        <div class="chart-tools-sep ct-edit-sep"></div>
+        <button type="button" class="ct-edit-btn" data-action="width" title="Line thickness (click to cycle)">2px</button>
+        <button type="button" class="ct-edit-btn" data-action="style" title="Line style (click to cycle)"><span class="ct-style-preview"></span></button>
+        <div class="chart-tools-sep ct-edit-sep"></div>
+        <button type="button" class="ct-edit-btn" data-action="lock" title="Lock (prevents dragging)"><i class="fa-solid fa-lock-open"></i></button>
+        <button type="button" class="ct-edit-btn ct-edit-del" data-action="delete" title="Delete drawing"><i class="fa-solid fa-trash"></i></button>`;
+
+    bar.addEventListener('click', e => {
+        e.stopPropagation();
+        const rec = getChartToolsRecord(tools.chartKey, false);
+        const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+        if (!drawing) return;
+
+        const colorBtn = e.target.closest('.ct-edit-color');
+        if (colorBtn) {
+            drawing.color = colorBtn.dataset.color;
+        } else {
+            const action = (e.target.closest('[data-action]') || {}).dataset && e.target.closest('[data-action]').dataset.action;
+            if (action === 'width') {
+                const widths = [1, 2, 3, 4];
+                drawing.width = widths[(widths.indexOf(Math.round(drawingWidth(drawing))) + 1) % widths.length];
+            } else if (action === 'style') {
+                const styles = ['solid', 'dashed', 'dotted'];
+                drawing.style = styles[(styles.indexOf(drawingStyle(drawing)) + 1) % styles.length];
+            } else if (action === 'lock') {
+                drawing.locked = !drawing.locked;
+            } else if (action === 'delete') {
+                deleteChartDrawing(tools, drawing.id);
+                tools.selectedId = null;
+                renderChartDrawings(tools);
+                return;
+            } else {
+                return;
+            }
+        }
+
+        if (drawing.type === 'hline') refreshChartHLineStyle(tools, drawing);
+        saveChartToolsStore();
+        renderChartDrawings(tools);
+    });
+
+    tools.container.appendChild(bar);
+    tools.editBar = bar;
+}
+
+function updateChartEditBar(tools) {
+    const bar = tools.editBar;
+    if (!bar) return;
+
+    const rec = getChartToolsRecord(tools.chartKey, false);
+    const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+    if (!drawing || tools.activeTool) {
+        bar.style.display = 'none';
+        return;
+    }
+
+    bar.style.display = 'flex';
+    // Position tools have fixed green/red semantics - only lock/delete apply
+    bar.classList.toggle('position-mode', drawing.type === 'longpos' || drawing.type === 'shortpos');
+    // Top-center of the chart, clear of the left tool rail
+    bar.style.left = `${Math.max(60, (tools.container.clientWidth - bar.offsetWidth) / 2)}px`;
+    bar.style.top = '8px';
+
+    const currentColor = drawingColor(drawing);
+    bar.querySelectorAll('.ct-edit-color').forEach(swatch => {
+        swatch.classList.toggle('active', swatch.dataset.color.toLowerCase() === currentColor.toLowerCase());
+    });
+    bar.querySelector('[data-action="width"]').textContent = `${Math.round(drawingWidth(drawing))}px`;
+
+    const stylePreview = bar.querySelector('.ct-style-preview');
+    stylePreview.className = `ct-style-preview ${drawingStyle(drawing)}`;
+
+    const lockIcon = bar.querySelector('[data-action="lock"] i');
+    lockIcon.className = `fa-solid ${drawing.locked ? 'fa-lock' : 'fa-lock-open'}`;
+    bar.querySelector('[data-action="lock"]').classList.toggle('active', !!drawing.locked);
 }
 
 // ---- Indicators ----
@@ -627,13 +1214,22 @@ function buildChartToolsTreePanel(tools) {
 
 function chartDrawingLabel(d) {
     if (d.type === 'hline') return `Horizontal line @ ${d.price.toFixed(2)}`;
+    if (d.type === 'vline') return `Vertical line @ ${new Date(d.t * 1000).toISOString().slice(11, 16)}`;
     if (d.type === 'trend') return `Trend line ${d.p1.price.toFixed(2)} → ${d.p2.price.toFixed(2)}`;
     if (d.type === 'rect') return `Rectangle ${Math.min(d.p1.price, d.p2.price).toFixed(2)} - ${Math.max(d.p1.price, d.p2.price).toFixed(2)}`;
     if (d.type === 'fib') return `Fib ${d.p1.price.toFixed(2)} → ${d.p2.price.toFixed(2)}`;
+    if (d.type === 'longpos' || d.type === 'shortpos') {
+        const rr = Math.abs(d.entry - d.stop) > 0 ? (Math.abs(d.target - d.entry) / Math.abs(d.entry - d.stop)).toFixed(1) : '?';
+        return `${d.type === 'longpos' ? 'Long' : 'Short'} @ ${d.entry.toFixed(2)} (RR ${rr})`;
+    }
     return d.type;
 }
 
-const CHART_DRAWING_ICONS = { trend: 'fa-slash', hline: 'fa-minus', rect: 'fa-vector-square', fib: 'fa-bars' };
+const CHART_DRAWING_ICONS = {
+    trend: 'fa-slash', hline: 'fa-minus', vline: 'fa-grip-lines-vertical',
+    rect: 'fa-vector-square', fib: 'fa-bars',
+    longpos: 'fa-arrow-trend-up', shortpos: 'fa-arrow-trend-down'
+};
 
 function renderChartObjectTree(tools) {
     if (!tools.treePanel || tools.treePanel.style.display === 'none') return;
