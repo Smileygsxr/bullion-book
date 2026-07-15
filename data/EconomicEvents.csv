@@ -1931,27 +1931,27 @@ date,time,name,actual,forecast,previous,importance
 2026-07-13,5:30pm,6-Month Bill Auction,3.860,,3.830,low
 2026-07-13,6:30pm,Fed Governor Waller Speech,,,,moderate
 2026-07-13,8:00pm,Federal Budget Balance,,,,moderate
-2026-07-14,2:30pm,CPI m/m,,0.5,0.5,high
-2026-07-14,2:30pm,Core CPI m/m,,0.2,0.2,high
-2026-07-14,2:30pm,CPI y/y,,3.8,4.2,high
-2026-07-14,2:30pm,Core CPI y/y,,2.9,2.9,moderate
-2026-07-14,2:30pm,CPI n.s.a.,,335.683,335.123,low
-2026-07-14,2:30pm,Core CPI,,336.769,336.121,low
-2026-07-14,2:30pm,Real Earnings m/m,,0.3,-0.2,low
-2026-07-14,2:30pm,CPI n.s.a. m/m,,,0.6,low
-2026-07-14,2:30pm,Core CPI n.s.a. m/m,,,0.3,high
-2026-07-14,2:30pm,CPI,,332.371,333.979,high
-2026-07-14,2:30pm,Core CPI n.s.a.,,,336.846,low
-2026-07-14,5:00pm,Cleveland Fed Median CPI m/m,,0.2,0.3,low
-2026-07-14,6:00pm,NFIB Small Business Optimism,,98.6,95.3,low
+2026-07-14,2:30pm,CPI m/m,-0.4,0.5,0.5,high
+2026-07-14,2:30pm,Core CPI m/m,0.0,0.2,0.2,high
+2026-07-14,2:30pm,CPI y/y,3.5,3.8,4.2,high
+2026-07-14,2:30pm,Core CPI y/y,2.6,2.9,2.9,moderate
+2026-07-14,2:30pm,CPI n.s.a.,333.952,335.683,335.123,low
+2026-07-14,2:30pm,Core CPI,336.065,336.769,336.121,low
+2026-07-14,2:30pm,Real Earnings m/m,0.8,0.3,-0.2,low
+2026-07-14,2:30pm,CPI n.s.a. m/m,-0.3,,0.6,low
+2026-07-14,2:30pm,Core CPI n.s.a. m/m,0.0,,0.3,high
+2026-07-14,2:30pm,CPI,332.568,332.371,333.979,high
+2026-07-14,2:30pm,Core CPI n.s.a.,336.882,,336.846,low
+2026-07-14,5:00pm,Cleveland Fed Median CPI m/m,0.2,0.2,0.3,low
+2026-07-14,6:00pm,NFIB Small Business Optimism,97.4,98.6,95.3,low
 2026-07-14,6:40pm,Fed Vice Chair for Supervision Barr Speech,,,,moderate
 2026-07-14,6:55pm,Fed Vice Chair for Supervision Barr Speech,,,,moderate
 2026-07-14,7:30pm,Fed Governor Cook Speech,,,,moderate
 2026-07-14,8:55pm,Fed Governor Bowman Speech,,,,moderate
-2026-07-14,10:00pm,TIC Net Long-Term Transactions,,91.6,103.1,moderate
-2026-07-14,10:00pm,TIC Net Long-Term Transactions incl. Swaps,,184.4,103.1,low
-2026-07-14,10:00pm,TIC Overall Net Capital Flow,,187.7,26.1,low
-2026-07-14,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,,30.4,50.5,low
+2026-07-14,10:00pm,TIC Net Long-Term Transactions,232.7,91.6,103.1,moderate
+2026-07-14,10:00pm,TIC Net Long-Term Transactions incl. Swaps,232.7,184.4,103.1,low
+2026-07-14,10:00pm,TIC Overall Net Capital Flow,132.2,187.7,26.1,low
+2026-07-14,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,56.6,30.4,50.5,low
 2026-07-15,2:30pm,PPI m/m,,1.6,1.1,high
 2026-07-15,2:30pm,Core PPI m/m,,0.2,0.4,moderate
 2026-07-15,2:30pm,PPI y/y,,4.8,6.5,low
@@ -2221,19 +2221,19 @@ date,time,name,actual,forecast,previous,importance
 2026-08-11,4:00pm,Existing Home Sales,,4.00,4.09,high
 2026-08-11,4:00pm,Existing Home Sales m/m,,-0.6,-2.4,moderate
 2026-08-11,6:00pm,EIA Short-Term Energy Outlook,,,,moderate
-2026-08-11,6:00pm,NFIB Small Business Optimism,,,,low
+2026-08-11,6:00pm,NFIB Small Business Optimism,,98.6,97.4,low
 2026-08-11,7:00pm,3-Year Note Auction,,,4.179,moderate
-2026-08-12,2:30pm,CPI m/m,,,,high
-2026-08-12,2:30pm,Core CPI m/m,,,,high
-2026-08-12,2:30pm,CPI y/y,,,,high
-2026-08-12,2:30pm,Core CPI y/y,,,,moderate
-2026-08-12,2:30pm,CPI n.s.a.,,,,low
-2026-08-12,2:30pm,Core CPI,,,,low
-2026-08-12,2:30pm,Real Earnings m/m,,,,low
-2026-08-12,2:30pm,CPI n.s.a. m/m,,,,low
-2026-08-12,2:30pm,Core CPI n.s.a. m/m,,,,high
-2026-08-12,2:30pm,CPI,,,,high
-2026-08-12,2:30pm,Core CPI n.s.a.,,,,low
+2026-08-12,2:30pm,CPI m/m,,0.2,-0.4,high
+2026-08-12,2:30pm,Core CPI m/m,,0.2,0.0,high
+2026-08-12,2:30pm,CPI y/y,,2.7,3.5,high
+2026-08-12,2:30pm,Core CPI y/y,,2.6,2.6,moderate
+2026-08-12,2:30pm,CPI n.s.a.,,331.480,333.952,low
+2026-08-12,2:30pm,Core CPI,,336.511,336.065,low
+2026-08-12,2:30pm,Real Earnings m/m,,0.0,0.8,low
+2026-08-12,2:30pm,CPI n.s.a. m/m,,,-0.3,low
+2026-08-12,2:30pm,Core CPI n.s.a. m/m,,,0.0,high
+2026-08-12,2:30pm,CPI,,332.398,332.568,high
+2026-08-12,2:30pm,Core CPI n.s.a.,,,336.882,low
 2026-08-12,4:30pm,EIA Crude Oil Stocks Change,,,,high
 2026-08-12,4:30pm,EIA Cushing Crude Oil Stocks Change,,,,moderate
 2026-08-12,4:30pm,EIA Crude Oil Imports Change,,,,low
@@ -2244,6 +2244,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-12,4:30pm,EIA Gasoline Stocks Change,,,,low
 2026-08-12,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,,low
 2026-08-12,4:30pm,EIA Refinery Utilization Rate Change,,,,low
+2026-08-12,5:00pm,Cleveland Fed Median CPI m/m,,0.2,0.2,low
 2026-08-12,6:00pm,WASDE Report,,,,moderate
 2026-08-12,7:00pm,10-Year Note Auction,,,4.580,high
 2026-08-12,8:00pm,Federal Budget Balance,,,,moderate
@@ -2287,10 +2288,10 @@ date,time,name,actual,forecast,previous,importance
 2026-08-17,4:00pm,NAHB Housing Market Index,,,,low
 2026-08-17,5:30pm,3-Month Bill Auction,,,,low
 2026-08-17,5:30pm,6-Month Bill Auction,,,,low
-2026-08-17,10:00pm,TIC Net Long-Term Transactions,,,,moderate
-2026-08-17,10:00pm,TIC Net Long-Term Transactions incl. Swaps,,,,low
-2026-08-17,10:00pm,TIC Overall Net Capital Flow,,,,low
-2026-08-17,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,,,,low
+2026-08-17,10:00pm,TIC Net Long-Term Transactions,,90.5,232.7,moderate
+2026-08-17,10:00pm,TIC Net Long-Term Transactions incl. Swaps,,79.7,232.7,low
+2026-08-17,10:00pm,TIC Overall Net Capital Flow,,67.8,132.2,low
+2026-08-17,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,,29.4,56.6,low
 2026-08-18,2:30pm,Housing Starts,,,,moderate
 2026-08-18,2:30pm,Building Permits,,,,moderate
 2026-08-18,2:30pm,Housing Starts m/m,,,,moderate
