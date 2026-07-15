@@ -24,7 +24,7 @@ function getDayNotesArray(account) {
     return migrated;
 }
 
-function openNoteModal(noteId) {
+function openNoteModal(noteId, defaultDate) {
     const account = getActiveAccount();
     const notesArr = getDayNotesArray(account);
     const existing = noteId ? notesArr.find(n => n.id === noteId) : null;
@@ -34,7 +34,7 @@ function openNoteModal(noteId) {
         ? { mood: existing.mood, condition: existing.condition, volatility: existing.volatility }
         : { mood: null, condition: null, volatility: null };
 
-    document.getElementById('note-modal-date').value = existing ? existing.date : todayDateKey();
+    document.getElementById('note-modal-date').value = existing ? existing.date : (defaultDate || todayDateKey());
     document.getElementById('note-modal-summary').value = existing ? (existing.summary || '') : '';
     document.getElementById('note-editor-content').innerHTML = existing ? (existing.html || '') : '';
 

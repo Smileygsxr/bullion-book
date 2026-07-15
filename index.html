@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullion Book</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-    <link rel="stylesheet" href="styles.css?v=69">
+    <link rel="stylesheet" href="styles.css?v=73">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -2119,6 +2119,19 @@
             <div class="modal-card-body">
                 <div id="day-trades-list" class="day-trades-list"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- Weekly Review tile detail modal - clicking any KPI tile (Net P&L,
+         Win Rate, etc.) opens the full breakdown here, built from the same
+         week's data the tiles show (reviewTileContext in stats.js). -->
+    <div id="review-tile-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card review-tile-modal-card">
+            <div class="modal-card-header">
+                <span id="review-tile-modal-title">Details</span>
+                <button class="modal-close-btn" onclick="closeReviewTileModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-card-body" id="review-tile-modal-body"></div>
         </div>
     </div>
 

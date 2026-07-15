@@ -1455,6 +1455,11 @@ function renderStatsSymbolTable(closed) {
 // filter panel, since a review should reflect what actually happened.
 let reviewWeekOffset = 0;
 
+// Snapshot of the currently-rendered week's data, stashed at the end of
+// renderReviewPage() so openReviewTileDetail() can build its panel from the
+// exact same numbers the tiles show, without recomputing everything.
+let reviewTileContext = null;
+
 function shiftReviewWeek(delta) {
     reviewWeekOffset += delta;
     renderReviewPage();
@@ -1538,12 +1543,264 @@ function reviewMondayKeyOf(dateStr) {
     return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 }
 
-function reviewTile(label, icon, valueHtml, subHtml, countUp) {
+// ---- Tiny inline SVG visualizations embedded IN the tile (kept small on
+// purpose - the tile box itself never grows, the full breakdown lives in
+// the click-to-open detail panel below). ----
+// Cumulative P&L walk (starting at 0) for a set of trade rows, oldest first -
+// the numeric series miniSparkSvg draws.
+function cumulativeSeries(rows) {
+    const sorted = rows.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    let running = 0;
+    return [0, ...sorted.map(r => (running += r.returnAmount))];
+}
+
+function miniSparkSvg(values) {
+    if (!values || values.length < 2) return '';
+    const w = 100, h = 26, pad = 2;
+    const min = Math.min(...values), max = Math.max(...values);
+    const span = (max - min) || 1;
+    const stepX = (w - pad * 2) / (values.length - 1);
+    const pts = values.map((v, i) => `${(pad + i * stepX).toFixed(1)},${(pad + (h - pad * 2) * (1 - (v - min) / span)).toFixed(1)}`);
+    const color = values[values.length - 1] >= values[0] ? 'var(--win)' : 'var(--loss)';
+    return `<svg class="review-tile-viz" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+}
+
+// Filled pie (not a ring) with the win/loss % labeled inside each slice -
+// single-slice cases (100% one color) render as a plain full circle since a
+// 360-degree arc path is degenerate.
+function miniDonutSvg(winCount, lossCount) {
+    const total = winCount + lossCount;
+    if (total === 0) return '';
+    const winPct = Math.round((winCount / total) * 100);
+    const lossPct = 100 - winPct;
+    const r = 15, cx = 16, cy = 16;
+
+    const pointOnCircle = fracFromTop => {
+        const angle = (fracFromTop * 2 * Math.PI) - Math.PI / 2;
+        return [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+    };
+    const wedgePath = (startFrac, endFrac) => {
+        const [x1, y1] = pointOnCircle(startFrac);
+        const [x2, y2] = pointOnCircle(endFrac);
+        const largeArc = (endFrac - startFrac) > 0.5 ? 1 : 0;
+        return `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    };
+    const labelPoint = (startFrac, endFrac, radiusFrac) => {
+        const midFrac = (startFrac + endFrac) / 2;
+        const angle = (midFrac * 2 * Math.PI) - Math.PI / 2;
+        return [cx + r * radiusFrac * Math.cos(angle), cy + r * radiusFrac * Math.sin(angle)];
+    };
+
+    const winFrac = winCount / total;
+    let slices = '';
+    if (winCount > 0 && lossCount > 0) {
+        slices = `
+            <path d="${wedgePath(0, winFrac)}" fill="var(--win)"/>
+            <path d="${wedgePath(winFrac, 1)}" fill="var(--loss)"/>`;
+    } else {
+        slices = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${winCount > 0 ? 'var(--win)' : 'var(--loss)'}"/>`;
+    }
+
+    // For a 2-slice pie the two slice centroids are ALWAYS exactly 180°
+    // apart regardless of split ratio - so overlap isn't an angular problem,
+    // it's the two labels sitting too close to the shared center point.
+    // Push both out near the rim (where the two are furthest apart) and
+    // keep the font small enough that "50%"-sized text never reaches back
+    // past the center from either side.
+    const labelFontSize = pct => (pct < 15 ? 5 : pct < 30 ? 6 : 6.8);
+    const labelRadiusFrac = pct => (pct < 30 ? 0.74 : 0.68);
+
+    let labels = '';
+    if (winCount > 0) {
+        const [lx, ly] = winCount === total ? [cx, cy] : labelPoint(0, winFrac, labelRadiusFrac(winPct));
+        labels += `<text x="${lx.toFixed(1)}" y="${(ly + labelFontSize(winPct) / 3).toFixed(1)}" text-anchor="middle" fill="#0f1220" font-size="${labelFontSize(winPct)}" font-weight="700">${winPct}%</text>`;
+    }
+    if (lossCount > 0) {
+        const [lx, ly] = lossCount === total ? [cx, cy] : labelPoint(winFrac, 1, labelRadiusFrac(lossPct));
+        labels += `<text x="${lx.toFixed(1)}" y="${(ly + labelFontSize(lossPct) / 3).toFixed(1)}" text-anchor="middle" fill="#ffffff" font-size="${labelFontSize(lossPct)}" font-weight="700">${lossPct}%</text>`;
+    }
+
+    return `<svg class="review-tile-viz review-tile-donut" viewBox="0 0 32 32">${slices}${labels}</svg>`;
+}
+
+// ---- Full-content review tiles: each shows its complete breakdown inline
+// (not behind a click), built entirely from this week's real trades. Lists
+// are capped for readability with a "View all" link into the detail modal
+// (openReviewTileDetail) when there's more than fits. ----
+function reviewViewAllLink(tileId, hiddenCount) {
+    return hiddenCount > 0
+        ? `<button type="button" class="review-tile-viewall" onclick="event.stopPropagation(); openReviewTileDetail('${tileId}')">+${hiddenCount} more &rarr;</button>`
+        : '';
+}
+
+function reviewNetPnlTile(netPnl, week) {
+    const pnlClass = netPnl < 0 ? 'value-negative' : 'value-positive';
+    const gainers = week.slice().sort((a, b) => b.returnAmount - a.returnAmount).filter(r => r.returnAmount > 0).slice(0, 3);
+    const maxGain = Math.max(1, ...gainers.map(r => r.returnAmount));
+
     return `
-        <div class="review-tile review-animate">
-            <div class="review-tile-label"><i class="fa-solid ${icon}"></i> ${label}</div>
-            <div class="review-tile-value sensitive-value"${countUp ? ` data-countup="${countUp.value}" data-countup-format="${countUp.format}"` : ''}>${valueHtml}</div>
-            ${subHtml ? `<div class="review-tile-sub">${subHtml}</div>` : ''}
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-sack-dollar"></i> NET P&amp;L</div>
+            <div class="review-tile-value sensitive-value" data-countup="${netPnl}" data-countup-format="money"><span class="${pnlClass}">${formatTotal(netPnl)}</span></div>
+            <div class="review-tile-sub">${week.length} closed trade(s)</div>
+            ${miniSparkSvg(cumulativeSeries(week))}
+            ${gainers.length > 0 ? `
+            <div class="review-tile-section-title">Top Gainers</div>
+            <div class="review-tile-list">${gainers.map(r => `
+                <div class="review-gain-row" onclick="openTradeViewModal(null, '${r.id}')">
+                    <i class="fa-solid fa-arrow-trend-up value-positive"></i>
+                    <span class="review-gain-symbol">${escapeHtml(r.symbol)}</span>
+                    <div class="review-gain-bar-track"><div class="review-gain-bar-fill" style="width:${Math.round(r.returnAmount / maxGain * 100)}%"></div></div>
+                    <span class="value-positive sensitive-value">${formatTotal(r.returnAmount)}</span>
+                </div>`).join('')}</div>
+            ${reviewViewAllLink('netpnl', Math.max(0, week.filter(r => r.returnAmount > 0).length - gainers.length))}` : ''}
+        </div>`;
+}
+
+function reviewWinRateTile(winRate, allWinRate, allClosedLen, week, wins, losses) {
+    const longs = week.filter(r => r.direction === 'long');
+    const shorts = week.filter(r => r.direction === 'short');
+    const longWins = longs.filter(r => r.status === 'WIN').length;
+    const shortWins = shorts.filter(r => r.status === 'WIN').length;
+
+    return `
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-bullseye"></i> WIN RATE</div>
+            <div class="review-tile-value" data-countup="${winRate}" data-countup-format="pct">${winRate.toFixed(0)}%</div>
+            <div class="review-tile-sub">${allClosedLen > week.length ? `all-time ${allWinRate.toFixed(0)}%` : `${wins.length}W / ${losses.length}L`}</div>
+            <div class="review-tile-donut-wrap">${miniDonutSvg(wins.length, losses.length)}</div>
+            <div class="review-tile-section-title">Breakdown</div>
+            <div class="review-tile-list">
+                ${longs.length > 0 ? `<div class="review-breakdown-row"><span class="review-breakdown-dot win"></span><span class="review-breakdown-label">Long Trades (${longWins}/${longs.length})</span><div class="review-breakdown-bar-track"><div class="review-breakdown-bar-fill win" style="width:${Math.round(longWins / longs.length * 100)}%"></div></div><span class="review-breakdown-val win">${longWins}/${longs.length}</span></div>` : ''}
+                ${shorts.length > 0 ? `<div class="review-breakdown-row"><span class="review-breakdown-dot loss"></span><span class="review-breakdown-label">Short Trades (${shortWins}/${shorts.length})</span><div class="review-breakdown-bar-track"><div class="review-breakdown-bar-fill loss" style="width:${Math.round(shortWins / shorts.length * 100)}%"></div></div><span class="review-breakdown-val loss">${shortWins}/${shorts.length}</span></div>` : ''}
+            </div>
+        </div>`;
+}
+
+function reviewProfitFactorTile(profitFactor, wins, losses, grossProfit, grossLoss, week) {
+    const pfDisplay = profitFactor === Infinity ? '&infin;' : profitFactor.toFixed(2);
+    const sorted = week.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const shown = sorted.slice(0, 3);
+
+    return `
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-scale-balanced"></i> PROFIT FACTOR</div>
+            <div class="review-tile-value">${pfDisplay}</div>
+            <div class="review-tile-sub">${wins.length}W / ${losses.length}L</div>
+            <div class="review-tile-pf-bars">
+                <div class="review-tile-pf-bar-col"><div class="review-tile-pf-bar win" style="height:${Math.round(Math.max(4, grossProfit / Math.max(grossProfit, grossLoss, 1) * 26))}px"></div><span>Total Wins</span></div>
+                <div class="review-tile-pf-bar-col"><div class="review-tile-pf-bar loss" style="height:${Math.round(Math.max(4, grossLoss / Math.max(grossProfit, grossLoss, 1) * 26))}px"></div><span>Total Losses</span></div>
+            </div>
+            <table class="review-tile-table">
+                <thead><tr><th>Date</th><th>Instrument</th><th>P&amp;L</th></tr></thead>
+                <tbody>${shown.map(r => `
+                    <tr onclick="openTradeViewModal(null, '${r.id}')">
+                        <td>${formatReviewDayLabel(r.date.slice(0, 10))}</td>
+                        <td>${escapeHtml(r.symbol)}</td>
+                        <td class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}</td>
+                    </tr>`).join('')}</tbody>
+            </table>
+            ${reviewViewAllLink('profitfactor', Math.max(0, week.length - shown.length))}
+        </div>`;
+}
+
+function reviewBestDayTile(bestDay, byDay) {
+    if (!bestDay) return `<div class="review-tile review-tile-rich review-animate"><div class="review-tile-label"><i class="fa-solid fa-trophy"></i> BEST DAY</div><div class="review-tile-value">-</div></div>`;
+    const day = byDay.get(bestDay);
+    const trades = day.trades.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    const shown = trades.slice(0, 3);
+    const maxAbs = Math.max(1, ...trades.map(r => Math.abs(r.returnAmount)));
+
+    return `
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-trophy"></i> BEST DAY</div>
+            <div class="review-tile-value"><span class="${day.pnl < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(day.pnl)}</span></div>
+            <div class="review-tile-sub">${formatReviewDayLabel(bestDay)}</div>
+            <div class="review-tile-section-title">Daily Performance</div>
+            <div class="review-tile-list">${shown.map(r => `
+                <div class="review-perf-row" onclick="openTradeViewModal(null, '${r.id}')">
+                    <span class="review-perf-time">${formatTradeTime(r.date)}</span>
+                    <span class="review-perf-symbol">${escapeHtml(r.symbol)}</span>
+                    <span class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}</span>
+                </div>`).join('')}</div>
+            ${reviewViewAllLink('bestday', Math.max(0, trades.length - shown.length))}
+            <div class="review-tile-section-title">Summary</div>
+            <div class="review-tile-summary-bar-row">
+                <div class="review-tile-summary-bar-track"><div class="review-tile-summary-bar-fill" style="width:100%"></div></div>
+                <span class="value-positive sensitive-value">${formatTotal(day.pnl)}</span>
+            </div>
+        </div>`;
+}
+
+function reviewWorstDayTile(worstDay, byDay, account) {
+    if (!worstDay) return `<div class="review-tile review-tile-rich review-animate"><div class="review-tile-label"><i class="fa-solid fa-cloud-rain"></i> WORST DAY</div><div class="review-tile-value">-</div></div>`;
+    const day = byDay.get(worstDay);
+    const trades = day.trades.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    const shown = trades.slice(0, 3);
+
+    const notesArr = typeof getDayNotesArray === 'function' ? getDayNotesArray(account) : [];
+    const note = notesArr.find(n => n.date === worstDay);
+    const lessonParts = [];
+    if (note && note.condition) lessonParts.push(`${NOTE_CONDITION_ICONS[note.condition] || ''} ${note.condition} market`);
+    if (note && note.volatility) lessonParts.push(`${note.volatility} volatility`);
+
+    return `
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-cloud-rain"></i> WORST DAY</div>
+            <div class="review-tile-value"><span class="${day.pnl < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(day.pnl)}</span></div>
+            <div class="review-tile-sub">${formatReviewDayLabel(worstDay)}</div>
+            <div class="review-tile-list">${shown.map(r => `
+                <div class="review-perf-row" onclick="openTradeViewModal(null, '${r.id}')">
+                    <span class="review-perf-time">1 trade:</span>
+                    <span class="review-perf-symbol">${escapeHtml(r.symbol)}</span>
+                    <span class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}</span>
+                </div>`).join('')}</div>
+            ${reviewViewAllLink('worstday', Math.max(0, trades.length - shown.length))}
+            <div class="review-tile-section-title">Notes</div>
+            <ul class="review-tile-bullets">
+                <li>${note && note.summary ? escapeHtml(note.summary) : 'No note logged for this day.'}</li>
+            </ul>
+            <div class="review-tile-section-title">Lesson Learned</div>
+            <ul class="review-tile-bullets">
+                ${lessonParts.length > 0
+                    ? `<li>Felt ${note.mood || 'unrecorded'} trading a ${lessonParts.join(', ')}.</li>`
+                    : `<li><a href="#" onclick="event.stopPropagation(); event.preventDefault(); openNoteModal(${note ? `'${note.id}'` : `null, '${worstDay}'`});">${note ? 'Edit note for lessons learned' : 'Add a note to capture lessons learned'}</a></li>`}
+            </ul>
+        </div>`;
+}
+
+function reviewAvgPerTradeTile(netPnl, week, avgWinAmt, avgLossAmt) {
+    const avgPerTrade = netPnl / week.length;
+    const session1 = week.filter(r => getWallClockHour(r.date) < 12);
+    const session2 = week.filter(r => getWallClockHour(r.date) >= 12);
+    const sessionAvg = rows => rows.length > 0 ? average(rows.map(r => r.returnAmount)) : null;
+    const s1Avg = sessionAvg(session1), s2Avg = sessionAvg(session2);
+    const maxBar = Math.max(avgWinAmt, avgLossAmt, 1);
+
+    return `
+        <div class="review-tile review-tile-rich review-animate">
+            <div class="review-tile-label"><i class="fa-solid fa-chart-line"></i> AVG PER TRADE</div>
+            <div class="review-tile-value sensitive-value" data-countup="${avgPerTrade}" data-countup-format="money"><span class="${avgPerTrade < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(avgPerTrade)}</span></div>
+            <div class="review-tile-sub">net / trades</div>
+            <div class="review-tile-pf-bars review-avg-bars">
+                <div class="review-tile-pf-bar-col">
+                    <span class="value-positive sensitive-value review-avg-bar-label">${formatTotal(avgWinAmt)}</span>
+                    <div class="review-tile-pf-bar win" style="height:${Math.round(Math.max(4, avgWinAmt / maxBar * 26))}px"></div>
+                    <span>Avg Win</span>
+                </div>
+                <div class="review-tile-pf-bar-col">
+                    <div class="review-tile-pf-bar loss" style="height:${Math.round(Math.max(4, avgLossAmt / maxBar * 26))}px"></div>
+                    <span class="value-negative sensitive-value review-avg-bar-label">${formatTotal(-avgLossAmt)}</span>
+                    <span>Avg Loss</span>
+                </div>
+            </div>
+            <div class="review-tile-section-title">Sessions</div>
+            <div class="review-tile-list">
+                ${session1.length > 0 ? `<div class="review-session-mini-row"><i class="fa-solid ${s1Avg >= 0 ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i><span>Session 1</span><span class="${s1Avg < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(s1Avg)}</span></div>` : ''}
+                ${session2.length > 0 ? `<div class="review-session-mini-row"><i class="fa-solid ${s2Avg >= 0 ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i><span>Session 2</span><span class="${s2Avg < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(s2Avg)}</span></div>` : ''}
+            </div>
         </div>`;
 }
 
@@ -1737,6 +1994,7 @@ function renderReviewPage() {
         </div>`;
 
     if (week.length === 0) {
+        reviewTileContext = null; // no tiles rendered this week - nothing for a detail click to show
         content.innerHTML = stripHtml
             + '<div class="review-empty">No closed trades this week. Use the arrows above - or click a bar in the strip - to look at another week.</div>'
             + notesPanelHtml;
@@ -1831,8 +2089,8 @@ function renderReviewPage() {
         takeaways.push({ icon: 'fa-star', html: `"<strong>${escapeHtml(bestTag.name)}</strong>" was the best-working setup: <span class="value-positive sensitive-value">${formatTotal(bestTag.pnl)}</span> across ${bestTag.count} trade(s).` });
     }
 
-    const pnlClass = netPnl < 0 ? 'value-negative' : 'value-positive';
-    const pfDisplay = profitFactor === Infinity ? '&infin;' : profitFactor.toFixed(2);
+    const avgWinAmt = wins.length > 0 ? average(wins.map(r => r.returnAmount)) : 0;
+    const avgLossAmt = losses.length > 0 ? Math.abs(average(losses.map(r => r.returnAmount))) : 0;
 
     // -- Interactive day-by-day rows --
     const maxAbsDayPnl = Math.max(1, ...weekDates.map(d => Math.abs(byDay.get(d).pnl)));
@@ -1906,12 +2164,12 @@ function renderReviewPage() {
             </div>
 
             <div class="review-tiles">
-                ${reviewTile('NET P&L', 'fa-sack-dollar', `<span class="${pnlClass}">${formatTotal(netPnl)}</span>`, `${week.length} closed trade(s)`, { value: netPnl, format: 'money' })}
-                ${reviewTile('WIN RATE', 'fa-bullseye', `${winRate.toFixed(0)}%`, allClosed.length > week.length ? `all-time ${allWinRate.toFixed(0)}%` : '', { value: winRate, format: 'pct' })}
-                ${reviewTile('PROFIT FACTOR', 'fa-scale-balanced', pfDisplay, `${wins.length}W / ${losses.length}L`, profitFactor === Infinity ? null : { value: profitFactor, format: 'num' })}
-                ${reviewTile('BEST DAY', 'fa-trophy', bestDay ? `<span class="${byDay.get(bestDay).pnl < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(byDay.get(bestDay).pnl)}</span>` : '-', bestDay ? formatReviewDayLabel(bestDay) : '')}
-                ${reviewTile('WORST DAY', 'fa-cloud-rain', worstDay ? `<span class="${byDay.get(worstDay).pnl < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(byDay.get(worstDay).pnl)}</span>` : '-', worstDay ? formatReviewDayLabel(worstDay) : '')}
-                ${reviewTile('AVG PER TRADE', 'fa-chart-line', `<span class="${netPnl / week.length < 0 ? 'value-negative' : 'value-positive'}">${formatTotal(netPnl / week.length)}</span>`, 'net / trades', { value: netPnl / week.length, format: 'money' })}
+                ${reviewNetPnlTile(netPnl, week)}
+                ${reviewWinRateTile(winRate, allWinRate, allClosed.length, week, wins, losses)}
+                ${reviewProfitFactorTile(profitFactor, wins, losses, grossProfit, grossLoss, week)}
+                ${reviewBestDayTile(bestDay, byDay)}
+                ${reviewWorstDayTile(worstDay, byDay, account)}
+                ${reviewAvgPerTradeTile(netPnl, week, avgWinAmt, avgLossAmt)}
             </div>
         </div>
 
@@ -1968,6 +2226,143 @@ function renderReviewPage() {
     }
     animateReviewCountUps(content);
     bindReviewTooltips();
+
+    reviewTileContext = {
+        week, wins, losses, byDay, weekDates, bestDay, worstDay,
+        tagRows, bestTrade, worstTrade, account,
+        netPnl, winRate, profitFactor, grossProfit, grossLoss,
+        avgWinAmt, avgLossAmt
+    };
+}
+
+// ---- Review tile detail panel: click a tile -> full breakdown, built from
+// the exact same week (reviewTileContext) the tiles are showing. ----
+function reviewDetailTradeLine(r) {
+    return `
+        <div class="review-day-trade-line" onclick="openTradeViewModal(null, '${r.id}')">
+            <i class="fa-solid ${r.direction === 'long' ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i>
+            <span class="review-day-trade-time">${formatReviewDayLabel(r.date.slice(0, 10))} ${formatTradeTime(r.date)}</span>
+            <span class="review-day-trade-symbol">${escapeHtml(r.symbol)}</span>
+            <span class="review-day-trade-fill"></span>
+            <span class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}${r.rMultiple !== null ? ` <span class="review-day-trade-r">(${r.rMultiple.toFixed(1)}R)</span>` : ''}</span>
+            <i class="fa-solid fa-up-right-from-square review-day-trade-open"></i>
+        </div>`;
+}
+
+function reviewDetailBarRow(label, count, total, amount) {
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    return `
+        <div class="review-detail-bar-row">
+            <span class="review-detail-bar-label">${escapeHtml(label)}</span>
+            <div class="review-detail-bar-track"><div class="review-detail-bar-fill" style="width:${pct}%"></div></div>
+            <span class="review-detail-bar-val">${count}/${total}${amount !== undefined ? ` &middot; <span class="${amount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(amount)}</span>` : ''}</span>
+        </div>`;
+}
+
+function openReviewTileDetail(tileId) {
+    const ctx = reviewTileContext;
+    const overlay = document.getElementById('review-tile-modal-overlay');
+    const titleEl = document.getElementById('review-tile-modal-title');
+    const bodyEl = document.getElementById('review-tile-modal-body');
+    if (!ctx || !overlay || !titleEl || !bodyEl) return;
+
+    let title = '';
+    let body = '';
+
+    if (tileId === 'netpnl') {
+        title = 'Net P&L This Week';
+        const topTrades = ctx.week.slice().sort((a, b) => b.returnAmount - a.returnAmount).slice(0, 6);
+        const maxAbs = Math.max(1, ...topTrades.map(r => Math.abs(r.returnAmount)));
+        body = `
+            <p class="review-detail-note">Top trades by P&amp;L this week - click one to open it.</p>
+            <div class="review-detail-gainers">${topTrades.map(r => `
+                <div class="review-gainer-row" onclick="openTradeViewModal(null, '${r.id}')">
+                    <i class="fa-solid ${r.returnAmount >= 0 ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i>
+                    <span class="review-gainer-symbol">${escapeHtml(r.symbol)}</span>
+                    <div class="review-gainer-bar-track"><div class="review-gainer-bar-fill ${r.returnAmount < 0 ? 'neg' : 'pos'}" style="width:${Math.round(Math.abs(r.returnAmount) / maxAbs * 100)}%"></div></div>
+                    <span class="${r.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(r.returnAmount)}</span>
+                </div>`).join('')}
+            </div>`;
+    } else if (tileId === 'winrate') {
+        title = 'Win Rate Breakdown';
+        const longs = ctx.week.filter(r => r.direction === 'long');
+        const shorts = ctx.week.filter(r => r.direction === 'short');
+        const longWins = longs.filter(r => r.status === 'WIN').length;
+        const shortWins = shorts.filter(r => r.status === 'WIN').length;
+        body = `
+            <p class="review-detail-note">${ctx.wins.length} win${ctx.wins.length === 1 ? '' : 's'} of ${ctx.week.length} closed trade(s) this week.</p>
+            <div class="review-detail-bars">
+                ${longs.length > 0 ? reviewDetailBarRow('Long Trades', longWins, longs.length) : ''}
+                ${shorts.length > 0 ? reviewDetailBarRow('Short Trades', shortWins, shorts.length) : ''}
+            </div>
+            <div class="review-detail-section-label">All Trades</div>
+            <div class="review-detail-gainers">${ctx.week.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(reviewDetailTradeLine).join('')}</div>`;
+    } else if (tileId === 'profitfactor') {
+        title = 'Profit Factor - This Week\'s Trades';
+        body = `
+            <p class="review-detail-note">Gross profit ${formatTotal(ctx.grossProfit)} &divide; gross loss ${formatTotal(ctx.grossLoss)}.</p>
+            <div class="review-detail-gainers">${ctx.week.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(reviewDetailTradeLine).join('')}</div>`;
+    } else if (tileId === 'bestday' || tileId === 'worstday') {
+        const day = tileId === 'bestday' ? ctx.bestDay : ctx.worstDay;
+        const dayData = ctx.byDay.get(day);
+        title = `${tileId === 'bestday' ? 'Best' : 'Toughest'} Day - ${formatReviewDayLabel(day)}`;
+
+        const notesArr = typeof getDayNotesArray === 'function' ? getDayNotesArray(ctx.account) : [];
+        const dayNotes = notesArr.filter(n => n.date === day);
+
+        const notesHtml = dayNotes.length > 0
+            ? dayNotes.map(n => `
+                <div class="review-detail-note-card">
+                    ${n.mood ? NOTE_MOOD_ICONS[n.mood] : ''}${n.condition ? NOTE_CONDITION_ICONS[n.condition] : ''}${n.volatility ? NOTE_VOLATILITY_ICONS[n.volatility] : ''}
+                    <p>${escapeHtml(n.summary || '(no summary written)')}</p>
+                    <button type="button" class="news-tab" onclick="closeReviewTileModal(); openNoteModal('${n.id}')"><i class="fa-solid fa-pen"></i> Edit Note</button>
+                </div>`).join('')
+            : `<div class="review-detail-note-card empty">
+                <p>No note for this day yet.</p>
+                <button type="button" class="news-tab" onclick="closeReviewTileModal(); openNoteModal(null, '${day}')"><i class="fa-solid fa-plus"></i> Add a Note</button>
+               </div>`;
+
+        body = `
+            <p class="review-detail-note">${dayData.count} trade${dayData.count === 1 ? '' : 's'} &middot; <span class="${dayData.pnl < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(dayData.pnl)}</span></p>
+            <div class="review-detail-section-label">Trades</div>
+            <div class="review-detail-gainers">${dayData.trades.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(reviewDetailTradeLine).join('')}</div>
+            <div class="review-detail-section-label">Notes &amp; Lessons</div>
+            ${notesHtml}`;
+    } else if (tileId === 'avgpertrade') {
+        title = 'Average Per Trade - Session Breakdown';
+        const session1 = ctx.week.filter(r => getWallClockHour(r.date) < 12);
+        const session2 = ctx.week.filter(r => getWallClockHour(r.date) >= 12);
+        const sessionRow = (label, rows) => {
+            if (rows.length === 0) return '';
+            const avg = average(rows.map(r => r.returnAmount));
+            return `
+                <div class="review-session-row">
+                    <i class="fa-solid ${avg >= 0 ? 'fa-arrow-trend-up value-positive' : 'fa-arrow-trend-down value-negative'}"></i>
+                    <span class="review-session-label">${label}</span>
+                    <span class="review-session-count">${rows.length} trade${rows.length === 1 ? '' : 's'}</span>
+                    <span class="${avg < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(avg)} avg</span>
+                </div>`;
+        };
+        body = `
+            <p class="review-detail-note">Avg win ${formatTotal(ctx.avgWinAmt)} &middot; avg loss ${formatTotal(-ctx.avgLossAmt)}</p>
+            <div class="review-detail-bars">
+                ${sessionRow('Session 1 (00:00 - 11:59)', session1)}
+                ${sessionRow('Session 2 (12:00 - 23:59)', session2)}
+            </div>
+            <div class="review-detail-section-label">All Trades</div>
+            <div class="review-detail-gainers">${ctx.week.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).map(reviewDetailTradeLine).join('')}</div>`;
+    } else {
+        return;
+    }
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = body;
+    overlay.style.display = 'flex';
+}
+
+function closeReviewTileModal() {
+    const overlay = document.getElementById('review-tile-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
 }
 
 // One shared hover tooltip (same element the Stats charts use) for the weeks
