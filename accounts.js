@@ -133,7 +133,12 @@ function applyLoadedState(saved) {
 function saveAccountsState() {
     const uid = auth.currentUser && auth.currentUser.uid;
     if (uid) {
-        db.collection('users').doc(uid).set({ bullionAccounts: accountsState }, { merge: true })
+        // mergeFields (NOT merge:true): accounts is a map keyed by account id,
+        // and a deep merge would treat deleted ids as "keep the stored value" -
+        // resurrecting deleted accounts on the next load. mergeFields replaces
+        // this field wholesale while preserving the doc's other fields
+        // (chartDrawings, appSettings, profilePhotoDataUrl).
+        db.collection('users').doc(uid).set({ bullionAccounts: accountsState }, { mergeFields: ['bullionAccounts'] })
             .catch(err => console.error('Failed to save accounts to Firestore:', err.message));
     } else {
         localStorage.setItem(GUEST_ACCOUNTS_KEY, JSON.stringify(accountsState));

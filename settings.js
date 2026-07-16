@@ -216,7 +216,9 @@ function applyLoadedSettings(saved) {
 function saveAppSettings() {
     const uid = auth.currentUser && auth.currentUser.uid;
     if (uid) {
-        db.collection('users').doc(uid).set({ appSettings }, { merge: true })
+        // mergeFields replaces appSettings wholesale (a deep merge would keep
+        // removed keys alive in Firestore) while preserving the doc's other fields.
+        db.collection('users').doc(uid).set({ appSettings }, { mergeFields: ['appSettings'] })
             .catch(err => console.error('Failed to save settings to Firestore:', err.message));
     } else {
         localStorage.setItem('bb_settings_guest', JSON.stringify(appSettings));
