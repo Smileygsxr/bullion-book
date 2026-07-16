@@ -4635,6 +4635,10 @@ body.privacy-mode .equity-crosshair-label.price {
     .review-animate { animation: none; }
     .review-ring-fg { transition: none; }
     .review-tile, .review-day-trade-line { transition: none; }
+    .review-gain-bar-fill, .review-breakdown-bar-fill, .review-tile-summary-bar-fill,
+    .review-tile-pf-bar, .review-tile-donut-wrap .review-tile-donut,
+    .review-spark-area, .review-pie-slice { animation: none; transition: none; }
+    .review-spark-path { animation: none; stroke-dashoffset: 0; }
 }
 
 /* ---- Chart tools: drawing toolbar, indicators menu, object tree ---- */
@@ -7090,6 +7094,97 @@ html[data-theme="blossom"] {
 }
 
 .review-session-mini-row span:nth-child(2) { flex: 1; color: var(--text-muted); }
+
+/* ==== Weekly Review tiles v4: interaction polish - animated fills, hover
+   tooltips on every mini-viz, per-row hover states, and a corner expand
+   button on each tile opening its full-breakdown modal. ==== */
+.review-tile { position: relative; }
+.review-tile:hover { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28); }
+
+.review-tile-expand {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 3px 5px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    z-index: 1;
+}
+
+.review-tile:hover .review-tile-expand { opacity: 1; }
+.review-tile-expand:hover { color: var(--accent-blue); transform: scale(1.2); }
+
+/* Clickable list rows: flicker-safe background hover (no transform) with a
+   little bleed so the highlight doesn't hug the text. */
+.review-gain-row,
+.review-perf-row,
+.review-breakdown-row {
+    border-radius: 4px;
+    margin: 0 -5px;
+    padding: 2px 5px;
+    transition: background 0.12s ease;
+}
+
+.review-breakdown-row { cursor: pointer; }
+
+.review-gain-row:hover,
+.review-perf-row:hover,
+.review-breakdown-row:hover { background: rgba(var(--accent-blue-rgb), 0.08); }
+
+.review-tile-table tbody td { transition: background 0.12s ease; }
+.review-tile-table tbody tr:hover td { background: rgba(var(--accent-blue-rgb), 0.08); }
+
+/* Sparkline: line draws in left-to-right, area fades up under it, and each
+   cumulative point is an invisible hover dot feeding the shared tooltip. */
+.review-tile-spark { cursor: pointer; }
+
+.review-spark-path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: rvDashIn 0.9s ease-out 0.15s forwards;
+}
+
+.review-spark-area { animation: rvFadeIn 0.7s ease 0.55s both; }
+
+.review-tile-spark-dot { fill: transparent; }
+.review-tile-spark-dot:hover { fill: var(--accent-blue); }
+
+/* Pie: pops in on render; slices swell out from the pie center on hover. */
+.review-tile-donut-wrap { cursor: pointer; }
+
+.review-tile-donut-wrap .review-tile-donut {
+    animation: rvPieIn 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) 0.1s both;
+    transform-origin: 50% 50%;
+}
+
+.review-pie-slice {
+    transform-box: view-box;
+    transform-origin: center;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.review-pie-slice:hover { transform: scale(1.07); filter: brightness(1.15); }
+.review-tile-donut text { pointer-events: none; }
+
+/* Bars grow in from empty (horizontal fills and the vertical bar pairs). */
+.review-gain-bar-fill,
+.review-breakdown-bar-fill,
+.review-tile-summary-bar-fill { animation: rvGrowW 0.7s cubic-bezier(0.22, 0.8, 0.32, 1) 0.2s both; }
+
+.review-tile-pf-bar { animation: rvGrowH 0.7s cubic-bezier(0.22, 0.8, 0.32, 1) 0.2s both; }
+
+.review-tile-pf-bar-col[data-heat-label] { cursor: default; }
+
+@keyframes rvGrowW { from { width: 0; } }
+@keyframes rvGrowH { from { height: 0; } }
+@keyframes rvFadeIn { from { opacity: 0; } }
+@keyframes rvDashIn { to { stroke-dashoffset: 0; } }
+@keyframes rvPieIn { from { transform: scale(0.4); opacity: 0; } }
 
 @media (max-width: 900px) {
     .review-tiles { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
