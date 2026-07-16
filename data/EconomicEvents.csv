@@ -1952,21 +1952,21 @@ date,time,name,actual,forecast,previous,importance
 2026-07-14,10:00pm,TIC Net Long-Term Transactions incl. Swaps,232.7,184.4,103.1,low
 2026-07-14,10:00pm,TIC Overall Net Capital Flow,132.2,187.7,26.1,low
 2026-07-14,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,56.6,30.4,50.5,low
-2026-07-15,2:30pm,PPI m/m,,1.6,1.1,high
-2026-07-15,2:30pm,Core PPI m/m,,0.2,0.4,moderate
-2026-07-15,2:30pm,PPI y/y,,4.8,6.5,low
-2026-07-15,2:30pm,Core PPI y/y,,3.5,4.9,low
+2026-07-15,2:30pm,PPI m/m,-0.3,1.6,1.1,high
+2026-07-15,2:30pm,Core PPI m/m,0.2,0.2,0.4,moderate
+2026-07-15,2:30pm,PPI y/y,5.5,4.8,6.5,low
+2026-07-15,2:30pm,Core PPI y/y,4.7,3.5,4.9,low
 2026-07-15,2:30pm,NY Fed Empire State Manufacturing Index,,1.0,5.7,moderate
-2026-07-15,4:30pm,EIA Crude Oil Stocks Change,,1.001,2.998,high
-2026-07-15,4:30pm,EIA Cushing Crude Oil Stocks Change,,0.557,-0.052,moderate
-2026-07-15,4:30pm,EIA Crude Oil Imports Change,,0.532,1.096,low
-2026-07-15,4:30pm,EIA Distillate Fuel Production Change,,-0.016,-0.001,low
-2026-07-15,4:30pm,EIA Distillates Stocks Change,,-3.648,-4.980,low
-2026-07-15,4:30pm,EIA Gasoline Production Change,,-0.026,-0.233,low
-2026-07-15,4:30pm,EIA Heating Oil Stocks Change,,-0.044,-0.427,low
-2026-07-15,4:30pm,EIA Gasoline Stocks Change,,0.323,-1.904,low
-2026-07-15,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,-0.172,low
-2026-07-15,4:30pm,EIA Refinery Utilization Rate Change,,,-0.8,low
+2026-07-15,4:30pm,EIA Crude Oil Stocks Change,-1.692,1.001,2.998,high
+2026-07-15,4:30pm,EIA Cushing Crude Oil Stocks Change,0.430,0.557,-0.052,moderate
+2026-07-15,4:30pm,EIA Crude Oil Imports Change,-0.399,0.532,1.096,low
+2026-07-15,4:30pm,EIA Distillate Fuel Production Change,0.072,-0.016,-0.001,low
+2026-07-15,4:30pm,EIA Distillates Stocks Change,4.556,-3.648,-4.980,low
+2026-07-15,4:30pm,EIA Gasoline Production Change,-0.096,-0.026,-0.233,low
+2026-07-15,4:30pm,EIA Heating Oil Stocks Change,0.030,-0.044,-0.427,low
+2026-07-15,4:30pm,EIA Gasoline Stocks Change,-1.533,0.323,-1.904,low
+2026-07-15,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,0.099,,-0.172,low
+2026-07-15,4:30pm,EIA Refinery Utilization Rate Change,0.4,,-0.8,low
 2026-07-15,7:00pm,Fed Governor Cook Speech,,,,moderate
 2026-07-15,8:00pm,Fed Beige Book,,,,moderate
 2026-07-16,2:30pm,Retail Sales m/m,,-0.2,0.9,high
@@ -2028,16 +2028,16 @@ date,time,name,actual,forecast,previous,importance
 2026-07-20,4:00pm,CB Leading Economic Index m/m,,-0.2,0.1,moderate
 2026-07-20,5:30pm,3-Month Bill Auction,,,3.760,low
 2026-07-20,5:30pm,6-Month Bill Auction,,,3.860,low
-2026-07-22,4:30pm,EIA Crude Oil Stocks Change,,,,high
-2026-07-22,4:30pm,EIA Cushing Crude Oil Stocks Change,,,,moderate
-2026-07-22,4:30pm,EIA Crude Oil Imports Change,,,,low
-2026-07-22,4:30pm,EIA Distillate Fuel Production Change,,,,low
-2026-07-22,4:30pm,EIA Distillates Stocks Change,,,,low
-2026-07-22,4:30pm,EIA Gasoline Production Change,,,,low
-2026-07-22,4:30pm,EIA Heating Oil Stocks Change,,,,low
-2026-07-22,4:30pm,EIA Gasoline Stocks Change,,,,low
-2026-07-22,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,,low
-2026-07-22,4:30pm,EIA Refinery Utilization Rate Change,,,,low
+2026-07-22,4:30pm,EIA Crude Oil Stocks Change,,1.978,-1.692,high
+2026-07-22,4:30pm,EIA Cushing Crude Oil Stocks Change,,0.992,0.430,moderate
+2026-07-22,4:30pm,EIA Crude Oil Imports Change,,0.141,-0.399,low
+2026-07-22,4:30pm,EIA Distillate Fuel Production Change,,-0.025,0.072,low
+2026-07-22,4:30pm,EIA Distillates Stocks Change,,2.560,4.556,low
+2026-07-22,4:30pm,EIA Gasoline Production Change,,0.097,-0.096,low
+2026-07-22,4:30pm,EIA Heating Oil Stocks Change,,0.013,0.030,low
+2026-07-22,4:30pm,EIA Gasoline Stocks Change,,1.422,-1.533,low
+2026-07-22,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,0.099,low
+2026-07-22,4:30pm,EIA Refinery Utilization Rate Change,,,0.4,low
 2026-07-22,7:00pm,20-Year Bond Auction,,,4.927,moderate
 2026-07-23,2:30pm,Chicago Fed National Activity Index,,,,low
 2026-07-23,2:30pm,Initial Jobless Claims,,,,high
@@ -2248,10 +2248,10 @@ date,time,name,actual,forecast,previous,importance
 2026-08-12,6:00pm,WASDE Report,,,,moderate
 2026-08-12,7:00pm,10-Year Note Auction,,,4.580,high
 2026-08-12,8:00pm,Federal Budget Balance,,,,moderate
-2026-08-13,2:30pm,PPI m/m,,,,high
-2026-08-13,2:30pm,Core PPI m/m,,,,moderate
-2026-08-13,2:30pm,PPI y/y,,,,low
-2026-08-13,2:30pm,Core PPI y/y,,,,low
+2026-08-13,2:30pm,PPI m/m,,0.5,-0.3,high
+2026-08-13,2:30pm,Core PPI m/m,,0.2,0.2,moderate
+2026-08-13,2:30pm,PPI y/y,,6.1,5.5,low
+2026-08-13,2:30pm,Core PPI y/y,,4.8,4.7,low
 2026-08-13,2:30pm,Initial Jobless Claims,,,,high
 2026-08-13,2:30pm,Continuing Jobless Claims,,,,moderate
 2026-08-13,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
@@ -2566,6 +2566,16 @@ date,time,name,actual,forecast,previous,importance
 2026-09-16,4:00pm,Retail Inventories m/m,,,,moderate
 2026-09-16,4:00pm,Retail Inventories excl. Autos m/m,,,,moderate
 2026-09-16,4:00pm,NAHB Housing Market Index,,,,low
+2026-09-16,4:30pm,EIA Crude Oil Stocks Change,,,,high
+2026-09-16,4:30pm,EIA Cushing Crude Oil Stocks Change,,,,moderate
+2026-09-16,4:30pm,EIA Crude Oil Imports Change,,,,low
+2026-09-16,4:30pm,EIA Distillate Fuel Production Change,,,,low
+2026-09-16,4:30pm,EIA Distillates Stocks Change,,,,low
+2026-09-16,4:30pm,EIA Gasoline Production Change,,,,low
+2026-09-16,4:30pm,EIA Heating Oil Stocks Change,,,,low
+2026-09-16,4:30pm,EIA Gasoline Stocks Change,,,,low
+2026-09-16,4:30pm,EIA Refinery Crude Oil Daily Inputs Change,,,,low
+2026-09-16,4:30pm,EIA Refinery Utilization Rate Change,,,,low
 2026-09-16,8:00pm,FOMC Statement,,,,moderate
 2026-09-16,8:00pm,FOMC Economic Projections,,,,moderate
 2026-09-16,8:00pm,Fed Interest Rate Decision,,,,high
