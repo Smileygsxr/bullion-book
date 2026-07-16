@@ -1632,6 +1632,22 @@ body {
     text-align: center;
 }
 
+/* MAE/MFE + Performance vs Volatility fill in asynchronously (chart CSV
+   fetches) after the rest of Stats renders. Reserve their filled height up
+   front and center the "Calculating..." placeholder in it, so the section
+   doesn't render short and then jump taller when the data lands. */
+#stats-mae-mfe-result,
+#stats-volatility-result {
+    min-height: 210px;
+    justify-content: center;
+}
+
+#stats-mae-mfe-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .mae-mfe-item {
     display: inline-flex;
     flex-direction: column;
@@ -2459,6 +2475,13 @@ body {
     justify-content: center;
     z-index: 1000;
 }
+
+/* Confirmation dialogs are second-level popups (opened from inside another
+   modal, e.g. Delete Account from Account & Transactions), so they must
+   stack above the base modal layer regardless of DOM order. */
+#generic-confirm-modal-overlay,
+#delete-trade-modal-overlay,
+#delete-note-modal-overlay { z-index: 1100; }
 
 .modal-card {
     background: var(--bg-card);
@@ -5555,10 +5578,31 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
 
 /* ==== True-mobile polish (phone portrait, no desktop-mode toggle) ==== */
 @media (max-width: 640px) {
-    .dashboard-main { padding: 0 10px 14px 62px; gap: 12px; }
+    /* Reclaim the burger gutter: clearance moves to one 56px strip at the
+       top (under the fixed burger) instead of a dead 62px column running
+       down the whole page. The drawer-mode selector must be repeated here
+       to out-rank the all-widths padding-left: 66px rule above. */
+    .dashboard-main,
+    html.sidebar-drawer-mode .dashboard-main { padding: 56px 10px 14px 10px; gap: 12px; }
 
-    .stats-row { gap: 10px; }
-    .stats-row > * { flex: 1 1 150px; }
+    /* Stat tiles: 2-up grid instead of six full-width stripes. The equity
+       chart spans both columns; display:contents flattens the three
+       metric groups so all 6 cards become direct grid cells. */
+    .stats-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .stats-row .chart-card { grid-column: 1 / -1; margin-right: 0; }
+    .stats-row .metrics-group { display: contents; }
+
+    .design-fix {
+        width: 100%;
+        height: auto;
+        min-height: 56px;
+        padding: 8px 12px;
+    }
 
     .review-tiles { grid-template-columns: 1fr; }
 

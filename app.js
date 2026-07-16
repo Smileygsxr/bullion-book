@@ -161,6 +161,38 @@ document.addEventListener('click', event => {
     popover.style.display = 'none';
 });
 
+// ---- Click-outside-to-close for every popup window: clicking the dark
+// backdrop (anywhere that isn't the popup card itself) closes the modal,
+// same as its X button. Each modal routes through its own close function
+// so per-modal cleanup (chart disposal, state resets) still runs.
+const MODAL_BACKDROP_CLOSERS = {
+    'delete-trade-modal-overlay': () => closeDeleteTradeModal(),
+    'delete-note-modal-overlay': () => closeDeleteNoteModal(),
+    'generic-confirm-modal-overlay': () => closeGenericConfirmModal(),
+    'trade-modal-overlay': () => closeTradeModal(),
+    'note-modal-overlay': () => closeNoteModal(),
+    'day-trades-modal-overlay': () => closeDayTradesModal(),
+    'review-tile-modal-overlay': () => closeReviewTileModal(),
+    'trade-view-modal-overlay': () => closeTradeViewModal(),
+    'account-modal-overlay': () => closeAccountModal()
+};
+
+// Guard: only close when the press STARTED on the backdrop too - otherwise
+// selecting text in an input and releasing past the card's edge would fire
+// a click on the overlay and wrongly close the window mid-edit.
+let modalBackdropPressTarget = null;
+document.addEventListener('mousedown', event => {
+    modalBackdropPressTarget = event.target;
+});
+document.addEventListener('click', event => {
+    const el = event.target;
+    if (!el.classList || !el.classList.contains('modal-overlay')) return;
+    if (modalBackdropPressTarget !== el) return;
+    const close = MODAL_BACKDROP_CLOSERS[el.id];
+    if (close) close();
+    else el.style.display = 'none';
+});
+
 // Re-filters allChartFiles by the selected event-name tags and date range
 // (empty/unset filters show everything) and restarts batch-loading from
 // scratch. This has to re-filter the underlying data and reset pagination -
@@ -334,7 +366,8 @@ function tradingViewWidgetSrc(tvSymbol, interval) {
         + '&theme=dark&style=1'
         + '&timezone=Africa%2FJohannesburg'
         + '&locale=en&withdateranges=1&hide_volume=1'
-        + '&symboledit=0&saveimage=0&enable_publishing=0';
+        + '&symboledit=0&saveimage=0&enable_publishing=0'
+        + '&hide_side_toolbar=0';
 }
 
 function renderTradingViewWidget(container, tradeSymbol, interval) {

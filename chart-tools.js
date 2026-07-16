@@ -833,6 +833,27 @@ function renderChartDrawingShape(tools, svg, d, opts) {
             'stroke-dasharray': dashPattern === 'none' ? '4 3' : dashPattern, opacity: alpha,
             'pointer-events': 'none'
         }));
+
+        // Time badge pinned over the time axis at the foot of the line,
+        // like TradingView's axis tag. Same UTC formatting the axis uses.
+        const timeText = new Date(d.t * 1000).toISOString().slice(11, 16);
+        let badgeTop = h - 18;
+        try {
+            const axisH = tools.chart.timeScale().height();
+            if (axisH > 0) badgeTop = h - axisH + 1;
+        } catch (e) { /* keep fallback */ }
+        const badgeW = 40, badgeH = 15;
+        svg.appendChild(chartToolsSvgEl('rect', {
+            x: x - badgeW / 2, y: badgeTop, width: badgeW, height: badgeH,
+            rx: 3, fill: color, opacity: alpha, 'pointer-events': 'none'
+        }));
+        const timeLabel = chartToolsSvgEl('text', {
+            x, y: badgeTop + badgeH / 2 + 3.5, fill: '#0f1220', 'font-size': '10',
+            'font-weight': '700', 'text-anchor': 'middle', 'pointer-events': 'none'
+        });
+        timeLabel.textContent = timeText;
+        svg.appendChild(timeLabel);
+
         const grab = grabAttrs(chartToolsSvgEl('line', {
             x1: x, y1: 0, x2: x, y2: h,
             stroke: 'rgba(0,0,0,0)', 'stroke-width': 10, 'pointer-events': pe
