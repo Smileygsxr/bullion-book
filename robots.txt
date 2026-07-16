@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://bullion-book.vercel.app/sitemap.xml
+Sitemap: https://bullion-book.com/sitemap.xml
