@@ -569,6 +569,33 @@ body {
     overflow: hidden;
 }
 
+/* ==== Global scrollbars: slim, rounded, theme-matched - replaces the wide
+   default OS scrollbar (light track + stepper arrows) on EVERY scrollable
+   element: modals, tables, panels, textareas, dropdowns. A few containers
+   below re-declare the same values from before this went global; that's
+   harmless. Firefox uses scrollbar-width/color, WebKit the pseudo-elements. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { width: 0; height: 0; display: none; }
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* Light themes need a dark thumb - the white-alpha one vanishes on white. */
+html.light-base * { scrollbar-color: rgba(15, 18, 32, 0.28) transparent; }
+html.light-base ::-webkit-scrollbar-thumb { background: rgba(15, 18, 32, 0.24); }
+html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0.4); }
+
 .view-section {
     flex: 1;
     min-height: 0;

@@ -1865,8 +1865,25 @@ function buildReviewWeeksStrip(allClosed) {
         w.count += 1;
     });
 
+    // The 12-week window slides with navigation instead of staying pinned to
+    // the last 12 weeks: it keeps the selected week in view, can reach back
+    // as far as the user's first-ever trade week, and never scrolls past the
+    // current week on the right.
+    const currentMonday = getReviewWeekDates(0)[0];
+    let earliestOffset = -11;
+    if (byWeek.size > 0) {
+        const earliestMonday = Array.from(byWeek.keys()).sort()[0];
+        const diffDays = Math.round((new Date(earliestMonday) - new Date(currentMonday)) / 86400000);
+        earliestOffset = Math.round(diffDays / 7);
+    }
+    const minOffset = Math.min(-11, earliestOffset, reviewWeekOffset);
+
+    let start = Math.max(minOffset, reviewWeekOffset - 6);
+    let end = start + 11;
+    if (end > 0) { end = 0; start = -11; }
+
     const offsets = [];
-    for (let o = -11; o <= 0; o++) offsets.push(o);
+    for (let o = start; o <= end; o++) offsets.push(o);
 
     const cells = offsets.map(o => {
         const monday = getReviewWeekDates(o)[0];
