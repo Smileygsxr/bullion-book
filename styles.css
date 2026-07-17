@@ -1141,6 +1141,31 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     cursor: not-allowed;
 }
 
+/* Mobile-only collapse toggle for the Charts page filter rows - hidden on
+   desktop; the 640px media block shows it and hides the rows instead. */
+.news-mobile-filters-btn {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.news-mobile-filters-btn .news-mobile-filters-chevron {
+    transition: transform 0.2s ease;
+    margin-left: 2px;
+}
+
+.news-mobile-filters-btn.active .news-mobile-filters-chevron {
+    transform: rotate(180deg);
+}
+
 .news-tab:disabled:hover {
     background-color: rgba(255, 255, 255, 0.04);
     color: var(--text-muted);
@@ -5589,6 +5614,10 @@ body.privacy-mode .equity-crosshair-label.price {
     /* Calendar: weekly-summary rail drops below the month grid */
     .calendar-layout { flex-direction: column; }
     .calendar-weekly-summary { width: 100%; }
+    /* Column direction + the base align-items:flex-start stops the grid wrap
+       stretching, so the 1fr day columns shrank to their content - the grid
+       only looked right when holiday chips happened to pad the cells out. */
+    .calendar-grid-wrap { width: 100%; }
 
     /* News page: keep chart blocks inside the viewport */
     .cpi-chart-toolbar { flex-wrap: wrap; }
@@ -5687,12 +5716,43 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
 
 /* ==== True-mobile polish (phone portrait, no desktop-mode toggle) ==== */
 @media (max-width: 640px) {
-    /* Reclaim the burger gutter: clearance moves to one 56px strip at the
-       top (under the fixed burger) instead of a dead 62px column running
-       down the whole page. The drawer-mode selector must be repeated here
-       to out-rank the all-widths padding-left: 66px rule above. */
+    /* Reclaim the burger gutter entirely: no dead 62px column down the page
+       AND no dead strip across the top - each page's first toolbar row is
+       indented past the fixed burger (rules below) so they share one row.
+       The drawer-mode selector must be repeated here to out-rank the
+       all-widths padding-left: 66px rule above. */
     .dashboard-main,
-    html.sidebar-drawer-mode .dashboard-main { padding: 56px 10px 14px 10px; gap: 12px; }
+    html.sidebar-drawer-mode .dashboard-main { padding: 12px 10px 14px 10px; gap: 12px; }
+
+    /* The burger no longer owns a dead 56px strip: each page's first toolbar
+       row is indented past the fixed 42px burger (at 12,12; page side padding
+       is 10px, so 52px clears it with a small gap) and shares its row. */
+    .page-date-range-bar,
+    .calendar-toolbar,
+    .review-toolbar,
+    .community-header,
+    .news-mobile-filters-btn { margin-left: 52px; }
+
+    /* One scrollable pill row beside the burger instead of three wrapped
+       (and now indented) lines - the bar's base styles already handle
+       overflow-x with a slim scrollbar. */
+    .page-date-range-bar { flex-wrap: nowrap; overflow-x: auto; }
+
+    /* Pages whose first block is full-width content (no slim toolbar to
+       share the burger's row with) keep clearance below it instead. */
+    #page-coach, #page-settings, #page-help { padding-top: 44px; }
+
+    /* Charts page: the search/symbol/toggle pill rows stack ~6 rows deep on
+       a phone before the first chart - swap them for the single Filters
+       button (news-mobile-filters-btn), expanding only while it's open.
+       !important is needed to beat the rows' inline display:flex styles. */
+    .news-mobile-filters-btn { display: inline-flex; }
+    #page-news .news-header,
+    #page-news #chart-symbol-tabs,
+    #page-news .news-toggle-row { display: none !important; }
+    #page-news.mobile-filters-open .news-header,
+    #page-news.mobile-filters-open #chart-symbol-tabs,
+    #page-news.mobile-filters-open .news-toggle-row { display: flex !important; }
 
     /* Stat tiles: 2-up grid instead of six full-width stripes. The equity
        chart spans both columns; display:contents flattens the three

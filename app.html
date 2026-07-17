@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=80">
+    <link rel="stylesheet" href="styles.css?v=81">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -549,7 +549,16 @@
         <!-- 4. NEWS PAGE VIEW WITH SUB-PAGES -->
         <!-- ========================================== -->
         <div id="page-news" class="view-section" style="display: none; width: 100%; flex-direction: column; gap: 20px; align-items: flex-start;">
-    
+
+            <!-- Mobile only: the filter/symbol pill rows below stack ~6 rows
+                 deep on a phone before the first chart - this button collapses
+                 them into a drawer (hidden on desktop, see the 640px CSS). -->
+            <button type="button" class="news-mobile-filters-btn" id="news-mobile-filters-btn" onclick="toggleNewsMobileFilters()">
+                <i class="fa-solid fa-sliders"></i>
+                <span id="news-mobile-filters-label">Filters &middot; XAUUSD</span>
+                <i class="fa-solid fa-chevron-down news-mobile-filters-chevron"></i>
+            </button>
+
             <!-- News Filter Segment Header Row -->
             <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); width: 100%;">
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -582,7 +591,7 @@
             <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
             <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
 
-            <div style="display: flex; align-items: center; gap: 8px; margin: -14px 0; flex-wrap: wrap;">
+            <div class="news-toggle-row" style="display: flex; align-items: center; gap: 8px; margin: -14px 0; flex-wrap: wrap;">
                 <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">
                     <i class="fa-solid fa-arrow-up"></i> News Time Markers
                 </button>

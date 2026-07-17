@@ -416,6 +416,30 @@ let renderedChartFileCount = 0;
 let isLoadingChartBatch = false;
 let activeChartSymbol = CHART_SYMBOLS[0]; // XAUUSD by default
 
+// ---- Mobile filters drawer (Charts page) ----
+// On phones the filter/symbol pill rows above the charts eat half the screen
+// - CSS collapses them at phone widths and shows this button instead (the
+// rows and button swap via the 640px media block in styles.css).
+function toggleNewsMobileFilters() {
+    const page = document.getElementById('page-news');
+    if (!page) return;
+    const open = page.classList.toggle('mobile-filters-open');
+    const btn = document.getElementById('news-mobile-filters-btn');
+    if (btn) btn.classList.toggle('active', open);
+}
+
+function closeNewsMobileFilters() {
+    const page = document.getElementById('page-news');
+    if (page) page.classList.remove('mobile-filters-open');
+    const btn = document.getElementById('news-mobile-filters-btn');
+    if (btn) btn.classList.remove('active');
+}
+
+function updateNewsMobileFiltersLabel() {
+    const label = document.getElementById('news-mobile-filters-label');
+    if (label) label.textContent = `Filters · ${activeChartSymbol.label}`;
+}
+
 function renderChartSymbolTabs() {
     const container = document.getElementById('chart-symbol-tabs');
     if (!container) return;
@@ -427,6 +451,7 @@ function renderChartSymbolTabs() {
         const disabledAttr = available ? '' : 'disabled title="No chart data found for this symbol yet"';
         return `<button type="button" class="news-tab chart-symbol-tab${activeClass}" data-file-prefix="${s.filePrefix}" ${disabledAttr} onclick="selectChartSymbol('${s.filePrefix}')">${s.label}</button>`;
     }).join('');
+    updateNewsMobileFiltersLabel();
 }
 
 function selectChartSymbol(filePrefix) {
@@ -436,6 +461,10 @@ function selectChartSymbol(filePrefix) {
     document.querySelectorAll('#chart-symbol-tabs .chart-symbol-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.filePrefix === filePrefix);
     });
+    updateNewsMobileFiltersLabel();
+    // On a phone, picking a symbol is usually the end goal - close the
+    // drawer so the charts are immediately visible.
+    if (window.innerWidth <= 640) closeNewsMobileFilters();
     applyActiveSymbolFilter();
 }
 
