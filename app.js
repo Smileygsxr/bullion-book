@@ -303,6 +303,27 @@ function showPage(pageId, clickedElement) {
     }
 }
 
+// Pages only re-render when navigated to (showPage above), so switching the
+// active account from the sidebar used to leave the current page showing the
+// OLD account's data until the user clicked away and back. Called by
+// switchActiveAccount (accounts.js) to re-render whatever page is on screen
+// right now. The Dashboard isn't dispatched here - renderSidebarAccount
+// already refreshes it via renderTradeLog. The News page keeps its heavy
+// CSV-backed charts and only refreshes the account-scoped Trade Levels
+// overlays drawn on top of them.
+function refreshActivePageForAccountChange() {
+    const visible = Array.from(document.querySelectorAll('.view-section')).find(v => v.style.display !== 'none');
+    if (!visible) return;
+
+    if (visible.id === 'page-stats') renderStatsPage();
+    else if (visible.id === 'page-calendar') renderCalendarPage();
+    else if (visible.id === 'page-review') renderReviewPage();
+    else if (visible.id === 'page-community') renderCommunityPage();
+    else if (visible.id === 'page-coach') renderCoachPage();
+    else if (visible.id === 'page-settings') renderSettingsPage();
+    else if (visible.id === 'page-news') cpiChartInstances.forEach((instance, dateString) => scheduleTradeOverlayUpdate(dateString));
+}
+
 // Help page search: hides whole topic sections whose text doesn't match, and
 // hides the quick-links row while actively searching (it's redundant once
 // sections are already filtered).

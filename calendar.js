@@ -19,7 +19,123 @@ function renderCalendarPage() {
     }
 
     populateCalendarSelectors();
+    syncHolidayToggleButton();
     renderCalendarGrid();
+}
+
+// ---- National holidays overlay ----
+// Two calendars a gold/forex trader here cares about: South African public
+// holidays (ZA - the user's own non-trading days) and US market holidays
+// (US - NYSE/COMEX closures that thin out gold and forex liquidity).
+// Computed algorithmically for any year - no API, works offline like the
+// rest of the app.
+const CALENDAR_HOLIDAYS_STORAGE_KEY = 'bb_show_holidays';
+let showHolidayCalendar = false;
+try { showHolidayCalendar = localStorage.getItem(CALENDAR_HOLIDAYS_STORAGE_KEY) === '1'; } catch (e) { /* ignore */ }
+
+function toggleHolidayCalendar() {
+    showHolidayCalendar = !showHolidayCalendar;
+    try { localStorage.setItem(CALENDAR_HOLIDAYS_STORAGE_KEY, showHolidayCalendar ? '1' : '0'); } catch (e) { /* ignore */ }
+    syncHolidayToggleButton();
+    renderCalendarGrid();
+}
+
+function syncHolidayToggleButton() {
+    const btn = document.getElementById('holiday-calendar-toggle');
+    if (btn) btn.classList.toggle('active', showHolidayCalendar);
+}
+
+// Easter Sunday for a given year (anonymous Gregorian algorithm) - anchors
+// Good Friday and Family Day/Easter Monday for both countries.
+function easterSunday(year) {
+    const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+}
+
+// e.g. (2026, 0, 1, 3) = 3rd Monday of January 2026 (month/weekday 0-based, Sun=0)
+function nthWeekdayOfMonth(year, month, weekday, n) {
+    const first = new Date(year, month, 1);
+    const offset = (weekday - first.getDay() + 7) % 7;
+    return new Date(year, month, 1 + offset + (n - 1) * 7);
+}
+
+function lastWeekdayOfMonth(year, month, weekday) {
+    const last = new Date(year, month + 1, 0);
+    const offset = (last.getDay() - weekday + 7) % 7;
+    return new Date(year, month, last.getDate() - offset);
+}
+
+const holidaysByYearCache = new Map(); // year -> Map(dateKey -> [{country, name}])
+
+function buildHolidaysForYear(year) {
+    const map = new Map();
+    const add = (date, country, name) => {
+        const key = dateKey(date);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push({ country, name });
+    };
+
+    const easter = easterSunday(year);
+    const goodFriday = new Date(year, easter.getMonth(), easter.getDate() - 2);
+    const easterMonday = new Date(year, easter.getMonth(), easter.getDate() + 1);
+
+    // South African public holidays (Public Holidays Act): one falling on a
+    // Sunday makes the following Monday a public holiday too.
+    [
+        [new Date(year, 0, 1), 'New Year\'s Day'],
+        [new Date(year, 2, 21), 'Human Rights Day'],
+        [goodFriday, 'Good Friday'],
+        [easterMonday, 'Family Day'],
+        [new Date(year, 3, 27), 'Freedom Day'],
+        [new Date(year, 4, 1), 'Workers\' Day'],
+        [new Date(year, 5, 16), 'Youth Day'],
+        [new Date(year, 7, 9), 'National Women\'s Day'],
+        [new Date(year, 8, 24), 'Heritage Day'],
+        [new Date(year, 11, 16), 'Day of Reconciliation'],
+        [new Date(year, 11, 25), 'Christmas Day'],
+        [new Date(year, 11, 26), 'Day of Goodwill']
+    ].forEach(([date, name]) => {
+        add(date, 'ZA', name);
+        if (date.getDay() === 0) add(new Date(year, date.getMonth(), date.getDate() + 1), 'ZA', `${name} (observed)`);
+    });
+
+    // US market holidays (NYSE/COMEX closure days). Fixed-date ones move to
+    // the nearest weekday when they land on a weekend: Sat -> Friday before,
+    // Sun -> Monday after - except New Year's, which NYSE never observes on
+    // Dec 31 of the prior year (Sunday -> Monday only).
+    const shiftUs = (date, name) => {
+        if (date.getDay() === 6) return [new Date(year, date.getMonth(), date.getDate() - 1), `${name} (observed)`];
+        if (date.getDay() === 0) return [new Date(year, date.getMonth(), date.getDate() + 1), `${name} (observed)`];
+        return [date, name];
+    };
+    const newYear = new Date(year, 0, 1);
+    [
+        newYear.getDay() === 0 ? [new Date(year, 0, 2), 'New Year\'s Day (observed)'] : [newYear, 'New Year\'s Day'],
+        [nthWeekdayOfMonth(year, 0, 1, 3), 'Martin Luther King Jr. Day'],
+        [nthWeekdayOfMonth(year, 1, 1, 3), 'Presidents\' Day'],
+        [goodFriday, 'Good Friday'],
+        [lastWeekdayOfMonth(year, 4, 1), 'Memorial Day'],
+        shiftUs(new Date(year, 5, 19), 'Juneteenth'),
+        shiftUs(new Date(year, 6, 4), 'Independence Day'),
+        [nthWeekdayOfMonth(year, 8, 1, 1), 'Labor Day'],
+        [nthWeekdayOfMonth(year, 10, 4, 4), 'Thanksgiving Day'],
+        shiftUs(new Date(year, 11, 25), 'Christmas Day')
+    ].forEach(([date, name]) => add(date, 'US', name));
+
+    return map;
+}
+
+function getHolidaysForDate(date) {
+    const year = date.getFullYear();
+    if (!holidaysByYearCache.has(year)) holidaysByYearCache.set(year, buildHolidaysForYear(year));
+    return holidaysByYearCache.get(year).get(dateKey(date)) || [];
 }
 
 function populateCalendarSelectors() {
@@ -98,10 +214,18 @@ function renderCalendarGrid() {
                 <div class="calendar-day-count" onclick="event.stopPropagation(); openDayTradesModal('${dateKey(cellDate)}')">${dayTrades.length} Trade${dayTrades.length === 1 ? '' : 's'}</div>`;
         }
 
+        const holidays = showHolidayCalendar ? getHolidaysForDate(cellDate) : [];
+        const holidayHtml = holidays.map(h => `
+            <div class="calendar-holiday" title="${escapeHtml(`${h.country === 'ZA' ? 'South African public holiday' : 'US market holiday'}: ${h.name}`)}">
+                <span class="calendar-holiday-tag ${h.country.toLowerCase()}">${h.country}</span>
+                <span class="calendar-holiday-name">${escapeHtml(h.name)}</span>
+            </div>`).join('');
+
         return `
             <div class="calendar-day${inMonth ? '' : ' outside-month'}">
                 <div class="calendar-day-number">${cellDate.getDate()}</div>
                 ${body}
+                ${holidayHtml}
             </div>`;
     }).join('');
 

@@ -183,6 +183,10 @@ function switchActiveAccount(accountId) {
     // Import Trades panel immediately in case it's already open, instead of only
     // updating once the user leaves and re-enters that Settings tab.
     if (typeof renderCsvImportMeta === 'function') renderCsvImportMeta();
+    // Re-render whatever page is currently open (Stats, Calendar, Review...) so
+    // it reflects the new account immediately - pages otherwise only re-render
+    // when navigated to (app.js showPage).
+    if (typeof refreshActivePageForAccountChange === 'function') refreshActivePageForAccountChange();
 }
 
 // ---- Modal: Account & Transactions ----

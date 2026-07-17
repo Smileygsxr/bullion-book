@@ -742,6 +742,50 @@ function longestStreak(sortedRows, status) {
     return longest;
 }
 
+// ---- Times Blown: how many times the account was wiped out - a losing trade
+// dropping the running balance (deposits/withdrawals + closed-trade P&L in
+// date order) to $0 or below. Unlike the other cards this always walks the
+// WHOLE account, ignoring the filter panel - a filtered subset of trades
+// can't represent the real balance. A deposit lifting the balance back above
+// $0 re-arms the counter, so repeated blow-ups each count.
+function countAccountBlowups() {
+    const account = getActiveAccount();
+    if (!account) return 0;
+
+    const events = [];
+    (account.transactions || []).forEach(t => {
+        const amount = parseFloat(t.amount) || 0;
+        events.push({
+            day: t.date || '',
+            time: 0, // date-only, so same-day deposits/withdrawals apply before that day's trades
+            amount: t.type === 'withdraw' ? -amount : amount,
+            isTrade: false
+        });
+    });
+    (account.trades || []).forEach(trade => {
+        const row = computeTradeSummary(trade);
+        if (row.returnAmount === null) return;
+        events.push({
+            day: row.date.slice(0, 10),
+            time: new Date(row.date).getTime(),
+            amount: row.returnAmount,
+            isTrade: true
+        });
+    });
+    events.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.time - b.time));
+
+    let balance = 0;
+    let blowups = 0;
+    events.forEach(e => {
+        const before = balance;
+        balance += e.amount;
+        // Only a trade wiping out a funded balance counts - withdrawing your
+        // own money down to $0 isn't "blowing" the account.
+        if (e.isTrade && before > 0 && balance <= 0) blowups += 1;
+    });
+    return blowups;
+}
+
 function renderStatsMetricCards(rows, closed, wins, losses) {
     const winRate = closed.length > 0 ? (wins.length / closed.length) * 100 : 0;
     const avgWinAmount = average(wins.map(r => r.returnAmount));
@@ -796,7 +840,8 @@ function renderStatsMetricCards(rows, closed, wins, losses) {
         ['Avg Daily Vol', avgDailyVol.toFixed(0)],
         ['Avg Size', avgSize.toFixed(2)],
         ['Total Fees', formatTotal(totalFees), true],
-        ['Avg R-Multiple', avgRMultiple === null ? '-' : `${avgRMultiple.toFixed(2)}R`]
+        ['Avg R-Multiple', avgRMultiple === null ? '-' : `${avgRMultiple.toFixed(2)}R`],
+        ['Times Blown', countAccountBlowups()]
     ].map(renderStatsMetricCard).join(''));
 }
 
@@ -818,7 +863,8 @@ const STATS_METRIC_DESCRIPTIONS = {
     'Avg Daily Vol': 'Average number of trades placed per day you traded.',
     'Avg Size': 'Average quantity (lots/shares) per trade.',
     'Total Fees': 'Total commissions/fees paid across all closed trades - already subtracted from your P&L.',
-    'Avg R-Multiple': 'Average return in units of risk (R), based on each trade\'s distance from entry to its Stop-Loss. Only counts trades that had a Stop-Loss set.'
+    'Avg R-Multiple': 'Average return in units of risk (R), based on each trade\'s distance from entry to its Stop-Loss. Only counts trades that had a Stop-Loss set.',
+    'Times Blown': 'How many times a losing trade wiped your account - the running balance (deposits, withdrawals and trade P&L in date order) dropping to $0 or below. Depositing back above $0 re-arms the counter. Always measured on the whole account, ignoring filters.'
 };
 
 function renderStatsMetricCard([label, value, sensitive]) {

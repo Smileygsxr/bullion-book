@@ -512,6 +512,9 @@
                 <div class="calendar-toolbar-center">
                     <select id="calendar-month-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
                     <select id="calendar-year-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
+                    <button class="news-tab" id="holiday-calendar-toggle" onclick="toggleHolidayCalendar()" title="Show national holidays on the calendar - South African public holidays (ZA) and US market holidays (US)">
+                        <i class="fa-solid fa-umbrella-beach"></i> Holidays
+                    </button>
                 </div>
                 <button class="calendar-nav-btn" onclick="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
@@ -2297,7 +2300,7 @@
     <script src="chart-tools.js?v=6"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=36"></script>
 
 </body>
 </html>

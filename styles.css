@@ -2425,6 +2425,42 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     cursor: pointer;
 }
 
+/* ==== Calendar: national holiday chips (ZA public + US market holidays) ==== */
+.calendar-holiday {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    min-width: 0;
+}
+
+.calendar-holiday-tag {
+    flex-shrink: 0;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.calendar-holiday-tag.za {
+    background: rgba(46, 189, 133, 0.15);
+    color: #2ebd85;
+}
+
+.calendar-holiday-tag.us {
+    background: rgba(41, 121, 255, 0.15);
+    color: var(--accent-blue);
+}
+
+.calendar-holiday-name {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .calendar-weekly-summary {
     width: 170px;
     flex-shrink: 0;
@@ -5751,6 +5787,9 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .calendar-day-number { font-size: 0.66rem; }
     .calendar-day-pnl { font-size: 0.6rem; font-weight: 700; }
     .calendar-day-count { font-size: 0.56rem; }
+    .calendar-holiday { margin-top: 2px; gap: 3px; }
+    .calendar-holiday-tag { font-size: 0.44rem; padding: 1px 3px; }
+    .calendar-holiday-name { font-size: 0.5rem; }
 }
 
 /* ==== Stats: Total Account Trades panel ==== */
