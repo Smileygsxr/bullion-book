@@ -41,11 +41,14 @@ jobs:
           BACKFILL_END: ${{ github.event.inputs.backfill_end }}
         run: python scripts/fetch_daily_gold_data.py
 
+      - name: Rebuild static chart-file manifest
+        run: python scripts/build_data_manifest.py
+
       - name: Commit and push new data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/ data-manifest.json
           if ! git diff --cached --quiet; then
             git commit -m "Add XAUUSD chart data"
             git push

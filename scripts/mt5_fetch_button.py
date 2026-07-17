@@ -165,6 +165,11 @@ def main():
 
     mt5.shutdown()
 
+    # Keep the static chart-file manifest in sync - the Charts page reads
+    # /data-manifest.json to discover files (see build_data_manifest.py).
+    import build_data_manifest
+    build_data_manifest.build_manifest()
+
 
 if __name__ == "__main__":
     main()

@@ -545,8 +545,10 @@ function resetChartBatches(container, template) {
 }
 
 // 2. DISCOVER WHICH CSV FILES CURRENTLY EXIST IN /data
-// Tries the Vercel serverless listing first (production); falls back to parsing
-// a directory-listing response (e.g. `python -m http.server` for local dev).
+// Tries the static manifest first (data-manifest.json, committed alongside the
+// data itself - works on ANY static host with zero server support), then the
+// Vercel serverless listing, then parsing a directory-listing response
+// (e.g. `python -m http.server` for local dev).
 function discoverChartFiles() {
     function namesToDatedFiles(filenames) {
         const filesByKey = new Map(); // "filePrefix|date" -> { filePrefix, date, files: {1,5,15} }
@@ -564,11 +566,16 @@ function discoverChartFiles() {
         return Array.from(filesByKey.values());
     }
 
-    return fetch('/api/data-files')
+    return fetch('./data-manifest.json')
         .then(response => {
-            if (!response.ok) throw new Error("api/data-files unavailable");
+            if (!response.ok) throw new Error("data-manifest.json unavailable");
             return response.json();
         })
+        .catch(() => fetch('/api/data-files')
+            .then(response => {
+                if (!response.ok) throw new Error("api/data-files unavailable");
+                return response.json();
+            }))
         .then(namesToDatedFiles)
         .catch(() =>
             fetch('./data/')
