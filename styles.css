@@ -5738,6 +5738,20 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        overflow-x with a slim scrollbar. */
     .page-date-range-bar { flex-wrap: nowrap; overflow-x: auto; }
 
+    /* The indented toolbars keep width:100% from their base styles, which
+       plus the 52px indent pushed their right edge off-screen (the cut-off
+       Custom/Holidays buttons). width:auto lets the flex column stretch
+       them to exactly the remaining space instead. */
+    .page-date-range-bar,
+    .calendar-toolbar,
+    .community-header { width: auto; }
+
+    /* Stats tag/symbol/playbook tables: 6-7 columns can't fit a phone -
+       scroll them sideways inside their panel (same pattern as the trade
+       log), instead of clipping the last columns. */
+    .stats-panel { overflow-x: auto; }
+    .stats-table { min-width: 540px; }
+
     /* Pages whose first block is full-width content (no slim toolbar to
        share the burger's row with) keep clearance below it instead. */
     #page-coach, #page-settings, #page-help { padding-top: 44px; }
@@ -5747,6 +5761,16 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        button (news-mobile-filters-btn), expanding only while it's open.
        !important is needed to beat the rows' inline display:flex styles. */
     .news-mobile-filters-btn { display: inline-flex; }
+
+    /* The Filters control fills the row beside the burger like a dropdown
+       field (chevron pushed to the far right), and the page's desktop-sized
+       gaps/margins tighten so the first chart starts right below it.
+       !important beats page-news's inline gap and the content area's inline
+       margin-top. */
+    .news-mobile-filters-btn { align-self: stretch; }
+    .news-mobile-filters-btn .news-mobile-filters-chevron { margin-left: auto; }
+    #page-news { gap: 10px !important; }
+    #page-news .news-content-area { margin-top: 0 !important; }
     #page-news .news-header,
     #page-news #chart-symbol-tabs,
     #page-news .news-toggle-row { display: none !important; }
