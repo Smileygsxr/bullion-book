@@ -915,6 +915,7 @@ function renderTradeViewChart(row, trade) {
     });
 
     attachLockToggle(chart, container);
+    attachScaleButtons(chart, container);
     attachMeasureTool(chart, series, container, `trade-view-${trade.id}`);
     attachCrosshairPillLabels(chart, series, container, getCurrencySymbol(), { showTime: true, showAxisPriceLabel: true });
 
@@ -1307,9 +1308,22 @@ function ensureEquityChart() {
 
     equityLabelControls = attachCrosshairPillLabels(equityChartInstance, equitySeriesInstance, container, '$');
 
-    window.addEventListener('resize', () => {
-        if (equityChartInstance) equityChartInstance.resize(container.clientWidth, container.clientHeight);
-    });
+    // The card's width can change WITHOUT a window resize - e.g. on a fresh
+    // machine the app first paints in drawer mode, then the saved "fixed
+    // sidebar" setting arrives from Firestore and narrows the content area.
+    // The canvas keeps its rendered pixel width unless told otherwise, which
+    // used to lock the stats row wider than the page and clip the PnL card
+    // off-screen. A ResizeObserver follows the container itself, so the chart
+    // resizes on ANY layout change, not just window resizes.
+    const resizeEquityChart = () => {
+        // clientWidth is 0 while the dashboard page is hidden - skip those,
+        // the observer fires again with the real size when it's shown.
+        if (equityChartInstance && container.clientWidth > 0) {
+            equityChartInstance.resize(container.clientWidth, container.clientHeight);
+        }
+    };
+    window.addEventListener('resize', resizeEquityChart);
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resizeEquityChart).observe(container);
 }
 
 // Modern rounded "pill" crosshair labels: a price badge pinned near the top and

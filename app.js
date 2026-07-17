@@ -1060,6 +1060,7 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
     });
 
     attachLockToggle(chart, chartContainer);
+    attachScaleButtons(chart, chartContainer);
     attachMeasureTool(chart, series, chartContainer, dateString);
     attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true, showAxisPriceLabel: true });
 
@@ -1267,13 +1268,75 @@ function attachLockToggle(chart, container) {
         const locked = container.dataset.locked !== 'false';
         const nowLocked = !locked;
         container.dataset.locked = String(nowLocked);
-        chart.applyOptions({ handleScroll: !nowLocked, handleScale: !nowLocked });
+        // Unlocked = full TradingView-style freedom: pan/zoom both axes and
+        // drag past the data edges into empty space (edges unpinned).
+        // Re-locking pins the edges again, which also snaps the view back
+        // inside the data.
+        chart.applyOptions({
+            handleScroll: !nowLocked,
+            handleScale: !nowLocked,
+            timeScale: { fixLeftEdge: nowLocked, fixRightEdge: nowLocked }
+        });
         button.classList.toggle('locked', nowLocked);
         button.innerHTML = nowLocked ? '<i class="fa-solid fa-lock"></i>' : '<i class="fa-solid fa-lock-open"></i>';
         button.title = nowLocked ? 'Chart is locked — click to enable scroll/zoom' : 'Chart is interactive — click to lock';
     });
 
     container.appendChild(button);
+}
+
+// TradingView-style price-scale corner buttons, sitting next to the lock:
+// "A" toggles price-axis auto-scale (the library switches it off silently
+// once you drag/zoom the price axis - A relights to bring it back), and
+// "L" toggles a logarithmic price scale.
+function attachScaleButtons(chart, container) {
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-scale-buttons';
+
+    const autoBtn = document.createElement('button');
+    autoBtn.className = 'chart-scale-btn active';
+    autoBtn.textContent = 'A';
+    autoBtn.title = 'Auto-scale the price axis';
+
+    const logBtn = document.createElement('button');
+    logBtn.className = 'chart-scale-btn';
+    logBtn.textContent = 'L';
+    logBtn.title = 'Logarithmic price scale';
+
+    const priceScale = () => chart.priceScale('right');
+    const syncButtons = () => {
+        const opts = priceScale().options();
+        autoBtn.classList.toggle('active', !!opts.autoScale);
+        logBtn.classList.toggle('active', opts.mode === LightweightCharts.PriceScaleMode.Logarithmic);
+    };
+
+    autoBtn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        priceScale().applyOptions({ autoScale: !priceScale().options().autoScale });
+        syncButtons();
+    });
+
+    logBtn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isLog = priceScale().options().mode === LightweightCharts.PriceScaleMode.Logarithmic;
+        priceScale().applyOptions({
+            mode: isLog ? LightweightCharts.PriceScaleMode.Normal : LightweightCharts.PriceScaleMode.Logarithmic
+        });
+        syncButtons();
+    });
+
+    // Dragging/zooming the price axis turns auto-scale off without any event
+    // we can subscribe to - re-check after any pointer interaction so the
+    // "A" highlight always tells the truth.
+    ['mouseup', 'wheel', 'touchend'].forEach(evt =>
+        container.addEventListener(evt, () => setTimeout(syncButtons, 0), { passive: true })
+    );
+
+    wrap.appendChild(autoBtn);
+    wrap.appendChild(logBtn);
+    container.appendChild(wrap);
 }
 
 // ---- Help page "Go to" shortcuts ----

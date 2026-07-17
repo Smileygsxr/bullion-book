@@ -640,6 +640,10 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     gap: 20px;
     width: 100%;
     box-sizing: border-box;
+    /* Safety net: if the row can't fit (display scaling, odd sidebar/layout
+       combos), wrap cards to a second line instead of clipping them off-screen
+       behind .dashboard-main's overflow:hidden. */
+    flex-wrap: wrap;
 }
 
 /* Standard Base Base Cards */
@@ -660,6 +664,14 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     flex-direction: column;
     justify-content: flex-start;
     margin-right: 15px;
+    /* Flex items default to min-width:auto, so the chart's fixed-pixel canvas
+       could lock this card (and the whole row) wider than the page when the
+       content area narrows - e.g. the saved fixed-sidebar setting arriving
+       after first paint on a new machine. Let the card shrink and hide the
+       canvas overflow for the frame until the ResizeObserver (trades.js)
+       resizes the chart to fit. */
+    min-width: 0;
+    overflow: hidden;
 }
 
 .chart-metric-label {
@@ -1441,6 +1453,40 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .chart-lock-toggle.locked {
     border-color: var(--accent-gold);
     color: var(--accent-gold);
+}
+
+/* TradingView-style "A" (auto-scale) / "L" (log scale) buttons, sitting in
+   the bottom-right chart corner beside the lock toggle */
+.chart-scale-buttons {
+    position: absolute;
+    bottom: 10px;
+    right: 46px;
+    z-index: 10;
+    display: flex;
+    gap: 4px;
+}
+
+.chart-scale-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(15, 18, 32, 0.85);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-scale-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-light);
+}
+
+.chart-scale-btn.active {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
 }
 
 .measure-box {

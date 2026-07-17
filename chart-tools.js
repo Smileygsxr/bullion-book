@@ -239,6 +239,26 @@ function attachChartTools(opts) {
     tools.resizeObserver = new ResizeObserver(() => renderChartDrawings(tools));
     tools.resizeObserver.observe(tools.container);
 
+    // Vertical rescales fire NO event in Lightweight Charts (dragging the
+    // price axis, the A/L auto-scale/log buttons, autoscale adjusting to new
+    // data) - drawings used to lag behind the candles until the next
+    // crosshair move re-rendered them. A cheap per-frame probe of where two
+    // reference prices land catches any vertical shift/stretch and re-renders
+    // only when the mapping actually changed.
+    const probeVerticalScale = () => {
+        if (tools.disposed) return;
+        if (tools.data.length > 0) {
+            const p = tools.data[0].close;
+            const fingerprint = `${tools.series.priceToCoordinate(p)}|${tools.series.priceToCoordinate(p * 1.01 + 1)}`;
+            if (fingerprint !== tools.scaleFingerprint) {
+                tools.scaleFingerprint = fingerprint;
+                renderChartDrawings(tools);
+            }
+        }
+        requestAnimationFrame(probeVerticalScale);
+    };
+    requestAnimationFrame(probeVerticalScale);
+
     tools.keyHandler = e => {
         if (e.key === 'Escape' && (tools.activeTool || tools.pending || tools.selectedId)) {
             tools.selectedId = null;
@@ -904,30 +924,88 @@ function renderChartDrawingShape(tools, svg, d, opts) {
         });
 
         if (!ghost) {
+            const long = d.type === 'longpos';
             const risk = Math.abs(d.entry - d.stop);
             const reward = Math.abs(d.target - d.entry);
             const rr = risk > 0 ? (reward / risk) : 0;
             const pct = v => ((v / d.entry) * 100).toFixed(2);
 
-            const addLabel = (x, y, text, fill, anchor) => {
-                const label = chartToolsSvgEl('text', {
-                    x, y, fill, 'font-size': '10', 'font-weight': '700',
-                    'text-anchor': anchor || 'middle', 'pointer-events': 'none'
+            const svgH = svg.clientHeight || tools.container.clientHeight;
+            const clampY = y => Math.max(12, Math.min(svgH - 12, y));
+
+            // TradingView-style solid label pill: the text is appended first
+            // so its real rendered width can be measured, then a snug rounded
+            // rect is slotted in underneath - readable over any candles,
+            // unlike the old bare floating text.
+            const addPill = (cx, cy, text, bg) => {
+                const t = chartToolsSvgEl('text', {
+                    x: cx, y: cy + 3.5, fill: '#ffffff', 'font-size': '10',
+                    'font-weight': '700', 'text-anchor': 'middle', 'pointer-events': 'none'
                 });
-                label.textContent = text;
-                svg.appendChild(label);
+                t.textContent = text;
+                svg.appendChild(t);
+                let w;
+                try { w = t.getComputedTextLength(); } catch (e) { w = text.length * 5.6; }
+                svg.insertBefore(chartToolsSvgEl('rect', {
+                    x: cx - w / 2 - 8, y: cy - 9, width: w + 16, height: 18,
+                    rx: 4, fill: bg, opacity: alpha, 'pointer-events': 'none'
+                }), t);
             };
 
-            addLabel(midX, (yEntry + yTarget) / 2 + 3, `Target ${d.target.toFixed(decimals)}  (+${reward.toFixed(decimals)} / ${pct(reward)}%)`, '#2ebd85');
-            addLabel(midX, (yEntry + yStop) / 2 + 3, `Stop ${d.stop.toFixed(decimals)}  (-${risk.toFixed(decimals)} / ${pct(risk)}%)`, '#f6465d');
-            addLabel(left + 4, yEntry - 4, `${d.type === 'longpos' ? 'Long' : 'Short'} ${d.entry.toFixed(decimals)} · RR ${rr.toFixed(2)}`, '#e8e8e8', 'start');
+            // Pills sit OUTSIDE the box like TradingView's: target pill on the
+            // far side of the target edge, stop pill on the far side of the
+            // stop edge - clamped so they never disappear off-chart.
+            const outside = (yEdge, yRef) => clampY(yEdge < yRef ? yEdge - 11 : yEdge + 11);
+            addPill(midX, outside(yTarget, yEntry),
+                `Target: ${d.target.toFixed(decimals)} (+${reward.toFixed(decimals)} / ${pct(reward)}%)`, '#2ebd85');
+            addPill(midX, outside(yStop, yEntry),
+                `Stop: ${d.stop.toFixed(decimals)} (-${risk.toFixed(decimals)} / ${pct(risk)}%)`, '#f6465d');
+
+            // Centered info card straddling the entry line (TradingView's
+            // middle "Risk/Reward ratio" box), dark to match the app theme.
+            const cardLines = [
+                `${long ? 'Long' : 'Short'} ${d.entry.toFixed(decimals)}`,
+                `Risk/Reward ratio: ${rr.toFixed(2)}`
+            ];
+            const cardTexts = cardLines.map((line, i) => {
+                const t = chartToolsSvgEl('text', {
+                    x: midX, y: clampY(yEntry) - 16 + 13 + i * 13 + 3.5,
+                    fill: i === 0 ? '#ffffff' : '#d1d4dc', 'font-size': '10',
+                    'font-weight': i === 0 ? '700' : '400',
+                    'text-anchor': 'middle', 'pointer-events': 'none'
+                });
+                t.textContent = line;
+                svg.appendChild(t);
+                return t;
+            });
+            let cardW = 0;
+            cardTexts.forEach(t => {
+                try { cardW = Math.max(cardW, t.getComputedTextLength()); } catch (e) { cardW = Math.max(cardW, t.textContent.length * 5.6); }
+            });
+            svg.insertBefore(chartToolsSvgEl('rect', {
+                x: midX - cardW / 2 - 10, y: clampY(yEntry) - 16, width: cardW + 20, height: 32,
+                rx: 4, fill: 'rgba(15, 18, 32, 0.92)', stroke: '#2a2e39',
+                'stroke-width': 1, opacity: alpha, 'pointer-events': 'none'
+            }), cardTexts[0]);
         }
 
-        addHandle(midX, yTarget, 'target');
-        addHandle(midX, yStop, 'stop');
-        addHandle(midX, yEntry, 'entry');
-        addHandle(left, yEntry, 'left');
-        addHandle(right, yEntry, 'right');
+        // Square drag handles like TradingView's (the shared addHandle circles
+        // are for line tools) - same class/data attributes, so the existing
+        // drag logic works unchanged.
+        const addSquareHandle = (x, y, which) => {
+            if (!selected || d.locked) return;
+            handles.push(chartToolsSvgEl('rect', {
+                x: x - 4.5, y: y - 4.5, width: 9, height: 9, rx: 1.5,
+                fill: '#ffffff', stroke: '#2979ff', 'stroke-width': 2,
+                'data-drawing-id': d.id, 'data-handle': which,
+                'class': 'ct-handle', 'pointer-events': 'all'
+            }));
+        };
+        addSquareHandle(midX, yTarget, 'target');
+        addSquareHandle(midX, yStop, 'stop');
+        addSquareHandle(midX, yEntry, 'entry');
+        addSquareHandle(left, yEntry, 'left');
+        addSquareHandle(right, yEntry, 'right');
         handles.forEach(el => svg.appendChild(el));
         return;
     }

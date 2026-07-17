@@ -925,10 +925,29 @@ function setHtml(id, html) {
 
 // ---- Equity curve: cumulative trade PnL, one point per day a trade closed ----
 let statsEquityChartInstance = null;
+let statsEquityResizeBound = false;
+
+// One persistent observer on the (static) container keeps whichever chart
+// instance currently lives in it sized to fit - covers window resizes AND
+// layout changes that fire no resize event, like the saved fixed-sidebar
+// setting arriving from Firestore after first paint on a new machine.
+function bindStatsEquityResize(container) {
+    if (statsEquityResizeBound || typeof ResizeObserver === 'undefined') return;
+    statsEquityResizeBound = true;
+    new ResizeObserver(() => {
+        // clientWidth is 0 while the Stats page is hidden - skip those, the
+        // observer fires again with the real size when it's shown.
+        if (statsEquityChartInstance && container.clientWidth > 0) {
+            statsEquityChartInstance.resize(container.clientWidth, container.clientHeight);
+        }
+    }).observe(container);
+}
 
 function renderStatsEquityChart(closed) {
     const container = document.getElementById('stats-equity-chart');
     if (!container) return;
+
+    bindStatsEquityResize(container);
 
     if (statsEquityChartInstance) {
         statsEquityChartInstance.remove();
