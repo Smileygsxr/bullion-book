@@ -9,6 +9,7 @@ date,time,name,actual,forecast,previous,importance
 2026-01-05,5:00pm,ISM Manufacturing New Orders,47.7,,47.4,low
 2026-01-05,6:30pm,3-Month Bill Auction,3.540,,3.570,low
 2026-01-05,6:30pm,6-Month Bill Auction,3.475,,3.500,low
+2026-01-05,10:30pm,CFTC Copper Non-Commercial Net Positions,59.8,,67.1,low
 2026-01-06,4:45pm,S&P Global Services PMI,,54.0,54.1,high
 2026-01-06,4:45pm,S&P Global Composite PMI,,,,moderate
 2026-01-07,3:15pm,ADP Nonfarm Employment Change,41,3,-31,high
@@ -70,6 +71,7 @@ date,time,name,actual,forecast,previous,importance
 2026-01-09,5:00pm,Michigan 5-Year Inflation Expectations,3.4,3.0,3.2,moderate
 2026-01-09,8:00pm,Baker Hughes US Oil Rig Count,409,,412,moderate
 2026-01-09,8:00pm,Baker Hughes US Total Rig Count,544,,546,moderate
+2026-01-09,10:30pm,CFTC Copper Non-Commercial Net Positions,57.9,,59.8,low
 2026-01-12,5:00pm,CB Employment Trends Index,104.27,106.52,105.80,low
 2026-01-12,6:30pm,6-Month Bill Auction,3.490,,3.475,low
 2026-01-12,6:30pm,3-Year Note Auction,3.609,,3.614,moderate
@@ -151,6 +153,7 @@ date,time,name,actual,forecast,previous,importance
 2026-01-16,8:00pm,Baker Hughes US Oil Rig Count,410,,409,moderate
 2026-01-16,8:00pm,Baker Hughes US Total Rig Count,543,,544,moderate
 2026-01-16,10:30pm,Fed Governor Jefferson Speech,,,,moderate
+2026-01-16,10:30pm,CFTC Copper Non-Commercial Net Positions,53.4,,57.9,low
 2026-01-19,2:00am,Birthday of Martin Luther King,,,,none
 2026-01-20,6:30pm,3-Month Bill Auction,3.590,,3.570,low
 2026-01-20,6:30pm,6-Month Bill Auction,3.520,,3.490,low
@@ -199,6 +202,7 @@ date,time,name,actual,forecast,previous,importance
 2026-01-23,5:00pm,CB Leading Economic Index m/m,-0.3,-0.5,-0.3,moderate
 2026-01-23,8:00pm,Baker Hughes US Oil Rig Count,411,,410,moderate
 2026-01-23,8:00pm,Baker Hughes US Total Rig Count,544,,543,moderate
+2026-01-23,10:30pm,CFTC Copper Non-Commercial Net Positions,52.6,,53.4,low
 2026-01-26,3:30pm,Durable Goods Orders m/m,5.3,6.8,-2.2,high
 2026-01-26,3:30pm,Core Durable Goods Orders m/m,0.5,0.3,0.2,moderate
 2026-01-26,3:30pm,Durable Goods Orders excl. Defense m/m,6.6,2.0,-1.5,low
@@ -258,6 +262,7 @@ date,time,name,actual,forecast,previous,importance
 2026-01-30,4:45pm,MNI Chicago Business Barometer,54.0,,43.5,high
 2026-01-30,8:00pm,Baker Hughes US Oil Rig Count,411,,411,moderate
 2026-01-30,8:00pm,Baker Hughes US Total Rig Count,546,,544,moderate
+2026-01-30,10:30pm,CFTC Copper Non-Commercial Net Positions,48.4,,52.6,low
 2026-01-31,12:00am,Fed Governor Bowman Speech,,,,moderate
 2026-02-02,5:00pm,ISM Manufacturing PMI,52.6,47.4,47.9,high
 2026-02-02,5:00pm,ISM Manufacturing Prices Paid,59.0,58.4,58.5,high
@@ -301,7 +306,7 @@ date,time,name,actual,forecast,previous,importance
 2026-02-06,8:00pm,Baker Hughes US Oil Rig Count,412,,411,moderate
 2026-02-06,8:00pm,Baker Hughes US Total Rig Count,551,,546,moderate
 2026-02-06,10:00pm,Fed Consumer Credit m/m,24.05,10.99,4.23,moderate
-2026-02-06,10:30pm,CFTC Copper Non-Commercial Net Positions,47.8,,,low
+2026-02-06,10:30pm,CFTC Copper Non-Commercial Net Positions,47.8,,48.4,low
 2026-02-06,10:30pm,CFTC Silver Non-Commercial Net Positions,25.9,,,low
 2026-02-06,10:30pm,CFTC Gold Non-Commercial Net Positions,165.6,,,moderate
 2026-02-06,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,124.6,,,moderate
@@ -1969,30 +1974,30 @@ date,time,name,actual,forecast,previous,importance
 2026-07-15,4:30pm,EIA Refinery Utilization Rate Change,0.4,,-0.8,low
 2026-07-15,7:00pm,Fed Governor Cook Speech,,,,moderate
 2026-07-15,8:00pm,Fed Beige Book,,,,moderate
-2026-07-16,2:30pm,Retail Sales m/m,,-0.2,0.9,high
-2026-07-16,2:30pm,Core Retail Sales m/m,,0.6,0.8,high
-2026-07-16,2:30pm,Retail Control m/m,,0.1,0.7,moderate
-2026-07-16,2:30pm,Retail Sales excl. Autos and Gas m/m,,0.3,0.5,low
-2026-07-16,2:30pm,Retail Sales y/y,,4.9,6.9,low
-2026-07-16,2:30pm,Philadelphia Fed Manufacturing Index,,10.3,10.3,high
-2026-07-16,2:30pm,Philadelphia Fed Employment,,-7.5,7.9,moderate
-2026-07-16,2:30pm,Philadelphia Fed Business Conditions,,47.0,50.2,low
-2026-07-16,2:30pm,Philadelphia Fed Prices Paid,,47.2,53.2,low
-2026-07-16,2:30pm,Philadelphia Fed New Orders,,7.4,27.3,low
-2026-07-16,2:30pm,Philadelphia Fed Capex Index,,34.2,41.2,low
-2026-07-16,2:30pm,Initial Jobless Claims,,222,215,high
-2026-07-16,2:30pm,Continuing Jobless Claims,,1.831,1.814,moderate
-2026-07-16,2:30pm,Initial Jobless Claims 4-Week Average,,214.870,218.750,low
-2026-07-16,4:00pm,Business Inventories m/m,,0.4,0.5,moderate
-2026-07-16,4:00pm,Retail Inventories m/m,,0.6,0.6,moderate
-2026-07-16,4:00pm,Retail Inventories excl. Autos m/m,,,0.4,moderate
-2026-07-16,4:00pm,Pending Home Sales m/m,,2.6,3.8,moderate
-2026-07-16,4:00pm,Pending Home Sales y/y,,3.5,4.8,low
-2026-07-16,4:00pm,Pending Home Sales Index,,,76.8,low
-2026-07-16,4:00pm,NAHB Housing Market Index,,35,35,low
-2026-07-16,4:30pm,EIA Natural Gas Storage Change,,49,61,low
-2026-07-16,5:30pm,4-Week Bill Auction,,,3.630,low
-2026-07-16,5:30pm,8-Week Bill Auction,,,3.635,low
+2026-07-16,2:30pm,Retail Sales m/m,0.2,-0.2,0.9,high
+2026-07-16,2:30pm,Core Retail Sales m/m,-0.2,0.6,0.8,high
+2026-07-16,2:30pm,Retail Control m/m,0.5,0.1,0.7,moderate
+2026-07-16,2:30pm,Retail Sales excl. Autos and Gas m/m,0.4,0.3,0.5,low
+2026-07-16,2:30pm,Retail Sales y/y,6.7,4.9,6.9,low
+2026-07-16,2:30pm,Philadelphia Fed Manufacturing Index,41.4,10.3,10.3,high
+2026-07-16,2:30pm,Philadelphia Fed Employment,10.0,-7.5,7.9,moderate
+2026-07-16,2:30pm,Philadelphia Fed Business Conditions,34.4,47.0,50.2,low
+2026-07-16,2:30pm,Philadelphia Fed Prices Paid,53.9,47.2,53.2,low
+2026-07-16,2:30pm,Philadelphia Fed New Orders,37.0,7.4,27.3,low
+2026-07-16,2:30pm,Philadelphia Fed Capex Index,30.1,34.2,41.2,low
+2026-07-16,2:30pm,Initial Jobless Claims,208,222,215,high
+2026-07-16,2:30pm,Continuing Jobless Claims,1.805,1.831,1.814,moderate
+2026-07-16,2:30pm,Initial Jobless Claims 4-Week Average,214.250,214.870,218.750,low
+2026-07-16,4:00pm,Business Inventories m/m,0.3,0.4,0.5,moderate
+2026-07-16,4:00pm,Retail Inventories m/m,0.6,0.6,0.6,moderate
+2026-07-16,4:00pm,Retail Inventories excl. Autos m/m,0.3,,0.4,moderate
+2026-07-16,4:00pm,Pending Home Sales m/m,-5.4,2.6,3.8,moderate
+2026-07-16,4:00pm,Pending Home Sales y/y,-0.3,3.5,4.8,low
+2026-07-16,4:00pm,Pending Home Sales Index,72.5,,76.8,low
+2026-07-16,4:00pm,NAHB Housing Market Index,34,35,35,low
+2026-07-16,4:30pm,EIA Natural Gas Storage Change,41,49,61,low
+2026-07-16,5:30pm,4-Week Bill Auction,3.660,,3.630,low
+2026-07-16,5:30pm,8-Week Bill Auction,3.650,,3.635,low
 2026-07-17,1:00am,Fed Governor Jefferson Speech,,,,moderate
 2026-07-17,2:30pm,Housing Starts,,1.204,1.177,moderate
 2026-07-17,2:30pm,Building Permits,,1.391,1.413,moderate
@@ -2040,14 +2045,12 @@ date,time,name,actual,forecast,previous,importance
 2026-07-22,4:30pm,EIA Refinery Utilization Rate Change,,,0.4,low
 2026-07-22,7:00pm,20-Year Bond Auction,,,4.927,moderate
 2026-07-23,2:30pm,Chicago Fed National Activity Index,,,,low
-2026-07-23,2:30pm,Initial Jobless Claims,,,,high
-2026-07-23,2:30pm,Continuing Jobless Claims,,,,moderate
-2026-07-23,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
-2026-07-23,4:30pm,EIA Natural Gas Storage Change,,,,low
+2026-07-23,2:30pm,Initial Jobless Claims,,215,208,high
+2026-07-23,2:30pm,Continuing Jobless Claims,,1.821,1.805,moderate
+2026-07-23,2:30pm,Initial Jobless Claims 4-Week Average,,211.430,214.250,low
+2026-07-23,4:30pm,EIA Natural Gas Storage Change,,35,41,low
 2026-07-23,5:00pm,Kansas City Fed Manufacturing Composite Index,,15,11,low
 2026-07-23,5:00pm,Kansas City Fed Manufacturing Production,,14,19,low
-2026-07-23,5:30pm,4-Week Bill Auction,,,,low
-2026-07-23,5:30pm,8-Week Bill Auction,,,,low
 2026-07-23,7:00pm,10-Year TIPS Auction,,,2.169,moderate
 2026-07-24,4:00pm,New Home Sales,,0.547,0.580,high
 2026-07-24,4:00pm,New Home Sales m/m,,-3.7,-7.3,moderate
@@ -2076,8 +2079,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-27,7:00pm,5-Year Note Auction,,,4.200,moderate
 2026-07-28,2:30pm,Wholesale Inventories m/m,,0.9,0.1,low
 2026-07-28,2:30pm,Goods Trade Balance,,-94.697,-105.755,moderate
-2026-07-28,2:30pm,Retail Inventories m/m,,,,moderate
-2026-07-28,2:30pm,Retail Inventories excl. Autos m/m,,,,moderate
+2026-07-28,2:30pm,Retail Inventories m/m,,0.5,0.6,moderate
+2026-07-28,2:30pm,Retail Inventories excl. Autos m/m,,,0.3,moderate
 2026-07-28,3:00pm,HPI m/m,,0.0,-0.1,low
 2026-07-28,3:00pm,HPI y/y,,1.9,2.0,low
 2026-07-28,3:00pm,HPI,,440.8,441.4,low
@@ -2122,8 +2125,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-30,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
 2026-07-30,4:00pm,Dallas Fed Trimmed Mean PCE Inflation Rate,,2.3,2.8,low
 2026-07-30,4:30pm,EIA Natural Gas Storage Change,,,,low
-2026-07-30,5:30pm,4-Week Bill Auction,,,,low
-2026-07-30,5:30pm,8-Week Bill Auction,,,,low
+2026-07-30,5:30pm,4-Week Bill Auction,,,3.660,low
+2026-07-30,5:30pm,8-Week Bill Auction,,,3.650,low
 2026-07-31,2:30pm,Employment Cost Index q/q,,0.8,0.9,moderate
 2026-07-31,2:30pm,Employment Benefits q/q,,0.9,1.2,low
 2026-07-31,2:30pm,Employment Wages q/q,,0.7,0.8,low
@@ -2259,17 +2262,17 @@ date,time,name,actual,forecast,previous,importance
 2026-08-13,5:30pm,4-Week Bill Auction,,,,low
 2026-08-13,5:30pm,8-Week Bill Auction,,,,low
 2026-08-13,7:00pm,30-Year Bond Auction,,,5.058,high
-2026-08-14,2:30pm,Retail Sales m/m,,,,high
-2026-08-14,2:30pm,Core Retail Sales m/m,,,,high
-2026-08-14,2:30pm,Retail Control m/m,,,,moderate
-2026-08-14,2:30pm,Retail Sales excl. Autos and Gas m/m,,,,low
-2026-08-14,2:30pm,Retail Sales y/y,,,,low
+2026-08-14,2:30pm,Retail Sales m/m,,0.0,0.2,high
+2026-08-14,2:30pm,Core Retail Sales m/m,,0.1,-0.2,high
+2026-08-14,2:30pm,Retail Control m/m,,-0.1,0.5,moderate
+2026-08-14,2:30pm,Retail Sales excl. Autos and Gas m/m,,0.3,0.4,low
+2026-08-14,2:30pm,Retail Sales y/y,,6.5,6.7,low
 2026-08-14,4:00pm,Michigan Consumer Sentiment,,,,moderate
 2026-08-14,4:00pm,Michigan Consumer Expectations,,,,moderate
 2026-08-14,4:00pm,Michigan Current Conditions,,,,low
 2026-08-14,4:00pm,Michigan Inflation Expectations,,,,moderate
 2026-08-14,4:00pm,Michigan 5-Year Inflation Expectations,,,,moderate
-2026-08-14,4:00pm,Business Inventories m/m,,,,moderate
+2026-08-14,4:00pm,Business Inventories m/m,,0.4,0.3,moderate
 2026-08-14,4:00pm,Retail Inventories m/m,,,,moderate
 2026-08-14,4:00pm,Retail Inventories excl. Autos m/m,,,,moderate
 2026-08-14,7:00pm,Baker Hughes US Oil Rig Count,,,,moderate
@@ -2285,7 +2288,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-14,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,,low
 2026-08-14,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,,low
 2026-08-14,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,,moderate
-2026-08-17,4:00pm,NAHB Housing Market Index,,,,low
+2026-08-17,4:00pm,NAHB Housing Market Index,,37,34,low
 2026-08-17,5:30pm,3-Month Bill Auction,,,,low
 2026-08-17,5:30pm,6-Month Bill Auction,,,,low
 2026-08-17,10:00pm,TIC Net Long-Term Transactions,,90.5,232.7,moderate
@@ -2305,9 +2308,9 @@ date,time,name,actual,forecast,previous,importance
 2026-08-18,3:15pm,Fed Capacity Utilization Rate,,,,low
 2026-08-18,3:15pm,Fed Manufacturing Production m/m,,,,low
 2026-08-18,3:15pm,Fed Industrial Production y/y,,,,moderate
-2026-08-18,4:00pm,Pending Home Sales m/m,,,,moderate
-2026-08-18,4:00pm,Pending Home Sales y/y,,,,low
-2026-08-18,4:00pm,Pending Home Sales Index,,,,low
+2026-08-18,4:00pm,Pending Home Sales m/m,,-1.1,-5.4,moderate
+2026-08-18,4:00pm,Pending Home Sales y/y,,0.5,-0.3,low
+2026-08-18,4:00pm,Pending Home Sales Index,,,72.5,low
 2026-08-19,4:30pm,EIA Crude Oil Stocks Change,,,,high
 2026-08-19,4:30pm,EIA Cushing Crude Oil Stocks Change,,,,moderate
 2026-08-19,4:30pm,EIA Crude Oil Imports Change,,,,low
@@ -2320,12 +2323,12 @@ date,time,name,actual,forecast,previous,importance
 2026-08-19,4:30pm,EIA Refinery Utilization Rate Change,,,,low
 2026-08-19,7:00pm,20-Year Bond Auction,,,,moderate
 2026-08-19,8:00pm,FOMC Minutes,,,,moderate
-2026-08-20,2:30pm,Philadelphia Fed Manufacturing Index,,,,high
-2026-08-20,2:30pm,Philadelphia Fed Employment,,,,moderate
-2026-08-20,2:30pm,Philadelphia Fed Business Conditions,,,,low
-2026-08-20,2:30pm,Philadelphia Fed Prices Paid,,,,low
-2026-08-20,2:30pm,Philadelphia Fed New Orders,,,,low
-2026-08-20,2:30pm,Philadelphia Fed Capex Index,,,,low
+2026-08-20,2:30pm,Philadelphia Fed Manufacturing Index,,13.7,41.4,high
+2026-08-20,2:30pm,Philadelphia Fed Employment,,1.2,10.0,moderate
+2026-08-20,2:30pm,Philadelphia Fed Business Conditions,,46.7,34.4,low
+2026-08-20,2:30pm,Philadelphia Fed Prices Paid,,54.7,53.9,low
+2026-08-20,2:30pm,Philadelphia Fed New Orders,,8.6,37.0,low
+2026-08-20,2:30pm,Philadelphia Fed Capex Index,,34.5,30.1,low
 2026-08-20,2:30pm,Initial Jobless Claims,,,,high
 2026-08-20,2:30pm,Continuing Jobless Claims,,,,moderate
 2026-08-20,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
@@ -2597,6 +2600,7 @@ date,time,name,actual,forecast,previous,importance
 2026-09-17,4:00pm,Pending Home Sales m/m,,,,moderate
 2026-09-17,4:00pm,Pending Home Sales y/y,,,,low
 2026-09-17,4:00pm,Pending Home Sales Index,,,,low
+2026-09-17,4:30pm,EIA Natural Gas Storage Change,,,,low
 2026-09-17,5:30pm,4-Week Bill Auction,,,,low
 2026-09-17,5:30pm,8-Week Bill Auction,,,,low
 2026-09-17,7:00pm,10-Year TIPS Auction,,,,moderate
