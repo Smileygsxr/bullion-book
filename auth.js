@@ -5,10 +5,18 @@ function showAuthError(message) {
     errorBox.style.display = message ? 'block' : 'none';
 }
 
+// The app lives at app.html; the root index.html is the public SEO landing
+// page. This flag lets the landing page skip itself for people who've logged
+// in before (see the head script in index.html) - new visitors and search
+// crawlers never have it, so they get the landing page.
+function markReturningAppUser() {
+    try { localStorage.setItem('bb_app_user', '1'); } catch (e) { /* ignore */ }
+}
+
 function loginWithEmail(email, password) {
     showAuthError('');
     return auth.signInWithEmailAndPassword(email, password)
-        .then(() => { window.location.href = 'index.html'; })
+        .then(() => { markReturningAppUser(); window.location.href = 'app.html'; })
         .catch(err => showAuthError(err.message));
 }
 
@@ -42,7 +50,7 @@ function withAuthButtonLoading(btn, loadingLabel, promise) {
 function signUpWithEmail(email, password) {
     showAuthError('');
     return auth.createUserWithEmailAndPassword(email, password)
-        .then(() => { window.location.href = 'index.html'; })
+        .then(() => { markReturningAppUser(); window.location.href = 'app.html'; })
         .catch(err => showAuthError(err.message));
 }
 
@@ -50,7 +58,7 @@ function loginWithGoogle() {
     showAuthError('');
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
-        .then(() => { window.location.href = 'index.html'; })
+        .then(() => { markReturningAppUser(); window.location.href = 'app.html'; })
         .catch(err => showAuthError(err.message));
 }
 
@@ -66,14 +74,20 @@ function sendPasswordReset(email) {
 }
 
 function logOut() {
+    // Clear the returning-user flag so the landing page shows again - a
+    // logged-out visit to the root shouldn't bounce through app.html.
+    try { localStorage.removeItem('bb_app_user'); } catch (e) { /* ignore */ }
     auth.signOut().then(() => { window.location.href = 'login.html'; });
 }
 
 // Lets a visitor into the app without logging in. requireAuth() checks this flag
 // on protected pages so it doesn't bounce them straight back to login.html.
 function skipLogin() {
+    // Deliberately does NOT set bb_app_user: guest mode is per-tab
+    // (sessionStorage), so a returning guest should see the landing page,
+    // not get bounced app.html -> login.html in their next session.
     sessionStorage.setItem('guestMode', 'true');
-    window.location.href = 'index.html';
+    window.location.href = 'app.html';
 }
 
 // Redirects unauthenticated visitors to the login page. Include on every protected page.
@@ -81,6 +95,21 @@ function requireAuth() {
     auth.onAuthStateChanged(user => {
         if (!user && sessionStorage.getItem('guestMode') !== 'true') {
             window.location.href = 'login.html';
+        } else if (user) {
+            markReturningAppUser();
+        }
+    });
+}
+
+// The opposite of requireAuth, for the login/signup pages: someone with a live
+// Firebase session shouldn't have to re-enter credentials - forward them
+// straight into the app. Also covers existing users' first visit after the
+// landing page launch, before bb_app_user has ever been set on their browser.
+function redirectIfAuthed() {
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            markReturningAppUser();
+            window.location.replace('app.html');
         }
     });
 }

@@ -124,6 +124,8 @@ body::after {
     align-items: center;
     gap: 14px;
     margin-bottom: 40px;
+    /* It's a link back to the landing page now - keep it looking like the brand */
+    text-decoration: none;
 }
 
 .auth-brand svg {

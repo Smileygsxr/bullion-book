@@ -58,7 +58,7 @@ function getContractSizeForSymbol(symbol) {
     return BUILT_IN_CONTRACT_SIZES[key] || 1;
 }
 
-// ---- Generic confirmation dialog - a single reusable modal (index.html) instead
+// ---- Generic confirmation dialog - a single reusable modal (app.html) instead
 // of the browser's native confirm() popup, used by any destructive action that
 // doesn't already have its own dedicated confirm modal (Delete Trade/Note do). ----
 let genericConfirmModalAction = null;

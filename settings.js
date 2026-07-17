@@ -96,7 +96,7 @@ const THEMES = [
 const LIGHT_BASE_THEMES = ['light', 'blossom'];
 
 // Sets the palette on <html> and mirrors it into localStorage so the inline
-// pre-paint script in index.html's <head> can re-apply it instantly on the
+// pre-paint script in app.html's <head> can re-apply it instantly on the
 // next load, before any JS or Firestore fetch runs (no color flash).
 function applyTheme(themeId) {
     const valid = THEMES.some(t => t.id === themeId) ? themeId : 'slate';
@@ -625,7 +625,7 @@ function deleteTagRow(tagId) {
 
 // ---- Playbooks (Settings > Playbooks) - define a strategy's rules, then
 // assign trades to it from the New/Edit Trade modal (see trade-modal-playbook
-// in index.html). Stats breaks down performance per playbook. ----
+// in app.html). Stats breaks down performance per playbook. ----
 function renderPlaybookList() {
     const container = document.getElementById('settings-playbook-list');
     if (!container) return;

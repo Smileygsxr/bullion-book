@@ -17,13 +17,13 @@
 
     <div class="auth-left">
         <div class="auth-card">
-            <div class="auth-brand">
+            <a class="auth-brand" href="./" title="Back to the Bullion Book home page">
                 <svg class="logo-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                     <rect x="3" y="3" width="94" height="94" rx="12" fill="#dfb15b"/>
                     <text x="50" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" letter-spacing="-6" fill="#131722">BB</text>
                 </svg>
                 <span>Bullion Book</span>
-            </div>
+            </a>
 
             <h1 class="auth-title">Create Your Account</h1>
             <p class="auth-subtitle">Start tracking your trades in minutes.</p>
@@ -141,6 +141,7 @@
     <script src="firebase-config.js"></script>
     <script src="auth.js"></script>
     <script>
+        redirectIfAuthed();
         document.getElementById('signup-form').addEventListener('submit', function (e) {
             e.preventDefault();
             const password = document.getElementById('signup-password').value;
