@@ -10,6 +10,16 @@ date,time,name,actual,forecast,previous,importance
 2026-01-05,6:30pm,3-Month Bill Auction,3.540,,3.570,low
 2026-01-05,6:30pm,6-Month Bill Auction,3.475,,3.500,low
 2026-01-05,10:30pm,CFTC Copper Non-Commercial Net Positions,59.8,,67.1,low
+2026-01-05,10:30pm,CFTC Silver Non-Commercial Net Positions,30.1,,35.9,low
+2026-01-05,10:30pm,CFTC Gold Non-Commercial Net Positions,231.2,,240.7,moderate
+2026-01-05,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,64.6,,64.9,moderate
+2026-01-05,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-94.4,,-81.8,moderate
+2026-01-05,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-2.4,,-2.4,low
+2026-01-05,10:30pm,CFTC Corn Non-Commercial Net Positions,53.2,,64.9,low
+2026-01-05,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-154.9,,-156.3,low
+2026-01-05,10:30pm,CFTC Soybeans Non-Commercial Net Positions,121.8,,157.8,low
+2026-01-05,10:30pm,CFTC Wheat Non-Commercial Net Positions,-71.0,,-71.8,low
+2026-01-05,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,25.1,,31.8,moderate
 2026-01-06,4:45pm,S&P Global Services PMI,,54.0,54.1,high
 2026-01-06,4:45pm,S&P Global Composite PMI,,,,moderate
 2026-01-07,3:15pm,ADP Nonfarm Employment Change,41,3,-31,high
@@ -72,6 +82,16 @@ date,time,name,actual,forecast,previous,importance
 2026-01-09,8:00pm,Baker Hughes US Oil Rig Count,409,,412,moderate
 2026-01-09,8:00pm,Baker Hughes US Total Rig Count,544,,546,moderate
 2026-01-09,10:30pm,CFTC Copper Non-Commercial Net Positions,57.9,,59.8,low
+2026-01-09,10:30pm,CFTC Silver Non-Commercial Net Positions,29.3,,30.1,low
+2026-01-09,10:30pm,CFTC Gold Non-Commercial Net Positions,227.6,,231.2,moderate
+2026-01-09,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,57.4,,64.6,moderate
+2026-01-09,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-106.1,,-94.4,moderate
+2026-01-09,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-2.7,,-2.4,low
+2026-01-09,10:30pm,CFTC Corn Non-Commercial Net Positions,60.1,,53.2,low
+2026-01-09,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-165.6,,-154.9,low
+2026-01-09,10:30pm,CFTC Soybeans Non-Commercial Net Positions,104.8,,121.8,low
+2026-01-09,10:30pm,CFTC Wheat Non-Commercial Net Positions,-88.1,,-71.0,low
+2026-01-09,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,32.6,,25.1,moderate
 2026-01-12,5:00pm,CB Employment Trends Index,104.27,106.52,105.80,low
 2026-01-12,6:30pm,6-Month Bill Auction,3.490,,3.475,low
 2026-01-12,6:30pm,3-Year Note Auction,3.609,,3.614,moderate
@@ -154,6 +174,16 @@ date,time,name,actual,forecast,previous,importance
 2026-01-16,8:00pm,Baker Hughes US Total Rig Count,543,,544,moderate
 2026-01-16,10:30pm,Fed Governor Jefferson Speech,,,,moderate
 2026-01-16,10:30pm,CFTC Copper Non-Commercial Net Positions,53.4,,57.9,low
+2026-01-16,10:30pm,CFTC Silver Non-Commercial Net Positions,32.1,,29.3,low
+2026-01-16,10:30pm,CFTC Gold Non-Commercial Net Positions,251.2,,227.6,moderate
+2026-01-16,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,58.1,,57.4,moderate
+2026-01-16,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-122.1,,-106.1,moderate
+2026-01-16,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-3.3,,-2.7,low
+2026-01-16,10:30pm,CFTC Corn Non-Commercial Net Positions,-33.4,,60.1,low
+2026-01-16,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-185.6,,-165.6,low
+2026-01-16,10:30pm,CFTC Soybeans Non-Commercial Net Positions,58.9,,104.8,low
+2026-01-16,10:30pm,CFTC Wheat Non-Commercial Net Positions,-86.0,,-88.1,low
+2026-01-16,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,29.1,,32.6,moderate
 2026-01-19,2:00am,Birthday of Martin Luther King,,,,none
 2026-01-20,6:30pm,3-Month Bill Auction,3.590,,3.570,low
 2026-01-20,6:30pm,6-Month Bill Auction,3.520,,3.490,low
@@ -203,6 +233,16 @@ date,time,name,actual,forecast,previous,importance
 2026-01-23,8:00pm,Baker Hughes US Oil Rig Count,411,,410,moderate
 2026-01-23,8:00pm,Baker Hughes US Total Rig Count,544,,543,moderate
 2026-01-23,10:30pm,CFTC Copper Non-Commercial Net Positions,52.6,,53.4,low
+2026-01-23,10:30pm,CFTC Silver Non-Commercial Net Positions,25.2,,32.1,low
+2026-01-23,10:30pm,CFTC Gold Non-Commercial Net Positions,244.8,,251.2,moderate
+2026-01-23,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,78.8,,58.1,moderate
+2026-01-23,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-81.8,,-122.1,moderate
+2026-01-23,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-3.4,,-3.3,low
+2026-01-23,10:30pm,CFTC Corn Non-Commercial Net Positions,-51.7,,-33.4,low
+2026-01-23,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-193.5,,-185.6,low
+2026-01-23,10:30pm,CFTC Soybeans Non-Commercial Net Positions,58.1,,58.9,low
+2026-01-23,10:30pm,CFTC Wheat Non-Commercial Net Positions,-93.7,,-86.0,low
+2026-01-23,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,21.1,,29.1,moderate
 2026-01-26,3:30pm,Durable Goods Orders m/m,5.3,6.8,-2.2,high
 2026-01-26,3:30pm,Core Durable Goods Orders m/m,0.5,0.3,0.2,moderate
 2026-01-26,3:30pm,Durable Goods Orders excl. Defense m/m,6.6,2.0,-1.5,low
@@ -263,6 +303,16 @@ date,time,name,actual,forecast,previous,importance
 2026-01-30,8:00pm,Baker Hughes US Oil Rig Count,411,,411,moderate
 2026-01-30,8:00pm,Baker Hughes US Total Rig Count,546,,544,moderate
 2026-01-30,10:30pm,CFTC Copper Non-Commercial Net Positions,48.4,,52.6,low
+2026-01-30,10:30pm,CFTC Silver Non-Commercial Net Positions,23.7,,25.2,low
+2026-01-30,10:30pm,CFTC Gold Non-Commercial Net Positions,205.4,,244.8,moderate
+2026-01-30,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,97.0,,78.8,moderate
+2026-01-30,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-99.8,,-81.8,moderate
+2026-01-30,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-3.6,,-3.4,low
+2026-01-30,10:30pm,CFTC Corn Non-Commercial Net Positions,-31.7,,-51.7,low
+2026-01-30,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-163.6,,-193.5,low
+2026-01-30,10:30pm,CFTC Soybeans Non-Commercial Net Positions,57.4,,58.1,low
+2026-01-30,10:30pm,CFTC Wheat Non-Commercial Net Positions,-79.4,,-93.7,low
+2026-01-30,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,28.2,,21.1,moderate
 2026-01-31,12:00am,Fed Governor Bowman Speech,,,,moderate
 2026-02-02,5:00pm,ISM Manufacturing PMI,52.6,47.4,47.9,high
 2026-02-02,5:00pm,ISM Manufacturing Prices Paid,59.0,58.4,58.5,high
@@ -307,16 +357,16 @@ date,time,name,actual,forecast,previous,importance
 2026-02-06,8:00pm,Baker Hughes US Total Rig Count,551,,546,moderate
 2026-02-06,10:00pm,Fed Consumer Credit m/m,24.05,10.99,4.23,moderate
 2026-02-06,10:30pm,CFTC Copper Non-Commercial Net Positions,47.8,,48.4,low
-2026-02-06,10:30pm,CFTC Silver Non-Commercial Net Positions,25.9,,,low
-2026-02-06,10:30pm,CFTC Gold Non-Commercial Net Positions,165.6,,,moderate
-2026-02-06,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,124.6,,,moderate
-2026-02-06,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-132.9,,,moderate
-2026-02-06,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-2.9,,,low
-2026-02-06,10:30pm,CFTC Corn Non-Commercial Net Positions,-34.7,,,low
-2026-02-06,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-172.3,,,low
-2026-02-06,10:30pm,CFTC Soybeans Non-Commercial Net Positions,64.2,,,low
-2026-02-06,10:30pm,CFTC Wheat Non-Commercial Net Positions,-65.5,,,low
-2026-02-06,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,14.2,,,moderate
+2026-02-06,10:30pm,CFTC Silver Non-Commercial Net Positions,25.9,,23.7,low
+2026-02-06,10:30pm,CFTC Gold Non-Commercial Net Positions,165.6,,205.4,moderate
+2026-02-06,10:30pm,CFTC Crude Oil Non-Commercial Net Positions,124.6,,97.0,moderate
+2026-02-06,10:30pm,CFTC S&P 500 Non-Commercial Net Positions,-132.9,,-99.8,moderate
+2026-02-06,10:30pm,CFTC Aluminium Non-Commercial Net Positions,-2.9,,-3.6,low
+2026-02-06,10:30pm,CFTC Corn Non-Commercial Net Positions,-34.7,,-31.7,low
+2026-02-06,10:30pm,CFTC Natural Gas Non-Commercial Net Positions,-172.3,,-163.6,low
+2026-02-06,10:30pm,CFTC Soybeans Non-Commercial Net Positions,64.2,,57.4,low
+2026-02-06,10:30pm,CFTC Wheat Non-Commercial Net Positions,-65.5,,-79.4,low
+2026-02-06,10:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,14.2,,28.2,moderate
 2026-02-09,6:30pm,3-Month Bill Auction,3.600,,3.600,low
 2026-02-09,6:30pm,6-Month Bill Auction,3.500,,3.525,low
 2026-02-09,8:30pm,Fed Governor Waller Speech,,,,moderate
@@ -1425,7 +1475,6 @@ date,time,name,actual,forecast,previous,importance
 2026-05-21,5:30pm,4-Week Bill Auction,3.610,,3.605,low
 2026-05-21,5:30pm,8-Week Bill Auction,3.600,,3.610,low
 2026-05-21,7:00pm,10-Year TIPS Auction,2.169,,1.896,moderate
-2026-05-25,2:00am,Memorial Day,,,,none
 2026-05-22,4:00pm,Michigan Consumer Sentiment,44.8,48.2,48.2,moderate
 2026-05-22,4:00pm,Michigan Consumer Expectations,44.1,48.5,48.5,moderate
 2026-05-22,4:00pm,Michigan Current Conditions,45.8,47.8,47.8,low
@@ -1446,6 +1495,7 @@ date,time,name,actual,forecast,previous,importance
 2026-05-22,9:30pm,CFTC Soybeans Non-Commercial Net Positions,212.2,,224.0,low
 2026-05-22,9:30pm,CFTC Wheat Non-Commercial Net Positions,0.3,,-14.4,low
 2026-05-22,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,-1.4,,-16.0,moderate
+2026-05-25,2:00am,Memorial Day,,,,none
 2026-05-26,2:30pm,Chicago Fed National Activity Index,0.14,0.08,-0.20,low
 2026-05-26,3:00pm,HPI m/m,0.1,-0.4,0.0,low
 2026-05-26,3:00pm,HPI y/y,1.7,1.2,1.7,low
@@ -1999,37 +2049,37 @@ date,time,name,actual,forecast,previous,importance
 2026-07-16,5:30pm,4-Week Bill Auction,3.660,,3.630,low
 2026-07-16,5:30pm,8-Week Bill Auction,3.650,,3.635,low
 2026-07-17,1:00am,Fed Governor Jefferson Speech,,,,moderate
-2026-07-17,2:30pm,Housing Starts,,1.204,1.177,moderate
-2026-07-17,2:30pm,Building Permits,,1.391,1.413,moderate
-2026-07-17,2:30pm,Housing Starts m/m,,-3.8,-15.4,moderate
-2026-07-17,2:30pm,Building Permits m/m,,-5.1,-0.7,low
-2026-07-17,2:30pm,Import Price Index m/m,,1.6,1.9,moderate
-2026-07-17,2:30pm,Import Price Index y/y,,8.0,6.7,low
-2026-07-17,2:30pm,Export Price Index m/m,,1.4,1.3,moderate
-2026-07-17,2:30pm,Export Price Index y/y,,10.1,11.2,low
-2026-07-17,2:30pm,Import Price Index excl. Petroleum m/m,,0.1,0.8,low
-2026-07-17,3:15pm,Fed Industrial Production m/m,,0.2,0.1,moderate
-2026-07-17,3:15pm,Fed Capacity Utilization Rate,,76.7,76.2,low
-2026-07-17,3:15pm,Fed Manufacturing Production m/m,,0.0,0.0,low
-2026-07-17,3:15pm,Fed Industrial Production y/y,,0.5,1.7,moderate
-2026-07-17,4:00pm,Michigan Consumer Sentiment,,51.1,49.5,moderate
-2026-07-17,4:00pm,Michigan Consumer Expectations,,51.8,50.7,moderate
-2026-07-17,4:00pm,Michigan Current Conditions,,49.5,47.7,low
-2026-07-17,4:00pm,Michigan Inflation Expectations,,4.7,4.6,moderate
-2026-07-17,4:00pm,Michigan 5-Year Inflation Expectations,,3.4,3.3,moderate
-2026-07-17,7:00pm,Baker Hughes US Oil Rig Count,,,445,moderate
-2026-07-17,7:00pm,Baker Hughes US Total Rig Count,,,581,moderate
-2026-07-17,9:30pm,CFTC Copper Non-Commercial Net Positions,,,64.3,low
-2026-07-17,9:30pm,CFTC Silver Non-Commercial Net Positions,,,28.0,low
-2026-07-17,9:30pm,CFTC Gold Non-Commercial Net Positions,,,194.2,moderate
-2026-07-17,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,75.7,moderate
-2026-07-17,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,-42.9,moderate
-2026-07-17,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,1.3,low
-2026-07-17,9:30pm,CFTC Corn Non-Commercial Net Positions,,,101.0,low
-2026-07-17,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,-165.3,low
-2026-07-17,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,112.8,low
-2026-07-17,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-49.7,low
-2026-07-17,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,2.1,moderate
+2026-07-17,2:30pm,Housing Starts,1.427,1.204,1.177,moderate
+2026-07-17,2:30pm,Building Permits,1.367,1.391,1.413,moderate
+2026-07-17,2:30pm,Housing Starts m/m,19.0,-3.8,-15.4,moderate
+2026-07-17,2:30pm,Building Permits m/m,-3.0,-5.1,-0.7,low
+2026-07-17,2:30pm,Import Price Index m/m,0.3,1.6,1.9,moderate
+2026-07-17,2:30pm,Import Price Index y/y,7.1,8.0,6.7,low
+2026-07-17,2:30pm,Export Price Index m/m,-0.6,1.4,1.3,moderate
+2026-07-17,2:30pm,Export Price Index y/y,10.2,10.1,11.2,low
+2026-07-17,2:30pm,Import Price Index excl. Petroleum m/m,0.5,0.1,0.8,low
+2026-07-17,3:15pm,Fed Industrial Production m/m,0.1,0.2,0.1,moderate
+2026-07-17,3:15pm,Fed Capacity Utilization Rate,76.1,76.7,76.2,low
+2026-07-17,3:15pm,Fed Manufacturing Production m/m,0.0,0.0,0.0,low
+2026-07-17,3:15pm,Fed Industrial Production y/y,1.1,0.5,1.7,moderate
+2026-07-17,4:00pm,Michigan Consumer Sentiment,54.4,51.1,49.5,moderate
+2026-07-17,4:00pm,Michigan Consumer Expectations,54.0,51.8,50.7,moderate
+2026-07-17,4:00pm,Michigan Current Conditions,54.9,49.5,47.7,low
+2026-07-17,4:00pm,Michigan Inflation Expectations,4.2,4.7,4.6,moderate
+2026-07-17,4:00pm,Michigan 5-Year Inflation Expectations,3.3,3.4,3.3,moderate
+2026-07-17,7:00pm,Baker Hughes US Oil Rig Count,452,,445,moderate
+2026-07-17,7:00pm,Baker Hughes US Total Rig Count,588,,581,moderate
+2026-07-17,9:30pm,CFTC Copper Non-Commercial Net Positions,64.4,,64.3,low
+2026-07-17,9:30pm,CFTC Silver Non-Commercial Net Positions,25.1,,28.0,low
+2026-07-17,9:30pm,CFTC Gold Non-Commercial Net Positions,186.7,,194.2,moderate
+2026-07-17,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,62.7,,75.7,moderate
+2026-07-17,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,-38.9,,-42.9,moderate
+2026-07-17,9:30pm,CFTC Aluminium Non-Commercial Net Positions,-0.7,,1.3,low
+2026-07-17,9:30pm,CFTC Corn Non-Commercial Net Positions,131.5,,101.0,low
+2026-07-17,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,-178.6,,-165.3,low
+2026-07-17,9:30pm,CFTC Soybeans Non-Commercial Net Positions,125.4,,112.8,low
+2026-07-17,9:30pm,CFTC Wheat Non-Commercial Net Positions,-16.3,,-49.7,low
+2026-07-17,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,2.7,,2.1,moderate
 2026-07-20,4:00pm,CB Leading Economic Index m/m,,-0.2,0.1,moderate
 2026-07-20,5:30pm,3-Month Bill Auction,,,3.760,low
 2026-07-20,5:30pm,6-Month Bill Auction,,,3.860,low
@@ -2054,19 +2104,19 @@ date,time,name,actual,forecast,previous,importance
 2026-07-23,7:00pm,10-Year TIPS Auction,,,2.169,moderate
 2026-07-24,4:00pm,New Home Sales,,0.547,0.580,high
 2026-07-24,4:00pm,New Home Sales m/m,,-3.7,-7.3,moderate
-2026-07-24,7:00pm,Baker Hughes US Oil Rig Count,,,,moderate
-2026-07-24,7:00pm,Baker Hughes US Total Rig Count,,,,moderate
-2026-07-24,9:30pm,CFTC Copper Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Silver Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Gold Non-Commercial Net Positions,,,,moderate
-2026-07-24,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,,moderate
-2026-07-24,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,,moderate
-2026-07-24,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Corn Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,,low
-2026-07-24,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,,moderate
+2026-07-24,7:00pm,Baker Hughes US Oil Rig Count,,,452,moderate
+2026-07-24,7:00pm,Baker Hughes US Total Rig Count,,,588,moderate
+2026-07-24,9:30pm,CFTC Copper Non-Commercial Net Positions,,,64.4,low
+2026-07-24,9:30pm,CFTC Silver Non-Commercial Net Positions,,,25.1,low
+2026-07-24,9:30pm,CFTC Gold Non-Commercial Net Positions,,,186.7,moderate
+2026-07-24,9:30pm,CFTC Crude Oil Non-Commercial Net Positions,,,62.7,moderate
+2026-07-24,9:30pm,CFTC S&P 500 Non-Commercial Net Positions,,,-38.9,moderate
+2026-07-24,9:30pm,CFTC Aluminium Non-Commercial Net Positions,,,-0.7,low
+2026-07-24,9:30pm,CFTC Corn Non-Commercial Net Positions,,,131.5,low
+2026-07-24,9:30pm,CFTC Natural Gas Non-Commercial Net Positions,,,-178.6,low
+2026-07-24,9:30pm,CFTC Soybeans Non-Commercial Net Positions,,,125.4,low
+2026-07-24,9:30pm,CFTC Wheat Non-Commercial Net Positions,,,-16.3,low
+2026-07-24,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,,,2.7,moderate
 2026-07-27,2:30pm,Durable Goods Orders m/m,,1.7,-4.5,high
 2026-07-27,2:30pm,Core Durable Goods Orders m/m,,0.4,1.3,moderate
 2026-07-27,2:30pm,Durable Goods Orders excl. Defense m/m,,-1.5,-4.6,low
@@ -2131,11 +2181,11 @@ date,time,name,actual,forecast,previous,importance
 2026-07-31,2:30pm,Employment Benefits q/q,,0.9,1.2,low
 2026-07-31,2:30pm,Employment Wages q/q,,0.7,0.8,low
 2026-07-31,3:45pm,MNI Chicago Business Barometer,,56.5,56.7,high
-2026-07-31,4:00pm,Michigan Consumer Sentiment,,,,moderate
-2026-07-31,4:00pm,Michigan Consumer Expectations,,,,moderate
-2026-07-31,4:00pm,Michigan Current Conditions,,,,low
-2026-07-31,4:00pm,Michigan Inflation Expectations,,,,moderate
-2026-07-31,4:00pm,Michigan 5-Year Inflation Expectations,,,,moderate
+2026-07-31,4:00pm,Michigan Consumer Sentiment,,54.4,54.4,moderate
+2026-07-31,4:00pm,Michigan Consumer Expectations,,54.0,54.0,moderate
+2026-07-31,4:00pm,Michigan Current Conditions,,54.9,54.9,low
+2026-07-31,4:00pm,Michigan Inflation Expectations,,4.2,4.2,moderate
+2026-07-31,4:00pm,Michigan 5-Year Inflation Expectations,,3.3,3.3,moderate
 2026-07-31,7:00pm,Baker Hughes US Oil Rig Count,,,,moderate
 2026-07-31,7:00pm,Baker Hughes US Total Rig Count,,,,moderate
 2026-07-31,9:30pm,CFTC Copper Non-Commercial Net Positions,,,,low
@@ -2295,19 +2345,19 @@ date,time,name,actual,forecast,previous,importance
 2026-08-17,10:00pm,TIC Net Long-Term Transactions incl. Swaps,,79.7,232.7,low
 2026-08-17,10:00pm,TIC Overall Net Capital Flow,,67.8,132.2,low
 2026-08-17,10:00pm,TIC Net Foreign Purchases of Domestic Treasury Bonds & Notes,,29.4,56.6,low
-2026-08-18,2:30pm,Housing Starts,,,,moderate
-2026-08-18,2:30pm,Building Permits,,,,moderate
-2026-08-18,2:30pm,Housing Starts m/m,,,,moderate
-2026-08-18,2:30pm,Building Permits m/m,,,,low
-2026-08-18,2:30pm,Import Price Index m/m,,,,moderate
-2026-08-18,2:30pm,Import Price Index y/y,,,,low
-2026-08-18,2:30pm,Export Price Index m/m,,,,moderate
-2026-08-18,2:30pm,Export Price Index y/y,,,,low
-2026-08-18,2:30pm,Import Price Index excl. Petroleum m/m,,,,low
-2026-08-18,3:15pm,Fed Industrial Production m/m,,,,moderate
-2026-08-18,3:15pm,Fed Capacity Utilization Rate,,,,low
-2026-08-18,3:15pm,Fed Manufacturing Production m/m,,,,low
-2026-08-18,3:15pm,Fed Industrial Production y/y,,,,moderate
+2026-08-18,2:30pm,Housing Starts,,1.365,1.427,moderate
+2026-08-18,2:30pm,Building Permits,,1.352,1.367,moderate
+2026-08-18,2:30pm,Housing Starts m/m,,8.8,19.0,moderate
+2026-08-18,2:30pm,Building Permits m/m,,1.3,-3.0,low
+2026-08-18,2:30pm,Import Price Index m/m,,-0.1,0.3,moderate
+2026-08-18,2:30pm,Import Price Index y/y,,7.7,7.1,low
+2026-08-18,2:30pm,Export Price Index m/m,,-1.4,-0.6,moderate
+2026-08-18,2:30pm,Export Price Index y/y,,7.9,10.2,low
+2026-08-18,2:30pm,Import Price Index excl. Petroleum m/m,,0.5,0.5,low
+2026-08-18,3:15pm,Fed Industrial Production m/m,,0.1,0.1,moderate
+2026-08-18,3:15pm,Fed Capacity Utilization Rate,,76.1,76.1,low
+2026-08-18,3:15pm,Fed Manufacturing Production m/m,,0.1,0.0,low
+2026-08-18,3:15pm,Fed Industrial Production y/y,,0.7,1.1,moderate
 2026-08-18,4:00pm,Pending Home Sales m/m,,-1.1,-5.4,moderate
 2026-08-18,4:00pm,Pending Home Sales y/y,,0.5,-0.3,low
 2026-08-18,4:00pm,Pending Home Sales Index,,,72.5,low
@@ -2481,6 +2531,8 @@ date,time,name,actual,forecast,previous,importance
 2026-09-04,2:30pm,Private Nonfarm Payrolls,,,,moderate
 2026-09-04,2:30pm,U6 Unemployment Rate,,,,moderate
 2026-09-04,2:30pm,Manufacturing Payrolls,,,,low
+2026-09-04,7:00pm,Baker Hughes US Oil Rig Count,,,,moderate
+2026-09-04,7:00pm,Baker Hughes US Total Rig Count,,,,moderate
 2026-09-04,9:30pm,CFTC Copper Non-Commercial Net Positions,,,,low
 2026-09-04,9:30pm,CFTC Silver Non-Commercial Net Positions,,,,low
 2026-09-04,9:30pm,CFTC Gold Non-Commercial Net Positions,,,,moderate
