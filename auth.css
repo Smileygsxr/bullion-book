@@ -119,6 +119,27 @@ body::after {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Explicit route back to the public landing page - the brand logo below
+   links there too, but a labeled link is far more discoverable */
+.auth-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 26px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-back-link:hover {
+    color: var(--text-light);
+}
+
+.auth-back-link i {
+    font-size: 0.75rem;
+}
+
 .auth-brand {
     display: flex;
     align-items: center;
