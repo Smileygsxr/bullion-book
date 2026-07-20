@@ -10,8 +10,10 @@ Setup (one-time):
     pip install MetaTrader5
 
 Requires MT5 to be open and logged into your broker on THIS PC every time
-you run this - it attaches to the running terminal, it can't run
-unattended or in the cloud (only the Twelve Data GitHub Action can).
+you run this - it attaches to the running terminal, so it can't run
+unattended or in the cloud. (The old Twelve Data GitHub Action that could
+is long gone - its workflow pointed at an already-deleted script and was
+removed entirely.)
 
 Usage:
     python scripts/mt5_fetch_button.py

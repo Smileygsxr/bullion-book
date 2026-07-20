@@ -62,6 +62,11 @@
                 "@type": "Question",
                 "name": "Do I need to install anything?",
                 "acceptedAnswer": { "@type": "Answer", "text": "No. Bullion Book runs entirely in your web browser on desktop and mobile - nothing to download or install." }
+            },
+            {
+                "@type": "Question",
+                "name": "What is the best free trading journal for gold and forex traders?",
+                "acceptedAnswer": { "@type": "Answer", "text": "For gold and forex specifically, Bullion Book is built for exactly that: it bundles real XAUUSD and major-pair chart data into your trade reviews, alongside the stats, P&L calendar and coaching tools that paid trading journals charge $20-50 a month for - completely free, with no trade caps or locked features." }
             }
         ]
     }
@@ -279,6 +284,67 @@
             background: var(--win);
         }
 
+        /* ---- Free vs paid comparison ---- */
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        .compare-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .compare-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.02rem;
+            margin: 0 0 14px;
+        }
+
+        .compare-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .compare-badge.free { background: rgba(46, 189, 133, 0.15); color: var(--win); }
+        .compare-badge.paid { background: rgba(246, 70, 93, 0.12); color: var(--loss); }
+
+        .compare-card ul { margin: 0; padding: 0; list-style: none; }
+
+        .compare-card li {
+            padding: 7px 0 7px 24px;
+            position: relative;
+            font-size: 0.92rem;
+        }
+
+        .compare-card li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--win);
+            font-weight: 700;
+        }
+
+        .compare-card.muted li::before { content: "\2022"; color: var(--text-muted); }
+        .compare-card.muted li { color: var(--text-muted); }
+
+        .compare-note {
+            max-width: 720px;
+            margin: 26px auto 0;
+            text-align: center;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
         /* ---- FAQ ---- */
         .faq-list { max-width: 720px; margin: 0 auto; }
 
@@ -379,7 +445,7 @@
 
         <section id="features">
             <div class="wrap">
-                <h2 class="section-title">Everything a serious journal needs</h2>
+                <h2 class="section-title">Everything a serious trading journal needs</h2>
                 <p class="section-intro">
                     Built by a trader, for traders - every screen exists to answer one question:
                     what should you do differently on the next trade?
@@ -472,6 +538,44 @@
             </div>
         </section>
 
+        <section id="why-free">
+            <div class="wrap">
+                <h2 class="section-title">The best trading journal is the one you'll actually keep</h2>
+                <p class="section-intro">
+                    In 2026 most trading journals charge $20-50 a month for the discipline
+                    habit itself. Bullion Book keeps journaling free - no trial clock, no
+                    locked "pro" tier - because a journal only works if you never have a
+                    reason to stop using it.
+                </p>
+                <div class="compare-grid">
+                    <article class="compare-card">
+                        <h3><span class="compare-badge free">Free</span> Bullion Book</h3>
+                        <ul>
+                            <li>Unlimited trades, accounts, notes and playbooks</li>
+                            <li>CSV import, deep stats, Pro Score, P&amp;L calendar, weekly review and a coach</li>
+                            <li>Real gold &amp; forex chart data built into your reviews</li>
+                            <li>No ads, no card, no feature gates</li>
+                        </ul>
+                    </article>
+                    <article class="compare-card muted">
+                        <h3><span class="compare-badge paid">$20-50/mo</span> Typical paid journals</h3>
+                        <ul>
+                            <li>$240-600 a year in subscription fees</li>
+                            <li>Free tiers usually capped to a handful of trades or a short trial</li>
+                            <li>Built generic - every asset class, no market focus</li>
+                            <li>Your journaling habit tied to a monthly bill</li>
+                        </ul>
+                    </article>
+                </div>
+                <p class="compare-note">
+                    Looking for a free alternative to paid trading journals like TradeZella,
+                    Tradervue or TradesViz? Bullion Book covers the essentials they charge
+                    for - trade logging, analytics, calendar review and journaling - free,
+                    with a focus on gold and forex traders.
+                </p>
+            </div>
+        </section>
+
         <section id="faq">
             <div class="wrap">
                 <h2 class="section-title">Frequently asked questions</h2>
@@ -496,6 +600,10 @@
                     <details>
                         <summary>Do I need to install anything?</summary>
                         <p>No. Bullion Book runs entirely in your web browser on desktop and mobile - nothing to download or install.</p>
+                    </details>
+                    <details>
+                        <summary>What is the best free trading journal for gold and forex traders?</summary>
+                        <p>For gold and forex specifically, Bullion Book is built for exactly that: it bundles real XAUUSD and major-pair chart data into your trade reviews, alongside the stats, P&amp;L calendar and coaching tools that paid trading journals charge $20-50 a month for - completely free, with no trade caps or locked features.</p>
                     </details>
                 </div>
             </div>
