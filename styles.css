@@ -2841,6 +2841,41 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     background-color: var(--loss);
 }
 
+/* MT4/MT5 export-script download buttons + step guide (Settings > Import Trades) */
+.csv-mt-script-links {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.csv-mt-script-links a {
+    text-decoration: none;
+}
+
+/* .btn-action defaults to width:100% (sidebar buttons) - side-by-side here */
+.csv-mt-script-links .btn-action {
+    width: auto;
+}
+
+.csv-mt-steps {
+    margin: 0 0 14px;
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.65;
+}
+
+.csv-mt-steps li {
+    margin-bottom: 9px;
+    padding-left: 4px;
+}
+
+.csv-mt-steps strong {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
 .csv-import-upload-btn {
     width: auto;
     display: inline-flex;

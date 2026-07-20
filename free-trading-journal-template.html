@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Trading Journal Template - Every Column You Need (2026)</title>
+    <meta name="description" content="A complete free trading journal template: the 14 columns worth tracking, why each one matters, and the formulas for win rate, expectancy and profit factor - plus a copy-paste header row for Excel or Google Sheets.">
+    <link rel="canonical" href="https://bullion-book.com/free-trading-journal-template.html">
+    <meta property="og:title" content="Free Trading Journal Template - Every Column You Need (2026)">
+    <meta property="og:description" content="The 14 columns worth tracking, why each matters, and the formulas for win rate, expectancy and profit factor - copy-paste ready.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://bullion-book.com/free-trading-journal-template.html">
+    <meta property="og:image" content="https://bullion-book.com/images/golden-bull.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="stylesheet" href="guides.css">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Free Trading Journal Template - Every Column You Need",
+        "description": "The 14 columns worth tracking, why each one matters, and the formulas for win rate, expectancy and profit factor.",
+        "datePublished": "2026-07-20",
+        "author": { "@type": "Organization", "name": "Bullion Book", "url": "https://bullion-book.com/" },
+        "publisher": { "@type": "Organization", "name": "Bullion Book" },
+        "mainEntityOfPage": "https://bullion-book.com/free-trading-journal-template.html"
+    }
+    </script>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="wrap">
+            <a class="brand" href="./" aria-label="Bullion Book home">
+                <svg class="logo-mark" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="3" y="3" width="94" height="94" rx="12" fill="#dfb15b"/>
+                    <text x="50" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="62" letter-spacing="-6" fill="#131722">BB</text>
+                </svg>
+                Bullion Book
+            </a>
+            <nav class="site-nav" aria-label="Main">
+                <a class="nav-link-plain" href="./">Home</a>
+                <a class="btn btn-ghost" href="login.html">Log In</a>
+                <a class="btn btn-gold" href="signup.html">Get Started Free</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="article">
+        <div class="wrap">
+            <h1>Free Trading Journal Template</h1>
+            <p class="article-meta">Bullion Book Guides &middot; Updated July 2026</p>
+
+            <p class="lead">
+                Every trading journal - paper, spreadsheet or app - lives or dies by its
+                columns. Track too little and the data answers nothing; track too much and
+                you'll quit by Thursday. These 14 columns are the working set: enough to
+                compute every statistic that matters, small enough to fill in 60 seconds.
+            </p>
+
+            <h2>The template</h2>
+            <table>
+                <thead>
+                    <tr><th>Column</th><th>Example</th><th>Why it's here</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Date</strong></td><td>2026-07-20</td><td>Groups trades by day for calendars and day-of-week stats.</td></tr>
+                    <tr><td><strong>Time In / Time Out</strong></td><td>14:32 / 15:10</td><td>Hold time, plus hour-of-day performance - one of the most revealing stats there is.</td></tr>
+                    <tr><td><strong>Symbol</strong></td><td>XAUUSD</td><td>Per-instrument breakdowns; some pairs quietly subsidize others.</td></tr>
+                    <tr><td><strong>Direction</strong></td><td>Long</td><td>Many traders have a measurable long/short skill gap.</td></tr>
+                    <tr><td><strong>Size (lots)</strong></td><td>0.10</td><td>Position sizing consistency - erratic sizing hides in dollar P&amp;L.</td></tr>
+                    <tr><td><strong>Entry / Exit price</strong></td><td>3984.40 / 3992.10</td><td>The trade itself; enables replay on a chart later.</td></tr>
+                    <tr><td><strong>Stop-loss at entry</strong></td><td>3975.80</td><td>Defines 1R - the unit every trade gets measured in.</td></tr>
+                    <tr><td><strong>Target at entry</strong></td><td>4001.00</td><td>Planned reward - compare against where you actually exited.</td></tr>
+                    <tr><td><strong>Fees / swap</strong></td><td>-1.20</td><td>Costs are part of the result; scalpers especially can't skip this.</td></tr>
+                    <tr><td><strong>P&amp;L ($)</strong></td><td>+77.00</td><td>Use your broker's reported figure so the journal matches your statement.</td></tr>
+                    <tr><td><strong>R-multiple</strong></td><td>+0.9R</td><td>P&amp;L &divide; risk at entry - decision quality, independent of size.</td></tr>
+                    <tr><td><strong>Setup / tag</strong></td><td>London breakout</td><td>Buckets trades into comparable groups - the key to finding your edge.</td></tr>
+                    <tr><td><strong>Confidence (1-5)</strong></td><td>4</td><td>Later, check whether your gut actually predicts anything.</td></tr>
+                    <tr><td><strong>Notes</strong></td><td>"Clean setup, followed plan"</td><td>One honest sentence on the why and the feeling.</td></tr>
+                </tbody>
+            </table>
+
+            <h2>Copy-paste header row</h2>
+            <p>Paste this straight into row 1 of Excel or Google Sheets:</p>
+            <pre>Date,Time In,Time Out,Symbol,Direction,Size,Entry,Exit,Stop Loss,Target,Fees,PnL,R Multiple,Setup,Confidence,Notes</pre>
+
+            <h2>The formulas your spreadsheet needs</h2>
+            <p>With P&amp;L in column L (and wins defined as L &gt; 0):</p>
+            <ul>
+                <li><strong>Win rate</strong> = <code>COUNTIF(L:L,"&gt;0") / COUNT(L:L)</code></li>
+                <li><strong>Average win</strong> = <code>AVERAGEIF(L:L,"&gt;0")</code> &nbsp;/&nbsp; <strong>Average loss</strong> = <code>AVERAGEIF(L:L,"&lt;0")</code></li>
+                <li><strong>Expectancy per trade</strong> = win rate &times; average win + loss rate &times; average loss</li>
+                <li><strong>Profit factor</strong> = <code>SUMIF(L:L,"&gt;0") / -SUMIF(L:L,"&lt;0")</code> - above 1.0 means your wins outweigh your losses.</li>
+                <li><strong>R-multiple per trade</strong> = P&amp;L &divide; (entry-to-stop distance &times; size &times; contract size). For XAUUSD one lot is 100 oz - forgetting the contract size is the classic gold-spreadsheet bug.</li>
+            </ul>
+
+            <h2>Rules that keep a template alive</h2>
+            <ol>
+                <li><strong>Log every trade</strong> - a journal with holes measures nothing. Bad trades are the most valuable rows in it.</li>
+                <li><strong>Fill it at the close</strong>, while the reasoning is honest - not at the end of the week from memory.</li>
+                <li><strong>Never edit history.</strong> The stop column holds the stop you placed, not the one you dragged.</li>
+                <li><strong>Review weekly, act monthly</strong> - patterns need repetition before they're signals. See <a href="why-keep-a-trading-journal.html">why journaling works</a> for what to look for.</li>
+            </ol>
+
+            <h2>Where spreadsheets run out of road</h2>
+            <p>
+                A spreadsheet does the recording; the analysis stays manual. Equity curves,
+                P&amp;L calendars, day &times; hour heatmaps, per-setup win rates, drawdown -
+                each is another formula or pivot table you maintain by hand, and screenshots
+                and chart replays never fit at all. That's the point where a dedicated journal
+                pays for itself - especially one that's free. Bullion Book uses this exact data
+                model: import your MT4/MT5 history or log trades manually, and every statistic
+                above (plus the ones you'd never build in Sheets) computes automatically. If
+                you trade gold or forex, the
+                <a href="how-to-journal-gold-forex-trades.html">gold &amp; forex journaling guide</a>
+                shows the full workflow.
+            </p>
+
+            <div class="cta-box">
+                <h2>Skip the spreadsheet maintenance</h2>
+                <p>
+                    Same template, zero formulas: Bullion Book computes win rate, expectancy,
+                    R-multiples, calendars and heatmaps from your trades automatically - free,
+                    with MT4/MT5 import built in.
+                </p>
+                <a class="btn btn-gold" href="signup.html">Create Free Account</a>
+            </div>
+
+            <div class="related">
+                <h2>Keep reading</h2>
+                <ul>
+                    <li><a href="why-keep-a-trading-journal.html">Why Keep a Trading Journal? 5 reasons backed by your own data</a></li>
+                    <li><a href="how-to-journal-gold-forex-trades.html">How to Journal Gold &amp; Forex Trades - a practical guide</a></li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap">
+            <span>&copy; 2026 Bullion Book. Free trading journal.</span>
+            <nav aria-label="Footer">
+                <a href="./">Home</a>
+                <a href="login.html">Log In</a>
+                <a href="signup.html">Sign Up</a>
+            </nav>
+        </div>
+    </footer>
+
+</body>
+</html>

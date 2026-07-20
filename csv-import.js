@@ -305,6 +305,14 @@ function importTradesFromCsvText(csvText, filename) {
 
     if (!account.trades) account.trades = [];
 
+    // One-level undo: snapshot the batch being replaced (and its meta) so a
+    // bad upload can be rolled back - see undoLastCsvImport.
+    account.csvImportUndo = {
+        trades: account.trades.filter(t => t.source === 'csv-import'),
+        meta: account.csvImportMeta || null,
+        savedAt: new Date().toISOString()
+    };
+
     // Replace whatever was imported last time - trades added manually (no
     // source: 'csv-import' marker) are left untouched.
     account.trades = account.trades.filter(t => t.source !== 'csv-import');
@@ -323,6 +331,15 @@ function importTradesFromCsvText(csvText, filename) {
 function removeCsvImportedTrades() {
     const account = getActiveAccount();
     const before = (account.trades || []).length;
+
+    // Same one-level undo snapshot as an import - an accidental Remove click
+    // is recoverable via Undo Last Import.
+    account.csvImportUndo = {
+        trades: (account.trades || []).filter(t => t.source === 'csv-import'),
+        meta: account.csvImportMeta || null,
+        savedAt: new Date().toISOString()
+    };
+
     account.trades = (account.trades || []).filter(t => t.source !== 'csv-import');
     const removed = before - account.trades.length;
     delete account.csvImportMeta;
@@ -334,6 +351,39 @@ function removeCsvImportedTrades() {
 
     renderCsvImportMeta();
     showCsvImportStatus(`Removed ${removed} imported trade${removed === 1 ? '' : 's'}.`, false);
+}
+
+// Restores the CSV-imported batch that the most recent upload (or "Remove
+// Imported Trades" click) replaced - one level deep: undoing twice swaps back
+// and forth between the two batches, nothing is ever lost.
+function undoLastCsvImport() {
+    const account = getActiveAccount();
+    const undo = account.csvImportUndo;
+    if (!undo) {
+        showCsvImportStatus('Nothing to undo - no previous import has been replaced yet.', true);
+        return;
+    }
+
+    // Swap: the current batch becomes the new undo snapshot, the snapshot
+    // becomes the live batch.
+    const currentBatch = (account.trades || []).filter(t => t.source === 'csv-import');
+    const currentMeta = account.csvImportMeta || null;
+
+    account.trades = (account.trades || []).filter(t => t.source !== 'csv-import');
+    account.trades.push(...(undo.trades || []));
+    if (undo.meta) account.csvImportMeta = undo.meta;
+    else delete account.csvImportMeta;
+
+    account.csvImportUndo = { trades: currentBatch, meta: currentMeta, savedAt: new Date().toISOString() };
+
+    saveAccountsState();
+    updateSidebarBalanceDisplay();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderStatsPage === 'function') renderStatsPage();
+
+    renderCsvImportMeta();
+    const restored = (undo.trades || []).length;
+    showCsvImportStatus(`Undone - restored the previous import (${restored} trade${restored === 1 ? '' : 's'}).`, false);
 }
 
 function showCsvImportStatus(message, isError) {
@@ -349,7 +399,20 @@ function renderCsvImportMeta() {
     const el = document.getElementById('csv-import-last-info');
     if (!el) return;
 
-    const meta = getActiveAccount().csvImportMeta;
+    const account = getActiveAccount();
+
+    // Undo button only shows once there's a replaced batch to fall back to
+    const undoBtn = document.getElementById('csv-import-undo-btn');
+    if (undoBtn) {
+        const undo = account.csvImportUndo;
+        undoBtn.style.display = undo ? 'flex' : 'none';
+        if (undo) {
+            const count = (undo.trades || []).length;
+            undoBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Undo Last Import (restores ${count} trade${count === 1 ? '' : 's'})`;
+        }
+    }
+
+    const meta = account.csvImportMeta;
     if (!meta) {
         el.textContent = 'No CSV has been imported yet.';
         return;

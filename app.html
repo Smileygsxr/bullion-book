@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=82">
+    <link rel="stylesheet" href="styles.css?v=83">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -946,8 +946,41 @@
 
                         <hr class="settings-divider">
 
+                        <h3 class="settings-subtitle">No CSV export? Use our MetaTrader script</h3>
+                        <p class="settings-share-desc">
+                            MT4/MT5's built-in reports save as HTML, not CSV. Our free script writes a
+                            ready-to-upload <strong>BullionBook_Trades.csv</strong> for you - a one-time,
+                            two-minute setup:
+                        </p>
+                        <div class="csv-mt-script-links">
+                            <a class="btn-action btn-blue" href="scripts/Export_Trade_History.mq5" download>
+                                <i class="fa-solid fa-download"></i> Download MT5 script
+                            </a>
+                            <a class="btn-action btn-blue" href="scripts/Export_Trade_History.mq4" download>
+                                <i class="fa-solid fa-download"></i> Download MT4 script
+                            </a>
+                        </div>
+                        <ol class="csv-mt-steps">
+                            <li><strong>Download</strong> the script above that matches your platform (MT5 or MT4).</li>
+                            <li>In MetaTrader, click <strong>File &rarr; Open Data Folder</strong>. A folder window opens - go into <strong>MQL5 &rarr; Scripts</strong> (on MT4: <strong>MQL4 &rarr; Scripts</strong>) and drop the downloaded file there.</li>
+                            <li>Back in the terminal, right-click the <strong>Navigator</strong> panel and choose <strong>Refresh</strong>. "Export_Trade_History" appears under <strong>Scripts</strong>. If it doesn't, open the file from that folder and press <strong>F7</strong> once in the editor that opens, then refresh again.</li>
+                            <li><strong>MT4 only:</strong> right-click the <strong>Account History</strong> tab (bottom of the terminal) and choose <strong>All history</strong>, otherwise older trades won't be included.</li>
+                            <li><strong>Double-click the script</strong> in Navigator (or drag it onto any chart). Leave the dates as they are for your full history and press <strong>OK</strong>. A popup tells you how many trades were exported and the exact folder the file was saved in.</li>
+                            <li>Come back here, click <strong>Choose CSV File</strong> above and pick <strong>BullionBook_Trades.csv</strong> from that folder. That's it - re-run the script and re-upload any time to pull in your newest trades (your tags and notes on existing trades are kept).</li>
+                        </ol>
+                        <p class="settings-field-hint">
+                            If your imported trade times look shifted vs the charts, set the Time
+                            Adjustment at the top of this page - broker server time is usually GMT+2
+                            or +3, and the charts run on GMT+2.
+                        </p>
+
+                        <hr class="settings-divider">
+
                         <h3 class="settings-subtitle">Last Import</h3>
                         <p class="settings-share-desc" id="csv-import-last-info">No CSV has been imported yet.</p>
+                        <button class="btn-action btn-blue settings-save-btn" id="csv-import-undo-btn" style="display: none;" onclick="undoLastCsvImport()">
+                            <i class="fa-solid fa-rotate-left"></i> Undo Last Import
+                        </button>
                         <button class="btn-action btn-danger settings-save-btn" onclick="removeCsvImportedTrades()">Remove Imported Trades</button>
                     </div>
 
@@ -1211,6 +1244,16 @@
                         <p>Uploading a new file replaces the previous import, but any tags, journal notes or wash-flags you added to those trades carry over automatically (matched by ticket number).</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-download"></i>
+                        <h3>MT4/MT5 Export Script</h3>
+                        <p>No CSV from your broker? Settings → Import Trades has free MT4 and MT5 scripts to download - run one in your terminal and it writes a ready-to-upload BullionBook_Trades.csv. A step-by-step guide sits right on that page.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <h3>Undo Last Import</h3>
+                        <p>Uploaded the wrong file? "Undo Last Import" (Settings → Import Trades) swaps back to the batch your latest upload - or a "Remove Imported Trades" click - replaced. It keeps one level of history, so undoing twice toggles between the two batches.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-file-arrow-down"></i>
                         <h3>Exporting</h3>
                         <p>Settings → Account Settings → "Export as CSV" downloads your full trade history - it respects whatever filter is currently active on the Dashboard.</p>
@@ -1329,6 +1372,11 @@
                         <i class="fa-solid fa-calendar-week"></i>
                         <h3>Weekly Summary</h3>
                         <p>The right-hand rail totals each visible week's P&amp;L, return % and win/loss count at a glance, labeled with its date range (e.g. "11 - 17 May"). On narrow screens it moves below the month grid.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-umbrella-beach"></i>
+                        <h3>National Holidays</h3>
+                        <p>The Holidays toggle in the toolbar overlays South African public holidays (ZA) and US market holidays (US) on the grid - useful for spotting low-liquidity days when US markets are closed. Works for any year and remembers your choice.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-list"></i>
@@ -1508,6 +1556,11 @@
                         <p>A count-up of every trade on the account with a hoverable win/loss/wash/open composition bar, this-week and this-month activity, and a progress bar toward your next milestone (50, 100, 250...).</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-explosion"></i>
+                        <h3>Times Blown</h3>
+                        <p>Counts how many times a losing trade wiped the account - the running balance (deposits, withdrawals and trade P&amp;L in date order) hitting $0 or below. Depositing back above $0 re-arms it. Always measured on the whole account, ignoring filters.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
                         <h3>Tag, Symbol &amp; Playbook Tables</h3>
                         <p>See trades, win rate, P&amp;L, P&amp;L%, average R-multiple and contribution % broken down per tag, symbol and playbook - click any column header to sort. Avg R only counts trades that had a stop-loss set.</p>
@@ -1571,7 +1624,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-lock"></i>
                         <h3>Lock / Unlock</h3>
-                        <p>Charts are locked by default so scrolling the page doesn't accidentally pan a chart. Click the lock icon (bottom-right of a chart) to interact with it directly.</p>
+                        <p>Charts are locked by default so scrolling the page doesn't accidentally pan a chart. Click the lock icon (bottom-right) for full TradingView-style control: pan and zoom freely, drag past the data edges, and stretch either axis by dragging it.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                        <h3>A / L Scale Buttons</h3>
+                        <p>Next to the lock, just like TradingView's corner buttons: <strong>A</strong> re-enables price-axis auto-scale after you've dragged or zoomed it manually, and <strong>L</strong> switches the price scale between normal and logarithmic.</p>
                     </div>
                 </div>
             </section>
@@ -1588,6 +1646,11 @@
                         <i class="fa-solid fa-slash"></i>
                         <h3>Drawing Tools</h3>
                         <p>Trend line (2 clicks), horizontal line (1 click, shows its price on the axis), rectangle zone (2 corners) and Fibonacci retracement (click the swing high, then the low). Press <strong>Esc</strong> to cancel a half-placed drawing.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                        <h3>Long / Short Position Tool</h3>
+                        <p>One click drops a TradingView-style position box: green profit zone to your target, red risk zone to your stop, solid Target/Stop label pills, a Risk/Reward card on the entry line, and square handles to drag the target, stop, entry or either edge.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-line"></i>
@@ -1743,7 +1806,7 @@
                     </details>
                     <details class="help-faq-item">
                         <summary>Can I bulk-import my trade history instead of entering trades one by one?</summary>
-                        <p>Yes - Settings → Import Trades accepts a closed-trades CSV export from brokers like Exness (MT4/MT5-style reports). Re-uploading a newer export replaces the previous import but keeps any tags/notes you added.</p>
+                        <p>Yes - Settings → Import Trades accepts a closed-trades CSV export from brokers like Exness (MT4/MT5-style reports), and if your broker only gives HTML reports, that page has free MT4/MT5 scripts that export the CSV for you. Re-uploading a newer export replaces the previous import but keeps any tags/notes you added - and "Undo Last Import" brings back the replaced batch if you upload the wrong file.</p>
                     </details>
                 </div>
             </section>
