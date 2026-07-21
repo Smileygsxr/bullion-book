@@ -2841,7 +2841,8 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 #generic-confirm-modal-overlay,
 #delete-trade-modal-overlay,
 #delete-note-modal-overlay,
-#quick-playbook-modal-overlay { z-index: 1100; }
+#quick-playbook-modal-overlay,
+#quick-tag-modal-overlay { z-index: 1100; }
 
 .modal-card {
     background: var(--bg-card);
@@ -3329,10 +3330,21 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     cursor: text;
 }
 
-#trade-tag-chips,
 #filter-tag-chips,
 #filter-symbol-chips {
     display: contents;
+}
+
+/* Trade modal Tags field (General tab, beside Playbook): already-added tags
+   as a compact chip row directly under the dropdown+button, not nested in a
+   bordered input box like the old free-text version - there's no text input
+   to click into anymore, so that framing no longer applied. */
+.tag-chip-row-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    min-height: 0;
 }
 
 .tag-chip {
@@ -4520,6 +4532,16 @@ body.privacy-mode .equity-crosshair-label.price {
 .custom-select-trigger i {
     font-size: 0.7rem;
     color: var(--text-muted);
+}
+
+/* Account switcher reuses the generic custom-select-trigger base above, but
+   keeps its own smaller sidebar-appropriate sizing - needs the compound
+   selector (not just .account-switcher-select alone) to win the cascade,
+   since .custom-select-trigger's rule comes later in this file. */
+.custom-select-trigger.account-switcher-select {
+    background-color: var(--bg-card);
+    padding: 6px 8px;
+    font-size: 0.78rem;
 }
 
 .custom-select-list {
@@ -7096,7 +7118,7 @@ html[data-theme="blossom"] {
 .sidebar-toolbar { margin-bottom: -4px; }
 
 .account-switcher-label { font-size: 0.6rem; }
-.account-switcher-select { padding: 4px 8px; font-size: 0.74rem; }
+.custom-select-trigger.account-switcher-select { padding: 4px 8px; font-size: 0.74rem; }
 
 .account-box { padding: 8px 10px; }
 .account-title { font-size: 0.62rem; }

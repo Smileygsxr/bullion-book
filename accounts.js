@@ -214,13 +214,19 @@ function getActiveAccount() {
 // into renderTradeLog, which renderSidebarAccount itself triggers below.
 function updateSidebarBalanceDisplay() {
     const balanceEl = document.getElementById('sidebar-account-balance');
-    const switcherEl = document.getElementById('account-switcher-select');
     const active = getActiveAccount();
     if (balanceEl && active) balanceEl.textContent = formatCurrency(computeAccountBalance(active));
 
-    if (switcherEl) {
-        switcherEl.innerHTML = Object.values(accountsState.accounts)
-            .map(acc => `<option value="${acc.id}" ${acc.id === accountsState.activeAccountId ? 'selected' : ''}>${escapeHtml(acc.name)}</option>`)
+    // Custom dropdown (not a native <select>) so the open list matches the
+    // rest of the app's dark theme instead of the browser/OS's own white
+    // popup style - same pattern as the CSV Timezone dropdown in Settings.
+    const labelEl = document.getElementById('account-switcher-current-label');
+    const listEl = document.getElementById('account-switcher-list');
+    if (labelEl && listEl) {
+        const activeAccount = accountsState.accounts[accountsState.activeAccountId];
+        labelEl.textContent = activeAccount ? activeAccount.name : '';
+        listEl.innerHTML = Object.values(accountsState.accounts)
+            .map(acc => `<div class="custom-select-option${acc.id === accountsState.activeAccountId ? ' active' : ''}" onclick="selectAccountFromSwitcher('${acc.id}')">${escapeHtml(acc.name)}</div>`)
             .join('');
     }
 }
@@ -232,6 +238,24 @@ function renderSidebarAccount() {
     // for whichever account is now active
     if (typeof renderTradeLog === 'function') renderTradeLog();
 }
+
+function toggleAccountSwitcherDropdown() {
+    const list = document.getElementById('account-switcher-list');
+    if (!list) return;
+    list.style.display = list.style.display === 'none' ? 'block' : 'none';
+}
+
+function selectAccountFromSwitcher(accountId) {
+    document.getElementById('account-switcher-list').style.display = 'none';
+    switchActiveAccount(accountId);
+}
+
+document.addEventListener('click', event => {
+    const dropdown = document.getElementById('account-switcher-dropdown');
+    const list = document.getElementById('account-switcher-list');
+    if (!dropdown || !list || list.style.display === 'none') return;
+    if (!dropdown.contains(event.target)) list.style.display = 'none';
+});
 
 function switchActiveAccount(accountId) {
     if (!accountsState.accounts[accountId]) return;

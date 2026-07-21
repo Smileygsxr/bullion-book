@@ -59,7 +59,6 @@ function openTradeModal(tradeId) {
     document.getElementById('trade-modal-target').value = draftTrade.target || '';
     document.getElementById('trade-modal-stoploss').value = draftTrade.stopLoss || '';
     document.getElementById('trade-modal-journal').value = draftTrade.journal || '';
-    document.getElementById('trade-tag-input').value = '';
     // The slider still needs a numeric thumb position even with no score set
     // yet (defaults to the middle), but the label shows "-" and draftTrade.confidence
     // stays null until the user actually drags it - see updateTradeConfidenceLabel.
@@ -67,6 +66,7 @@ function openTradeModal(tradeId) {
     syncTradeConfidenceLabel(draftTrade.confidence);
     if (typeof populatePlaybookSelect === 'function') populatePlaybookSelect(draftTrade.playbookId || '');
     renderTradeTagChips();
+    populateTradeTagSelect();
     renderTradeScreenshotThumbs();
     switchTradeModalTab('general');
     renderTradeLegs();
@@ -100,7 +100,25 @@ function showTradeModalError(message) {
     errorBox.style.display = 'flex';
 }
 
-// ---- Multi-tag chip input (Journal tab) ----
+// ---- Tags (General tab, same dropdown+button row as Playbook) ----
+// Picking a tag from the dropdown ADDS it (tags allow several per trade,
+// unlike Playbook's single pick) - the dropdown only lists tags NOT already
+// on this trade, so there's no need to guard against picking the same one
+// twice, and it doubles as an at-a-glance "what's left to add" list.
+function populateTradeTagSelect() {
+    const select = document.getElementById('trade-modal-tag-select');
+    if (!select) return;
+
+    const tagDefs = (getActiveAccount().tagDefs) || [];
+    const selectedIds = new Set(draftTrade.tagIds || []);
+    const available = tagDefs
+        .filter(t => !selectedIds.has(t.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    select.innerHTML = '<option value="">Add a tag...</option>' +
+        available.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+}
+
 function renderTradeTagChips() {
     const container = document.getElementById('trade-tag-chips');
     if (!container) return;
@@ -111,31 +129,50 @@ function renderTradeTagChips() {
     container.innerHTML = (draftTrade.tagIds || []).map(tagId => {
         const tag = tagsById.get(tagId);
         if (!tag) return '';
-        return `<span class="tag-chip">${escapeHtml(tag.name)}<button type="button" onclick="event.stopPropagation(); removeDraftTradeTag('${tagId}')">&times;</button></span>`;
+        return `<span class="tag-chip">${escapeHtml(tag.name)}<button type="button" onclick="removeDraftTradeTag('${tagId}')">&times;</button></span>`;
     }).join('');
+}
+
+function addTagFromTradeModalSelect(tagId) {
+    if (!tagId) return;
+    if (!draftTrade.tagIds) draftTrade.tagIds = [];
+    if (!draftTrade.tagIds.includes(tagId)) draftTrade.tagIds.push(tagId);
+    renderTradeTagChips();
+    populateTradeTagSelect();
 }
 
 function removeDraftTradeTag(tagId) {
     draftTrade.tagIds = (draftTrade.tagIds || []).filter(id => id !== tagId);
     renderTradeTagChips();
+    populateTradeTagSelect();
 }
 
-// Enter or comma commits the typed text as a tag - reusing an existing tag
-// (case-insensitive match) or creating a new one in account.tagDefs on the fly,
-// the same tag store Settings > Tag Management and the Stats page read from.
-function handleTagInputKeydown(event) {
-    if (event.key !== 'Enter' && event.key !== ',') return;
-    event.preventDefault();
-    commitPendingTagInput(event.target);
+// The "+" button beside the Tags select - same quick-create pattern as
+// Playbook's, via the app's themed modal (quick-tag-modal-overlay) rather
+// than a native prompt().
+function quickAddTagFromTradeModal() {
+    const input = document.getElementById('quick-tag-name-input');
+    if (input) input.value = '';
+    document.getElementById('quick-tag-modal-overlay').style.display = 'flex';
+    if (input) setTimeout(() => input.focus(), 50);
 }
 
-function commitPendingTagInput(inputEl) {
-    const name = (inputEl.value || '').trim();
-    if (!name) return;
+function closeQuickTagModal() {
+    document.getElementById('quick-tag-modal-overlay').style.display = 'none';
+}
+
+function confirmQuickAddTag() {
+    const input = document.getElementById('quick-tag-name-input');
+    const name = ((input && input.value) || '').trim();
+    if (!name) {
+        if (input) input.focus();
+        return;
+    }
 
     const account = getActiveAccount();
     if (!account.tagDefs) account.tagDefs = [];
-
+    // Reuses an existing tag on a case-insensitive name match instead of
+    // creating a duplicate, same rule the old free-text tag input used.
     let tag = account.tagDefs.find(t => t.name.toLowerCase() === name.toLowerCase());
     if (!tag) {
         tag = { id: genId(), name, category: '', description: '' };
@@ -145,9 +182,9 @@ function commitPendingTagInput(inputEl) {
 
     if (!draftTrade.tagIds) draftTrade.tagIds = [];
     if (!draftTrade.tagIds.includes(tag.id)) draftTrade.tagIds.push(tag.id);
-
-    inputEl.value = '';
     renderTradeTagChips();
+    populateTradeTagSelect();
+    closeQuickTagModal();
 }
 
 // ---- Confidence slider (Journal tab) ----
@@ -333,7 +370,6 @@ function saveTradeModal() {
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
     draftTrade.journal = document.getElementById('trade-modal-journal').value;
     draftTrade.playbookId = document.getElementById('trade-modal-playbook').value || null;
-    commitPendingTagInput(document.getElementById('trade-tag-input')); // catches a typed tag that wasn't Enter-committed
     delete draftTrade.tagId; // fully migrated to tagIds now
 
     const validLegs = draftTrade.legs.filter(leg => parseFloat(leg.quantity) > 0 && leg.price !== '' && leg.datetime);

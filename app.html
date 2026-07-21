@@ -76,7 +76,13 @@
         <!-- 2. Primary Account Switcher -->
         <div class="account-switcher">
             <label class="account-switcher-label">Primary Account</label>
-            <select id="account-switcher-select" class="account-switcher-select" onchange="switchActiveAccount(this.value)"></select>
+            <div class="custom-select" id="account-switcher-dropdown">
+                <button type="button" class="custom-select-trigger account-switcher-select" onclick="toggleAccountSwitcherDropdown()">
+                    <span id="account-switcher-current-label"></span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="custom-select-list" id="account-switcher-list" style="display: none;"></div>
+            </div>
         </div>
 
         <!-- 3. Account & Transactions Container Box -->
@@ -1158,7 +1164,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-sliders"></i>
                         <h3>Trade Filter</h3>
-                        <p>The sliders icon opens a panel to narrow the Dashboard by Tags, Symbol, Direction or Status - it also affects Stats and CSV exports while active.</p>
+                        <p>The sliders icon opens a panel to narrow the Dashboard by Tags, Symbol, Playbook, Direction or Status - it also affects Stats and CSV exports while active.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-calendar"></i>
@@ -1323,7 +1329,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-keyboard"></i>
                         <h3>Adding Tags</h3>
-                        <p>On the New Trade modal's Journal tab, type a tag name and press Enter. A new tag is created automatically the first time you use it.</p>
+                        <p>On the New/Edit Trade modal's General tab, next to Playbook: pick an existing tag from the dropdown to add it (a trade can have several), or hit the <strong>+</strong> button to name a brand-new one on the spot. Added tags show as removable chips below.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-eye"></i>
@@ -1997,6 +2003,20 @@
         </div>
     </div>
 
+    <!-- Quick Add Tag (the "+" beside the trade modal's Tags select) -->
+    <div id="quick-tag-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card confirm-modal-card">
+            <div class="confirm-modal-icon"><i class="fa-solid fa-tag"></i></div>
+            <h3 class="confirm-modal-title">New Tag</h3>
+            <p class="confirm-modal-body">Name a setup, mistake or emotion to tag this trade with - categorize it later from Settings &rarr; Tag Management.</p>
+            <input type="text" id="quick-tag-name-input" class="modal-input" style="text-align: left;" placeholder="e.g. Breakout" maxlength="40" onkeydown="if (event.key === 'Enter') confirmQuickAddTag(); if (event.key === 'Escape') closeQuickTagModal();">
+            <div class="confirm-modal-actions">
+                <button class="btn-action btn-danger" onclick="closeQuickTagModal()">Cancel</button>
+                <button class="btn-action btn-blue" onclick="confirmQuickAddTag()">Create</button>
+            </div>
+        </div>
+    </div>
+
     <!-- New Trade Modal -->
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
         <div class="modal-card trade-modal-card">
@@ -2029,7 +2049,7 @@
                         </div>
                     </div>
 
-                    <div class="modal-field-row">
+                    <div class="modal-field-row" style="align-items: flex-start;">
                         <div class="modal-field">
                             <label class="modal-label">Playbook</label>
                             <div class="modal-input-with-btn">
@@ -2038,6 +2058,18 @@
                                     <i class="fa-solid fa-plus"></i>
                                 </button>
                             </div>
+                        </div>
+                        <div class="modal-field">
+                            <label class="modal-label">Tags</label>
+                            <div class="modal-input-with-btn">
+                                <select id="trade-modal-tag-select" class="modal-input" onchange="addTagFromTradeModalSelect(this.value); this.value = '';">
+                                    <option value="">Add a tag...</option>
+                                </select>
+                                <button type="button" class="modal-add-row-btn modal-inline-add-btn" onclick="quickAddTagFromTradeModal()" title="Create a new tag">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="tag-chip-row-compact" id="trade-tag-chips"></div>
                         </div>
                     </div>
 
@@ -2061,14 +2093,6 @@
                 </div>
 
                 <div id="trade-tab-panel-journal" style="display: none;">
-                    <div class="modal-field">
-                        <label class="modal-label">Tags</label>
-                        <div class="tag-chip-box" id="trade-tag-chip-box" onclick="document.getElementById('trade-tag-input').focus()">
-                            <span id="trade-tag-chips"></span>
-                            <input type="text" id="trade-tag-input" class="tag-chip-text-input" placeholder="Add a tag..." onkeydown="handleTagInputKeydown(event)">
-                        </div>
-                    </div>
-
                     <div class="modal-field">
                         <label class="modal-label">Notes</label>
                         <textarea id="trade-modal-journal" class="modal-input trade-journal-textarea" rows="8" placeholder="What was your setup, reasoning, lessons learned?"></textarea>
@@ -2168,6 +2192,16 @@
             </div>
 
             <div class="modal-field">
+                <label class="modal-label">Playbook</label>
+                <div class="tag-chip-box filter-chip-box" id="filter-playbook-chip-box" onclick="document.getElementById('filter-playbook-input').focus()">
+                    <span id="filter-playbook-chips"></span>
+                    <input type="text" id="filter-playbook-input" class="tag-chip-text-input" placeholder="Search & Select"
+                        oninput="renderFilterPlaybookSuggestions(this.value)" onfocus="renderFilterPlaybookSuggestions(this.value)">
+                    <div class="filter-suggest-list" id="filter-playbook-suggestions"></div>
+                </div>
+            </div>
+
+            <div class="modal-field">
                 <label class="modal-label">Direction</label>
                 <select id="filter-direction-select" class="modal-input" onchange="updateTradeFilterCounter()">
                     <option value="">All</option>
@@ -2176,7 +2210,7 @@
                 </select>
             </div>
 
-            <div class="modal-field">
+            <div class="modal-field" style="grid-column: 1 / -1;">
                 <label class="modal-label">Status</label>
                 <select id="filter-status-select" class="modal-input" onchange="updateTradeFilterCounter()">
                     <option value="">All</option>

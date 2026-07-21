@@ -243,6 +243,7 @@ const MODAL_BACKDROP_CLOSERS = {
     'delete-note-modal-overlay': () => closeDeleteNoteModal(),
     'generic-confirm-modal-overlay': () => closeGenericConfirmModal(),
     'quick-playbook-modal-overlay': () => closeQuickPlaybookModal(),
+    'quick-tag-modal-overlay': () => closeQuickTagModal(),
     'trade-modal-overlay': () => closeTradeModal(),
     'note-modal-overlay': () => closeNoteModal(),
     'day-trades-modal-overlay': () => closeDayTradesModal(),

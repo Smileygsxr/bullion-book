@@ -555,13 +555,54 @@ function getTagCategoriesArray(account) {
     return categories;
 }
 
-function buildCategoryOptionsHtml(selectedId) {
+// Same custom dropdown as the CSV Timezone / Account Switcher selects (a
+// native <select>'s open list is rendered by the OS/browser, not the page,
+// so it can't be themed) - one per tag row, so this uses event delegation
+// keyed by data-tag-id instead of a fixed id, since any number of rows can
+// exist. Only one row's list is open at a time.
+function buildCategoryCustomSelectHtml(tagId, selectedId) {
     const categories = getTagCategoriesArray(getActiveAccount());
-    const options = categories.map(c =>
-        `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
-    );
-    return `<option value="">None</option>${options.join('')}`;
+    const items = [{ id: '', name: 'None' }, ...categories];
+    const current = items.find(c => c.id === selectedId) || items[0];
+
+    const optionsHtml = items.map(c => `
+        <div class="custom-select-option${c.id === selectedId ? ' active' : ''}" data-category-id="${c.id}">${escapeHtml(c.name)}</div>`
+    ).join('');
+
+    return `
+        <div class="custom-select tag-category-select" data-tag-id="${tagId}">
+            <button type="button" class="custom-select-trigger" onclick="toggleTagCategoryDropdown(event, this)">
+                <span>${escapeHtml(current.name)}</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="custom-select-list" style="display: none;">${optionsHtml}</div>
+        </div>`;
 }
+
+function toggleTagCategoryDropdown(event, triggerBtn) {
+    event.stopPropagation();
+    const thisList = triggerBtn.nextElementSibling;
+    const wasOpen = thisList.style.display === 'block';
+    // Only one row's dropdown open at a time.
+    document.querySelectorAll('.tag-category-select .custom-select-list').forEach(list => { list.style.display = 'none'; });
+    thisList.style.display = wasOpen ? 'none' : 'block';
+}
+
+// Delegated so it works for every row without binding a listener per option -
+// the table is fully rebuilt (addTagRow/deleteTagRow/renderTagTable) often
+// enough that per-element listeners would otherwise leak or go stale.
+document.addEventListener('click', event => {
+    const option = event.target.closest('.tag-category-select .custom-select-option');
+    if (!option) return;
+    const wrap = option.closest('.tag-category-select');
+    updateTagField(wrap.dataset.tagId, 'category', option.dataset.categoryId);
+    renderTagTable();
+});
+
+document.addEventListener('click', event => {
+    if (event.target.closest('.tag-category-select')) return;
+    document.querySelectorAll('.tag-category-select .custom-select-list').forEach(list => { list.style.display = 'none'; });
+});
 
 function renderTagCategoryChips() {
     const container = document.getElementById('tag-category-chips');
@@ -610,7 +651,7 @@ function renderTagTable() {
     tbody.innerHTML = tagDefs.map(t => `
         <tr>
             <td><input type="text" value="${escapeHtml(t.name)}" onchange="updateTagField('${t.id}','name',this.value)"></td>
-            <td><select onchange="updateTagField('${t.id}','category',this.value)">${buildCategoryOptionsHtml(t.category || '')}</select></td>
+            <td>${buildCategoryCustomSelectHtml(t.id, t.category || '')}</td>
             <td><input type="text" value="${escapeHtml(t.description || '')}" onchange="updateTagField('${t.id}','description',this.value)"></td>
             <td><button class="txn-remove-btn" onclick="deleteTagRow('${t.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button></td>
         </tr>`).join('');

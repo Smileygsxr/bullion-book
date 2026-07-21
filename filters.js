@@ -16,9 +16,10 @@ function togglePrivacyMode() {
 // and stats.js's getAllTradeRows). pendingFilter* holds in-progress edits to the
 // Tags/Symbol/Direction/Status panel until Apply is clicked; dateFrom/dateTo are
 // driven separately by the quick date-range buttons and take effect immediately.
-let tradeLogFilters = { tagIds: [], symbols: [], direction: '', status: '', dateFrom: null, dateTo: null };
+let tradeLogFilters = { tagIds: [], symbols: [], playbookIds: [], direction: '', status: '', dateFrom: null, dateTo: null };
 let pendingFilterTagIds = [];
 let pendingFilterSymbols = [];
+let pendingFilterPlaybookIds = [];
 
 function tradeRowMatchesFilters(row, filters) {
     if (filters.tagIds.length > 0) {
@@ -26,6 +27,7 @@ function tradeRowMatchesFilters(row, filters) {
         if (!filters.tagIds.some(id => rowTagIds.includes(id))) return false;
     }
     if (filters.symbols.length > 0 && !filters.symbols.includes(row.symbol)) return false;
+    if (filters.playbookIds && filters.playbookIds.length > 0 && !filters.playbookIds.includes(row.playbookId)) return false;
     if (filters.direction && row.direction !== filters.direction) return false;
     if (filters.status && row.status !== filters.status) return false;
     if (filters.dateFrom && new Date(row.date) < filters.dateFrom) return false;
@@ -172,10 +174,12 @@ function toggleTradeFilterPanel() {
     if (panel.style.display === 'none') {
         pendingFilterTagIds = [...tradeLogFilters.tagIds];
         pendingFilterSymbols = [...tradeLogFilters.symbols];
+        pendingFilterPlaybookIds = [...(tradeLogFilters.playbookIds || [])];
         document.getElementById('filter-direction-select').value = tradeLogFilters.direction;
         document.getElementById('filter-status-select').value = tradeLogFilters.status;
         renderFilterTagChips();
         renderFilterSymbolChips();
+        renderFilterPlaybookChips();
         hideFilterSuggestLists();
         updateTradeFilterCounter();
         panel.style.display = 'block';
@@ -192,11 +196,34 @@ document.addEventListener('click', event => {
     panel.style.display = 'none';
 });
 
+// Each search-and-select box (Tags/Symbol/Playbook) closes its OWN suggestion
+// dropdown as soon as a click lands anywhere outside that specific box -
+// clicking a suggestion still works (those use onmousedown+preventDefault so
+// the click registers before this handler could close the list first).
+// Previously nothing closed these except actually picking an item, so
+// clicking the Status dropdown (or anywhere else) left a stale list floating
+// over the rest of the panel.
+const FILTER_SEARCH_BOXES = [
+    { box: 'filter-tag-chip-box', list: 'filter-tag-suggestions' },
+    { box: 'filter-symbol-chip-box', list: 'filter-symbol-suggestions' },
+    { box: 'filter-playbook-chip-box', list: 'filter-playbook-suggestions' }
+];
+
+document.addEventListener('click', event => {
+    FILTER_SEARCH_BOXES.forEach(({ box, list }) => {
+        const boxEl = document.getElementById(box);
+        const listEl = document.getElementById(list);
+        if (!boxEl || !listEl || listEl.style.display === 'none') return;
+        if (boxEl.contains(event.target)) return;
+        listEl.style.display = 'none';
+    });
+});
+
 function hideFilterSuggestLists() {
-    const tagList = document.getElementById('filter-tag-suggestions');
-    const symbolList = document.getElementById('filter-symbol-suggestions');
-    if (tagList) tagList.style.display = 'none';
-    if (symbolList) symbolList.style.display = 'none';
+    FILTER_SEARCH_BOXES.forEach(({ list }) => {
+        const listEl = document.getElementById(list);
+        if (listEl) listEl.style.display = 'none';
+    });
 }
 
 // ---- Tags filter (search & multi-select chips, from account.tagDefs) ----
@@ -238,6 +265,48 @@ function addFilterTag(tagId) {
     if (input) input.value = '';
     document.getElementById('filter-tag-suggestions').style.display = 'none';
     renderFilterTagChips();
+    updateTradeFilterCounter();
+}
+
+// ---- Playbook filter (search & multi-select chips, from account.playbooks) ----
+function renderFilterPlaybookChips() {
+    const container = document.getElementById('filter-playbook-chips');
+    if (!container) return;
+    const playbooks = (getActiveAccount().playbooks) || [];
+    const playbooksById = new Map(playbooks.map(p => [p.id, p]));
+
+    container.innerHTML = pendingFilterPlaybookIds.map(id => {
+        const playbook = playbooksById.get(id);
+        if (!playbook) return '';
+        return `<span class="tag-chip">${escapeHtml(playbook.name)}<button type="button" onclick="event.stopPropagation(); removeFilterPlaybook('${id}')">&times;</button></span>`;
+    }).join('');
+}
+
+function removeFilterPlaybook(playbookId) {
+    pendingFilterPlaybookIds = pendingFilterPlaybookIds.filter(id => id !== playbookId);
+    renderFilterPlaybookChips();
+    updateTradeFilterCounter();
+}
+
+function renderFilterPlaybookSuggestions(query) {
+    const list = document.getElementById('filter-playbook-suggestions');
+    if (!list) return;
+    const q = query.trim().toLowerCase();
+    const playbooks = (getActiveAccount().playbooks) || [];
+    const matches = playbooks.filter(p => !pendingFilterPlaybookIds.includes(p.id) && (!q || p.name.toLowerCase().includes(q)));
+
+    list.innerHTML = matches.map(p =>
+        `<div class="filter-suggest-item" onmousedown="event.preventDefault(); addFilterPlaybook('${p.id}')">${escapeHtml(p.name)}</div>`
+    ).join('');
+    list.style.display = matches.length > 0 ? 'block' : 'none';
+}
+
+function addFilterPlaybook(playbookId) {
+    if (!pendingFilterPlaybookIds.includes(playbookId)) pendingFilterPlaybookIds.push(playbookId);
+    const input = document.getElementById('filter-playbook-input');
+    if (input) input.value = '';
+    document.getElementById('filter-playbook-suggestions').style.display = 'none';
+    renderFilterPlaybookChips();
     updateTradeFilterCounter();
 }
 
@@ -287,6 +356,7 @@ function buildPendingFilters() {
     return {
         tagIds: pendingFilterTagIds,
         symbols: pendingFilterSymbols,
+        playbookIds: pendingFilterPlaybookIds,
         direction: document.getElementById('filter-direction-select').value,
         status: document.getElementById('filter-status-select').value,
         dateFrom: tradeLogFilters.dateFrom,
@@ -307,14 +377,17 @@ function updateTradeFilterCounter() {
 function resetTradeFilters() {
     pendingFilterTagIds = [];
     pendingFilterSymbols = [];
+    pendingFilterPlaybookIds = [];
     document.getElementById('filter-direction-select').value = '';
     document.getElementById('filter-status-select').value = '';
     renderFilterTagChips();
     renderFilterSymbolChips();
+    renderFilterPlaybookChips();
     updateTradeFilterCounter();
 
     tradeLogFilters.tagIds = [];
     tradeLogFilters.symbols = [];
+    tradeLogFilters.playbookIds = [];
     tradeLogFilters.direction = '';
     tradeLogFilters.status = '';
     updateFilterToggleButtonState();
@@ -339,6 +412,7 @@ function updateFilterToggleButtonState() {
     const btn = document.getElementById('filter-toggle-btn');
     if (!btn) return;
     const isActive = tradeLogFilters.tagIds.length > 0 || tradeLogFilters.symbols.length > 0
+        || (tradeLogFilters.playbookIds && tradeLogFilters.playbookIds.length > 0)
         || !!tradeLogFilters.direction || !!tradeLogFilters.status
         || !!tradeLogFilters.dateFrom || !!tradeLogFilters.dateTo;
     btn.classList.toggle('active', isActive);
