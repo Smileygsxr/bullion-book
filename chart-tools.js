@@ -504,7 +504,10 @@ function buildPositionDrawing(tools, type, t, price) {
 
 function buildChartToolsToolbar(tools) {
     const bar = document.createElement('div');
-    bar.className = 'chart-tools-bar';
+    // Starts minimized on every chart (down to just the grip + chevron) -
+    // drawing tools are opt-in, so there's no reason to eat vertical space
+    // on charts nobody's drawing on yet. One click expands it.
+    bar.className = 'chart-tools-bar collapsed';
 
     // Grip handle: drag to move the whole toolbar anywhere inside the chart,
     // so it never has to sit on top of the candles you care about.
@@ -538,8 +541,8 @@ function buildChartToolsToolbar(tools) {
     const collapseBtn = document.createElement('button');
     collapseBtn.type = 'button';
     collapseBtn.className = 'chart-tools-btn chart-tools-collapse';
-    collapseBtn.title = 'Minimize toolbar';
-    collapseBtn.innerHTML = '<i class="fa-solid fa-chevron-up"></i>';
+    collapseBtn.title = 'Expand toolbar';
+    collapseBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
     collapseBtn.addEventListener('click', e => {
         e.stopPropagation();
         const collapsed = bar.classList.toggle('collapsed');

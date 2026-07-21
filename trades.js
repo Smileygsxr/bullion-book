@@ -554,8 +554,9 @@ function formatTradeDateTime(isoLike) {
     return `${datePart}, ${timePart}`;
 }
 
-function formatPrice(value) {
-    return `${getCurrencySymbol()}${value.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
+function formatPrice(value, symbol) {
+    const digits = typeof instrumentDecimals === 'function' ? instrumentDecimals(symbol) : 3;
+    return `${getCurrencySymbol()}${value.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 function formatTotal(value) {
@@ -752,18 +753,18 @@ function destroyTradeViewChart() {
 // the entry/exit line already does, so markers always resolve to real data.
 function tradeViewChartMarkers(data) {
     if (!tradeViewChartState) return [];
-    const { entryEpoch, exitEpoch, entryPrice, exitPrice } = tradeViewChartState;
+    const { entryEpoch, exitEpoch, entryPrice, exitPrice, symbol } = tradeViewChartState;
     const markers = [];
     if (entryEpoch !== null) {
         const snappedTime = nearestBarTime(data, entryEpoch);
         if (snappedTime !== null) {
-            markers.push({ time: snappedTime, position: 'belowBar', color: '#2ebd85', shape: 'arrowUp', text: `Entry ${formatPrice(entryPrice)}` });
+            markers.push({ time: snappedTime, position: 'belowBar', color: '#2ebd85', shape: 'arrowUp', text: `Entry ${formatPrice(entryPrice, symbol)}` });
         }
     }
     if (exitEpoch !== null) {
         const snappedTime = nearestBarTime(data, exitEpoch);
         if (snappedTime !== null) {
-            markers.push({ time: snappedTime, position: 'aboveBar', color: '#f6465d', shape: 'arrowDown', text: `Exit ${formatPrice(exitPrice)}` });
+            markers.push({ time: snappedTime, position: 'aboveBar', color: '#f6465d', shape: 'arrowDown', text: `Exit ${formatPrice(exitPrice, symbol)}` });
         }
     }
     return markers.sort((a, b) => a.time - b.time);
@@ -826,22 +827,6 @@ function loadTradeViewChartInterval(interval) {
             tradeViewChartState.markersApi.setMarkers(tradeViewChartMarkers(cleanData));
             // Recompute indicators + re-render saved drawings for this interval
             if (tradeViewChartState.chartTools) tradeViewChartState.chartTools.setData(cleanData);
-
-            // Snap the entry/exit line to whichever bar is actually closest
-            // in THIS interval's data - a raw leg time like 14:42 won't
-            // exactly match a 5m bar (which only lands on :00/:05/:10...),
-            // so re-snap on every interval switch rather than once.
-            const { entryExitLine, entryEpoch, exitEpoch, entryPrice, exitPrice } = tradeViewChartState;
-            if (entryExitLine && entryEpoch !== null && exitEpoch !== null && exitPrice !== null) {
-                const snappedEntryTime = nearestBarTime(cleanData, entryEpoch);
-                const snappedExitTime = nearestBarTime(cleanData, exitEpoch);
-                if (snappedEntryTime !== null && snappedExitTime !== null) {
-                    entryExitLine.setData([
-                        { time: snappedEntryTime, value: entryPrice },
-                        { time: snappedExitTime, value: exitPrice }
-                    ]);
-                }
-            }
         })
         .catch(() => {
             if (!tradeViewChartState || renderId !== tradeViewChartRenderId) return;
@@ -896,7 +881,7 @@ function renderTradeViewChart(row, trade) {
         height: 420,
         layout: { background: { color: '#0f1220' }, textColor: '#d1d4dc', attributionLogo: false },
         grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
-        rightPriceScale: { borderColor: '#2a2e39', localization: { priceFormatter: price => parseFloat(price).toFixed(2) } },
+        rightPriceScale: { borderColor: '#2a2e39', localization: { priceFormatter: price => parseFloat(price).toFixed(instrumentDecimals(row.symbol)) } },
         timeScale: { borderColor: '#2a2e39', timeVisible: true, secondsVisible: false, fixLeftEdge: true, fixRightEdge: true },
         crosshair: {
             mode: LightweightCharts.CrosshairMode.Normal,
@@ -907,38 +892,49 @@ function renderTradeViewChart(row, trade) {
         handleScale: false
     });
 
+    // The right-axis priceFormatter above controls tick labels, but the
+    // candlestick's own last-value badge (the little colored price tag that
+    // tracks the most recent close) is driven by the SERIES' priceFormat
+    // instead - without this it falls back to Lightweight Charts' own
+    // auto-detected precision, which guesses too few decimals for low-value
+    // pairs like EURUSD (~1.14) and shows "1.14" instead of "1.14226".
+    const tradeViewDecimals = instrumentDecimals(row.symbol);
     const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#2ebd85', downColor: '#f6465d',
         borderDownColor: '#f6465d', borderUpColor: '#2ebd85',
         wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
-        priceLineVisible: false
+        priceLineVisible: false,
+        priceFormat: { type: 'price', precision: tradeViewDecimals, minMove: 1 / Math.pow(10, tradeViewDecimals) }
     });
 
     attachLockToggle(chart, container);
     attachScaleButtons(chart, container);
     attachMeasureTool(chart, series, container, `trade-view-${trade.id}`);
-    attachCrosshairPillLabels(chart, series, container, getCurrencySymbol(), { showTime: true, showAxisPriceLabel: true });
+    attachCrosshairPillLabels(chart, series, container, getCurrencySymbol(), { showTime: true, showAxisPriceLabel: true, decimals: instrumentDecimals(row.symbol) });
 
     const entryEpoch = parseLegEpoch(entryLeg.datetime);
     const exitEpoch = exitLeg ? parseLegEpoch(exitLeg.datetime) : null;
     const entryPrice = parseFloat(entryLeg.price);
     const exitPrice = exitLeg ? parseFloat(exitLeg.price) : null;
 
-    // A straight line tracing entry -> exit - lets you see the trade's path
-    // at a glance without hunting for the two markers. Fixed gold accent
-    // color rather than win/loss green/red, since a losing trade's line
-    // would otherwise blend straight into the red candles it crosses.
-    // Created empty here; loadTradeViewChartInterval fills it in once actual
-    // bar data is loaded, snapping to the nearest real candle (see there).
-    let entryExitLine = null;
-    if (entryEpoch !== null && exitEpoch !== null && exitPrice !== null) {
-        entryExitLine = chart.addSeries(LightweightCharts.LineSeries, {
-            color: '#dfb15b',
-            lineWidth: 3,
-            pointMarkersVisible: false,
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false
+    // Precise horizontal reference lines at the REAL entry/exit price, drawn
+    // by the axis itself so they're pixel-perfect against the price scale -
+    // unlike the Entry/Exit arrows below, which are native chart markers
+    // pinned to their candle's high/low ("aboveBar"/"belowBar"), not to the
+    // actual price in their label. A recorded price that doesn't sit exactly
+    // on that candle's wick (broker execution vs this app's own downloaded
+    // bar data, or simply mid-candle) makes the arrow visually drift from
+    // where the price truly sits - these lines give an unambiguous answer.
+    if (!isNaN(entryPrice)) {
+        series.createPriceLine({
+            price: entryPrice, color: '#2ebd85', lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'Entry'
+        });
+    }
+    if (exitPrice !== null && !isNaN(exitPrice)) {
+        series.createPriceLine({
+            price: exitPrice, color: '#f6465d', lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'Exit'
         });
     }
 
@@ -951,14 +947,15 @@ function renderTradeViewChart(row, trade) {
         : null;
 
     tradeViewChartState = {
-        chart, series, container, entryExitLine, markersApi, chartTools,
+        chart, series, container, markersApi, chartTools,
         filesByInterval: buildDailyChartFilenames(dateString, symbolMatch.filePrefix),
         currentInterval: null,
         data: [],
         entryEpoch,
         exitEpoch,
         entryPrice,
-        exitPrice
+        exitPrice,
+        symbol: row.symbol
     };
 
     const filesByInterval = tradeViewChartState.filesByInterval;
@@ -1015,6 +1012,16 @@ function openTradeViewModal(event, tradeId) {
         : `${formatTotal(row.returnAmount)} ${row.returnPct.toFixed(2)}%`;
     returnEl.className = `trade-view-return ${returnClass}`;
 
+    const sourceEl = document.getElementById('trade-view-source');
+    const isImported = trade.source === 'csv-import';
+    sourceEl.innerHTML = isImported
+        ? '<i class="fa-solid fa-file-csv"></i> Imported'
+        : '<i class="fa-solid fa-pen"></i> Manual';
+    sourceEl.className = `trade-view-badge${isImported ? ' imported' : ''}`;
+    sourceEl.title = isImported
+        ? 'Brought in via a broker CSV import'
+        : 'Entered by hand through the New/Edit Trade modal';
+
     document.getElementById('trade-view-hold').textContent = formatHoldDuration(row.holdSeconds);
 
     const directionEl = document.getElementById('trade-view-direction');
@@ -1023,11 +1030,11 @@ function openTradeViewModal(event, tradeId) {
 
     document.getElementById('trade-view-entry-time').textContent = firstEntryLeg ? formatTradeDateTime(firstEntryLeg.datetime) : '-';
     document.getElementById('trade-view-entry-detail').textContent = firstEntryLeg
-        ? `${firstEntryLeg.quantity} @ ${formatPrice(parseFloat(firstEntryLeg.price))}` : '-';
+        ? `${firstEntryLeg.quantity} @ ${formatPrice(parseFloat(firstEntryLeg.price), row.symbol)}` : '-';
 
     document.getElementById('trade-view-exit-time').textContent = lastExitLeg ? formatTradeDateTime(lastExitLeg.datetime) : 'Still open';
     document.getElementById('trade-view-exit-detail').textContent = lastExitLeg
-        ? `${lastExitLeg.quantity} @ ${formatPrice(parseFloat(lastExitLeg.price))}` : '-';
+        ? `${lastExitLeg.quantity} @ ${formatPrice(parseFloat(lastExitLeg.price), row.symbol)}` : '-';
 
     document.getElementById('trade-view-fees').textContent = formatTotal(row.fees || 0);
 
@@ -1116,8 +1123,8 @@ function buildTradeRowHtml(row) {
         <div class="table-cell"><span class="status-pill ${statusClass}">${row.status}</span></div>
         <div class="table-cell">${sideIcon}</div>
         <div class="table-cell">${row.qty}</div>
-        <div class="table-cell sensitive-value">${formatPrice(row.entryPrice)}</div>
-        <div class="table-cell sensitive-value">${row.exitPrice ? formatPrice(row.exitPrice) : '-'}</div>
+        <div class="table-cell sensitive-value">${formatPrice(row.entryPrice, row.symbol)}</div>
+        <div class="table-cell sensitive-value">${row.exitPrice ? formatPrice(row.exitPrice, row.symbol) : '-'}</div>
         <div class="table-cell sensitive-value">${formatTotal(row.entTot)}</div>
         <div class="table-cell sensitive-value">${row.extTot ? formatTotal(row.extTot) : '-'}</div>
         <div class="table-cell">${row.pos > 0 ? row.pos : '-'}</div>
@@ -1343,6 +1350,10 @@ function ensureEquityChart() {
 // returned object's setDefaultValue), centered above that point instead.
 function attachCrosshairPillLabels(chart, series, container, currencySymbol, options) {
     options = options || {};
+    // Dollar/equity charts (the default) always want 2 decimals; instrument
+    // price charts (News page, Trade View) pass their symbol's real
+    // precision here - e.g. 5 for EURUSD - via options.decimals.
+    const decimals = typeof options.decimals === 'number' ? options.decimals : 2;
     container.style.position = 'relative';
 
     // Reuse existing labels if this container already has them (e.g. the Stats
@@ -1390,7 +1401,7 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
             priceLabel.style.display = 'none';
             return;
         }
-        priceLabel.textContent = `${currencySymbol}${defaultPoint.value.toFixed(2)}`;
+        priceLabel.textContent = `${currencySymbol}${defaultPoint.value.toFixed(decimals)}`;
         priceLabel.classList.add('current');
         // Explicitly reset right/top/bottom - an earlier version of this code set
         // them inline, and since the Stats chart reuses this same element across
@@ -1420,7 +1431,7 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
         const x = chart.timeScale().timeToCoordinate(param.time);
 
         if (price !== undefined && price !== null && x !== null) {
-            priceLabel.textContent = `${currencySymbol}${price.toFixed(2)}`;
+            priceLabel.textContent = `${currencySymbol}${price.toFixed(decimals)}`;
             priceLabel.classList.remove('current');
             priceLabel.style.left = `${x}px`;
             priceLabel.style.right = 'auto';
@@ -1435,7 +1446,7 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
             // line, which also follows the mouse's actual Y position.
             const rawPrice = series.coordinateToPrice(param.point.y);
             if (rawPrice !== null) {
-                axisPriceLabel.textContent = `${currencySymbol}${rawPrice.toFixed(2)}`;
+                axisPriceLabel.textContent = `${currencySymbol}${rawPrice.toFixed(decimals)}`;
                 axisPriceLabel.style.top = `${param.point.y}px`;
                 axisPriceLabel.style.display = 'block';
             } else {

@@ -500,6 +500,26 @@ function friendlyInstrumentName(symbol) {
     return INSTRUMENT_FRIENDLY_NAMES[(symbol || '').trim().toUpperCase()] || '';
 }
 
+// Decimal places each instrument is conventionally quoted with - most forex
+// pairs price to a fractional pip (5 decimals; 3 for JPY pairs), while gold,
+// crypto and indices are whole-dollar-ish instruments that only need 2. Used
+// everywhere a trade's entry/exit price is displayed, so e.g. a EURUSD trade
+// shows its real 1.14226 instead of a one-size-fits-all rounding. Symbols
+// outside this list (stocks, anything unrecognized) fall back to 2, the most
+// common case.
+const INSTRUMENT_DECIMALS = {
+    XAUUSD: 2, XAGUSD: 3, BTCUSD: 2, ETHUSD: 2,
+    USDJPY: 3, EURJPY: 3, GBPJPY: 3,
+    EURUSD: 5, GBPUSD: 5, USDCHF: 5, AUDUSD: 5, USDCAD: 5, NZDUSD: 5, EURGBP: 5,
+    US500: 2, US30: 2, NAS100: 2, UK100: 2, GER40: 2,
+    USOIL: 2, UKOIL: 2
+};
+
+function instrumentDecimals(symbol) {
+    const key = (symbol || '').trim().toUpperCase();
+    return Object.prototype.hasOwnProperty.call(INSTRUMENT_DECIMALS, key) ? INSTRUMENT_DECIMALS[key] : 2;
+}
+
 const CHART_FILENAME_PATTERN = /^([A-Z0-9]+(?:-[A-Z0-9]+)?)_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 
 // ---- Live chart for TODAY ----
@@ -1221,7 +1241,7 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
         },
         rightPriceScale: {
             borderColor: '#2a2e39',
-            localization: { priceFormatter: price => parseFloat(price).toFixed(2) }
+            localization: { priceFormatter: price => parseFloat(price).toFixed(instrumentDecimals(tradeSymbol)) }
         },
         timeScale: {
             borderColor: '#2a2e39',
@@ -1243,17 +1263,25 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
         handleScale: false
     });
 
+    // The right-axis priceFormatter above controls tick labels, but the
+    // candlestick's own last-value badge (the little colored price tag that
+    // tracks the most recent close) is driven by the SERIES' priceFormat
+    // instead - without this it falls back to Lightweight Charts' own
+    // auto-detected precision, which guesses too few decimals for low-value
+    // pairs like EURUSD (~1.14) and shows "1.14" instead of "1.14226".
+    const oneDayDecimals = instrumentDecimals(tradeSymbol);
     const series = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#2ebd85', downColor: '#f6465d',
         borderDownColor: '#f6465d', borderUpColor: '#2ebd85',
         wickDownColor: '#f6465d', wickUpColor: '#2ebd85',
-        priceLineVisible: false
+        priceLineVisible: false,
+        priceFormat: { type: 'price', precision: oneDayDecimals, minMove: 1 / Math.pow(10, oneDayDecimals) }
     });
 
     attachLockToggle(chart, chartContainer);
     attachScaleButtons(chart, chartContainer);
     attachMeasureTool(chart, series, chartContainer, dateString);
-    attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true, showAxisPriceLabel: true });
+    attachCrosshairPillLabels(chart, series, chartContainer, '', { showTime: true, showAxisPriceLabel: true, decimals: instrumentDecimals(tradeSymbol) });
 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
     // Drawing tools/indicators/object tree (chart-tools.js). Keyed by

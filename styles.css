@@ -3768,10 +3768,14 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     text-transform: uppercase;
     padding: 4px 10px;
     border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .trade-view-badge.long { background: rgba(var(--win-rgb), 0.12); color: var(--win); border-color: transparent; }
 .trade-view-badge.short { background: rgba(var(--loss-rgb), 0.12); color: var(--loss); border-color: transparent; }
+.trade-view-badge.imported { background: rgba(var(--accent-blue-rgb), 0.12); color: var(--accent-blue); border-color: transparent; }
 
 .trade-view-timeline {
     display: flex;

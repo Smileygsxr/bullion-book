@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=89">
+    <link rel="stylesheet" href="styles.css?v=90">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -1227,7 +1227,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-candlestick"></i>
                         <h3>Trade View Chart</h3>
-                        <p>Opening a trade shows that day's real candlestick chart (1m/5m/15m) with your Entry/Exit marked and a gold line tracing the trade's path - available for any symbol with chart data on the News page. Chart drawings you make here are shared with the News page's chart for the same day.</p>
+                        <p>Opening a trade shows that day's real candlestick chart (1m/5m/15m) with your Entry/Exit marked - available for any symbol with chart data on the News page. Chart drawings you make here are shared with the News page's chart for the same day.</p>
                     </div>
                 </div>
             </section>
@@ -2307,6 +2307,7 @@
                         <span class="trade-view-instrument-name" id="trade-view-instrument-name" style="display: none;"></span>
                     </div>
                     <div class="trade-view-badges">
+                        <span class="trade-view-badge" id="trade-view-source">-</span>
                         <span class="trade-view-badge" id="trade-view-hold">-</span>
                         <span class="trade-view-badge" id="trade-view-direction">-</span>
                     </div>
@@ -2437,11 +2438,11 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="chart-tools.js?v=7"></script>
+    <script src="chart-tools.js?v=8"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=42"></script>
+    <script src="app.js?v=44"></script>
 
 </body>
 </html>
