@@ -293,14 +293,25 @@ function importTradesFromCsvText(csvText, filename) {
     // selected here to land on GMT+2 to match the chart data.
     const shiftHours = typeof account.csvTimezoneOffset === 'number' ? account.csvTimezoneOffset : 0;
 
-    // A previous import's tags/journal/wash-flag are carried over onto the same
-    // trade next time, matched by the broker's own ticket number (falling back to
-    // a symbol+time+volume key if the file has no ticket column) - only the
-    // factual broker data (prices, times, P&L) gets refreshed on re-upload.
+    // Every user-added edit on a previously-imported trade is carried over onto
+    // the same trade next time, matched by the broker's own ticket number
+    // (falling back to a symbol+time+volume key if the file has no ticket
+    // column) - only the factual broker data (prices, times, P&L) gets
+    // refreshed on re-upload. Playbook/Confidence/Screenshots used to be left
+    // out of this list, so a re-import would silently wipe them back to blank
+    // even though tags/journal/wash correctly survived - same bug, just not
+    // every field.
     const previousByKey = new Map();
     (account.trades || []).forEach(t => {
         if (t.source === 'csv-import' && t.csvRowKey) {
-            previousByKey.set(t.csvRowKey, { tagIds: t.tagIds || [], journal: t.journal || '', forceWash: !!t.forceWash });
+            previousByKey.set(t.csvRowKey, {
+                tagIds: t.tagIds || [],
+                journal: t.journal || '',
+                forceWash: !!t.forceWash,
+                playbookId: t.playbookId || null,
+                confidence: typeof t.confidence === 'number' ? t.confidence : null,
+                screenshots: t.screenshots || []
+            });
         }
     });
 
@@ -327,14 +338,24 @@ function importTradesFromCsvText(csvText, filename) {
         const target = takeProfitRaw ? String(parseBrokerNumber(takeProfitRaw)) : '';
         const ticket = columns.ticket ? (row[columns.ticket] || '').trim() : '';
 
-        if (!symbol || !openTime || !closeTime || volume <= 0 || openPrice <= 0 || closePrice <= 0) return;
+        if (!symbol || !openTime || volume <= 0 || openPrice <= 0) return;
 
-        const dedupKey = ticket || `${symbol}|${openTime}|${closeTime}|${volume}`;
+        // A row with no close time/price (both our own MT4/MT5 export scripts
+        // and some broker exports leave these blank for a still-running
+        // position) becomes an OPEN trade: just the entry leg, no exit. The
+        // app's own trade model already treats a single-leg trade as open
+        // (computeTradeSummary in trades.js), so nothing else needs to know
+        // this came from a CSV rather than the New Trade modal.
+        const isOpen = !closeTime || closePrice <= 0;
+
+        const dedupKey = ticket || (isOpen ? `${symbol}|${openTime}|${volume}|open` : `${symbol}|${openTime}|${closeTime}|${volume}`);
 
         openTime = shiftDatetimeByHours(openTime, shiftHours);
-        closeTime = shiftDatetimeByHours(closeTime, shiftHours);
+        if (!isOpen) closeTime = shiftDatetimeByHours(closeTime, shiftHours);
 
         const exitAction = typeRaw === 'buy' ? 'sell' : 'buy';
+        const legs = [{ id: genTradeId(), action: typeRaw, datetime: openTime, quantity: volume, price: openPrice, fee: 0 }];
+        if (!isOpen) legs.push({ id: genTradeId(), action: exitAction, datetime: closeTime, quantity: volume, price: closePrice, fee: 0 });
 
         const trade = {
             id: genTradeId(),
@@ -345,17 +366,18 @@ function importTradesFromCsvText(csvText, filename) {
             tagIds: [],
             source: 'csv-import',
             csvRowKey: dedupKey,
-            legs: [
-                { id: genTradeId(), action: typeRaw, datetime: openTime, quantity: volume, price: openPrice, fee: 0 },
-                { id: genTradeId(), action: exitAction, datetime: closeTime, quantity: volume, price: closePrice, fee: 0 }
-            ]
+            legs
         };
 
         // Trust the broker's own reported P&L rather than recomputing it from
         // price movement * lots, since that math needs each instrument's contract
         // size/pip value (e.g. gold = 100oz/lot) which this app doesn't model -
-        // see computeTradeReturnAmount/computeTradeSummary in trades.js.
-        if (profit !== null) {
+        // see computeTradeReturnAmount/computeTradeSummary in trades.js. Doesn't
+        // apply to an open trade - computeTradeSummary only honors this override
+        // once there's a closed quantity to attach it to, and any "Profit" a
+        // broker reports for a still-open position is floating/unrealized, not
+        // a real result to store as one.
+        if (profit !== null && !isOpen) {
             trade.overrideReturnAmount = profit + commission + swap;
         }
 
@@ -364,13 +386,16 @@ function importTradesFromCsvText(csvText, filename) {
             trade.tagIds = previous.tagIds;
             trade.journal = previous.journal;
             trade.forceWash = previous.forceWash;
+            trade.playbookId = previous.playbookId;
+            trade.confidence = previous.confidence;
+            trade.screenshots = previous.screenshots;
         }
 
         importedTrades.push(trade);
     });
 
     if (importedTrades.length === 0) {
-        showCsvImportStatus('No closed buy/sell trades were found in that file.', true);
+        showCsvImportStatus('No buy/sell trades were found in that file.', true);
         return;
     }
 
@@ -395,7 +420,11 @@ function importTradesFromCsvText(csvText, filename) {
     if (typeof renderTradeLog === 'function') renderTradeLog();
     if (typeof renderStatsPage === 'function') renderStatsPage();
 
-    showCsvImportStatus(`Imported ${importedTrades.length} trades from "${filename}".`, false);
+    const openCount = importedTrades.filter(t => t.legs.length === 1).length;
+    const summary = openCount > 0
+        ? `Imported ${importedTrades.length} trades from "${filename}" (${openCount} still open).`
+        : `Imported ${importedTrades.length} trades from "${filename}".`;
+    showCsvImportStatus(summary, false);
     renderCsvImportMeta();
 }
 

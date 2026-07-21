@@ -82,10 +82,41 @@ void OnStart()
         written++;
     }
 
+    // Currently open orders - written with blank Close Time/Close Price,
+    // which Bullion Book's importer reads as a still-open trade (one leg, no
+    // exit yet) instead of a closed round-trip. Profit here is floating/
+    // unrealized P&L, included for reference in the file - the app doesn't
+    // treat it as realized since the trade isn't closed.
+    int open_written = 0;
+    for(int j = 0; j < OrdersTotal(); j++)
+    {
+        if(!OrderSelect(j, SELECT_BY_POS, MODE_TRADES)) continue;
+        if(OrderType() != OP_BUY && OrderType() != OP_SELL) continue; // skips pending orders
+
+        int digits = (int)MarketInfo(OrderSymbol(), MODE_DIGITS);
+        if(digits <= 0) digits = 5;
+
+        string line = IntegerToString(OrderTicket()) + ","
+            + OrderSymbol() + ","
+            + ((OrderType() == OP_BUY) ? "buy" : "sell") + ","
+            + DoubleToString(OrderLots(), 2) + ","
+            + TimeToString(OrderOpenTime(), TIME_DATE|TIME_MINUTES) + ","
+            + "," // Close Time - blank: still open
+            + DoubleToString(OrderOpenPrice(), digits) + ","
+            + "," // Close Price - blank: still open
+            + (OrderStopLoss() > 0 ? DoubleToString(OrderStopLoss(), digits) : "") + ","
+            + (OrderTakeProfit() > 0 ? DoubleToString(OrderTakeProfit(), digits) : "") + ","
+            + DoubleToString(OrderCommission(), 2) + ","
+            + DoubleToString(OrderSwap(), 2) + ","
+            + DoubleToString(OrderProfit(), 2) + "\n";
+        FileWriteString(handle, line);
+        open_written++;
+    }
+
     FileClose(handle);
     string full_path = SaveToCommonFolder
         ? TerminalInfoString(TERMINAL_COMMONDATA_PATH) + "\\Files\\" + OutputFileName
         : TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL4\\Files\\" + OutputFileName;
-    Alert("Exported " + IntegerToString(written) + " closed trade(s) to:\n" + full_path
+    Alert("Exported " + IntegerToString(written) + " closed trade(s) and " + IntegerToString(open_written) + " open position(s) to:\n" + full_path
         + "\n\nUpload it in Bullion Book under Settings > Import Trades.");
 }

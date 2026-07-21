@@ -966,10 +966,12 @@
                     <div class="settings-panel" id="settings-panel-import" style="display: none;">
                         <h2 class="settings-panel-title">Import Trades from CSV</h2>
                         <p class="settings-share-desc">
-                            Upload a closed-trades CSV export from your broker (e.g. Exness).
-                            Uploading a new file replaces whatever was imported last time - trades
-                            you added manually, plus any tags/notes on previously imported trades,
-                            are left untouched.
+                            Upload a trades CSV export from your broker (e.g. Exness) or our own MT4/MT5
+                            scripts below. Rows with a Close Time/Price import as closed trades; a row
+                            with those left blank imports as a still-open trade (our scripts export your
+                            currently open positions too). Uploading a new file replaces whatever was
+                            imported last time - trades you added manually, plus any tags, notes,
+                            playbook, confidence or screenshots on previously imported trades, are kept.
                         </p>
 
                         <div class="modal-field settings-field csv-import-timezone-field">
@@ -1281,7 +1283,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-upload"></i>
                         <h3>Broker CSV Import</h3>
-                        <p>Settings → Import Trades lets you upload a closed-trades export (e.g. Exness, MT4/MT5) - each row becomes a trade with real entry/exit legs and your broker's own reported P&amp;L.</p>
+                        <p>Settings → Import Trades lets you upload a trades export (e.g. Exness, MT4/MT5) - each closed row becomes a trade with real entry/exit legs and your broker's own reported P&amp;L. A row with no close time/price imports as a still-open trade instead.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-clock"></i>
@@ -1296,7 +1298,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-download"></i>
                         <h3>MT4/MT5 Export Script</h3>
-                        <p>No CSV from your broker? Settings → Import Trades has free MT4 and MT5 scripts to download - run one in your terminal and it writes a ready-to-upload BullionBook_Trades.csv. A step-by-step guide sits right on that page.</p>
+                        <p>No CSV from your broker? Settings → Import Trades has free MT4 and MT5 scripts to download - run one in your terminal and it writes a ready-to-upload BullionBook_Trades.csv, including your currently open positions alongside closed history. A step-by-step guide sits right on that page.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-rotate-left"></i>

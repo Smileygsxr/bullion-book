@@ -191,10 +191,49 @@ void OnStart()
         written++;
     }
 
+    // Currently open positions - written with blank Close Time/Close Price,
+    // which Bullion Book's importer reads as a still-open trade (one leg,
+    // no exit yet) instead of a closed round-trip. Profit here is floating/
+    // unrealized P&L, included for reference in the file - the app doesn't
+    // treat it as realized since the trade isn't closed.
+    int open_written = 0;
+    int total_positions = PositionsTotal();
+    for(int p = 0; p < total_positions; p++)
+    {
+        ulong pos_ticket = PositionGetTicket(p);
+        if(pos_ticket == 0 || !PositionSelectByTicket(pos_ticket)) continue;
+
+        string  pos_symbol = PositionGetString(POSITION_SYMBOL);
+        long    pos_type   = PositionGetInteger(POSITION_TYPE);
+        if(pos_type != POSITION_TYPE_BUY && pos_type != POSITION_TYPE_SELL) continue;
+
+        int digits = (int)SymbolInfoInteger(pos_symbol, SYMBOL_DIGITS);
+        if(digits <= 0) digits = 5;
+
+        double pos_sl = PositionGetDouble(POSITION_SL);
+        double pos_tp = PositionGetDouble(POSITION_TP);
+
+        string line = IntegerToString(pos_ticket) + ","
+            + pos_symbol + ","
+            + ((pos_type == POSITION_TYPE_BUY) ? "buy" : "sell") + ","
+            + DoubleToString(PositionGetDouble(POSITION_VOLUME), 2) + ","
+            + TimeToString((datetime)PositionGetInteger(POSITION_TIME), TIME_DATE|TIME_MINUTES) + ","
+            + "," // Close Time - blank: still open
+            + DoubleToString(PositionGetDouble(POSITION_PRICE_OPEN), digits) + ","
+            + "," // Close Price - blank: still open
+            + (pos_sl > 0 ? DoubleToString(pos_sl, digits) : "") + ","
+            + (pos_tp > 0 ? DoubleToString(pos_tp, digits) : "") + ","
+            + "," // Commission - MT5's position API has no running-commission field until the position closes
+            + DoubleToString(PositionGetDouble(POSITION_SWAP), 2) + ","
+            + DoubleToString(PositionGetDouble(POSITION_PROFIT), 2) + "\n";
+        FileWriteString(handle, line);
+        open_written++;
+    }
+
     FileClose(handle);
     string full_path = SaveToCommonFolder
         ? TerminalInfoString(TERMINAL_COMMONDATA_PATH) + "\\Files\\" + OutputFileName
         : TerminalInfoString(TERMINAL_DATA_PATH) + "\\MQL5\\Files\\" + OutputFileName;
-    Alert("Exported " + IntegerToString(written) + " closed trade(s) to:\n" + full_path
+    Alert("Exported " + IntegerToString(written) + " closed trade(s) and " + IntegerToString(open_written) + " open position(s) to:\n" + full_path
         + "\n\nUpload it in Bullion Book under Settings > Import Trades.");
 }
