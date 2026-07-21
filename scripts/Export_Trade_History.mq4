@@ -23,7 +23,10 @@
 //| Note: MT4 lists a partially-closed order as separate history      |
 //| entries - each imports as its own trade, which is accurate.       |
 //+------------------------------------------------------------------+
-#property script_show_inputs
+// show_inputs is the MQL4-native property name (script_show_inputs is its
+// MQL5 spelling) - the classic name is honored on every MT4 build, so the
+// date-range inputs dialog reliably appears before the script runs.
+#property show_inputs
 #property strict
 
 input datetime FromDate = D'2020.01.01 00:00:00'; // export trades closed after this

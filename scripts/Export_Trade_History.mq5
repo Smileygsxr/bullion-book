@@ -106,6 +106,28 @@ void OnStart()
         rows[r].swap       += HistoryDealGetDouble(ticket, DEAL_SWAP);
         rows[r].profit     += HistoryDealGetDouble(ticket, DEAL_PROFIT);
 
+        // Protective levels: DEAL_SL/DEAL_TP hold whatever SL/TP the position
+        // had AT THE TIME of each deal. A stop set only AFTER entry (the
+        // normal manual flow: open first, then set/drag stops) is 0 on the
+        // entry deal and only shows up on later deals - the EXIT deal carries
+        // the final levels, which is also what MT5's own History tab
+        // displays. So capture from EVERY deal of the position, letting later
+        // non-zero values overwrite earlier ones, with the deal's order
+        // record kept as a last-resort fallback for pending-order entries.
+        double deal_sl = HistoryDealGetDouble(ticket, DEAL_SL);
+        double deal_tp = HistoryDealGetDouble(ticket, DEAL_TP);
+        if(deal_sl <= 0 && deal_tp <= 0)
+        {
+            ulong src_order = (ulong)HistoryDealGetInteger(ticket, DEAL_ORDER);
+            if(src_order > 0)
+            {
+                deal_sl = HistoryOrderGetDouble(src_order, ORDER_SL);
+                deal_tp = HistoryOrderGetDouble(src_order, ORDER_TP);
+            }
+        }
+        if(deal_sl > 0) rows[r].sl = deal_sl;
+        if(deal_tp > 0) rows[r].tp = deal_tp;
+
         // A reversal deal (DEAL_ENTRY_INOUT) closes the old position and opens a
         // new one in a single deal - rare outside netting accounts. It's treated
         // as an entry only if this position has no entry yet, otherwise an exit.
@@ -119,26 +141,6 @@ void OnStart()
             }
             rows[r].in_volume += vol;
             rows[r].in_value  += vol * price;
-
-            // DEAL_SL/DEAL_TP report the position's protective levels AT THE
-            // TIME of this deal - the exact same source MT5's own History tab
-            // reads for its "S / L"/"T / P" columns, and far more reliable
-            // than the opening ORDER's own SL/TP (tried below as a fallback),
-            // which is frequently 0 for a plain market-order execution even
-            // when the position clearly has stops attached.
-            double sl = HistoryDealGetDouble(ticket, DEAL_SL);
-            double tp = HistoryDealGetDouble(ticket, DEAL_TP);
-            if(sl <= 0 || tp <= 0)
-            {
-                ulong order = (ulong)HistoryDealGetInteger(ticket, DEAL_ORDER);
-                if(order > 0)
-                {
-                    if(sl <= 0) sl = HistoryOrderGetDouble(order, ORDER_SL);
-                    if(tp <= 0) tp = HistoryOrderGetDouble(order, ORDER_TP);
-                }
-            }
-            if(sl > 0) rows[r].sl = sl;
-            if(tp > 0) rows[r].tp = tp;
         }
         else // DEAL_ENTRY_OUT / DEAL_ENTRY_OUT_BY / reversal exits
         {
