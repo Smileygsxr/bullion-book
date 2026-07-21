@@ -39,7 +39,7 @@ function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// ---- Contract size (Settings > Contract Sizes) ----
+// ---- Contract size (Settings > Instrument Settings) ----
 // A raw price move times "quantity" only equals real dollar P&L when quantity is
 // already in dollar-equivalent units. Trade quantities here are broker LOTS, so
 // each symbol needs its own multiplier - e.g. XAUUSD is 100oz per lot, so a $10
@@ -47,8 +47,26 @@ function escapeHtml(str) {
 // leverage (leverage only affects margin required, never P&L) - it's the
 // instrument's contract size. account.contractSizes is an array of
 // { id, symbol, size } rows (editable in Settings), falling back to well-known
-// defaults, then 1 (old behavior) if the symbol isn't recognized either way.
-const BUILT_IN_CONTRACT_SIZES = { XAUUSD: 100 };
+// defaults below, then 1 (old behavior) if the symbol isn't recognized either way.
+//
+// The forex majors default to 100,000 (one standard lot) - without this,
+// Return % silently exploded to absurd values (e.g. 3590% on a real +$0.41
+// EURUSD trade) because the entry-value denominator collapsed to a few
+// cents instead of ~$1,142. Return $ itself is unaffected for CSV-imported
+// trades (they use the broker's own reported P&L via overrideReturnAmount),
+// but Return % always derives from contract size - so this bug hit every
+// forex trade, imported or manual, until a matching row was added by hand
+// in Settings.
+const BUILT_IN_CONTRACT_SIZES = {
+    XAUUSD: 100,
+    EURUSD: 100000,
+    GBPUSD: 100000,
+    USDJPY: 100000,
+    USDCHF: 100000,
+    AUDUSD: 100000,
+    USDCAD: 100000,
+    NZDUSD: 100000
+};
 
 function getContractSizeForSymbol(symbol) {
     const account = getActiveAccount();
@@ -56,6 +74,23 @@ function getContractSizeForSymbol(symbol) {
     const row = (account.contractSizes || []).find(r => r.symbol.toUpperCase() === key);
     if (row && typeof row.size === 'number' && row.size > 0) return row.size;
     return BUILT_IN_CONTRACT_SIZES[key] || 1;
+}
+
+// Same account.contractSizes rows also carry the fuller per-instrument
+// calibration added in Settings > Instrument Settings - typical fee (≈ the
+// spread cost, so it can auto-fill new trade legs), and swap/leverage kept
+// as reference figures only (not yet factored into any stats calculation).
+function getInstrumentSettingsRow(symbol) {
+    const account = getActiveAccount();
+    const key = (symbol || '').trim().toUpperCase();
+    return (account.contractSizes || []).find(r => r.symbol.toUpperCase() === key) || null;
+}
+
+// Returns the configured typical fee for a symbol, or null if none is set -
+// callers fall back to the global "Default Fee" setting in that case.
+function typicalFeeForSymbol(symbol) {
+    const row = getInstrumentSettingsRow(symbol);
+    return row && typeof row.typicalFee === 'number' && row.typicalFee !== 0 ? row.typicalFee : null;
 }
 
 // ---- Generic confirmation dialog - a single reusable modal (app.html) instead

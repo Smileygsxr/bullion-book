@@ -738,8 +738,9 @@ function confirmQuickAddPlaybook() {
     closeQuickPlaybookModal();
 }
 
-// ---- Contract Sizes (fixes P&L math for lot-based instruments - see
-// getContractSizeForSymbol in accounts.js for why this isn't "leverage") ----
+// ---- Instrument Settings (contract size fixes P&L math for lot-based
+// instruments - see getContractSizeForSymbol in accounts.js for why this
+// isn't "leverage" - plus typical fee/swap/leverage reference fields) ----
 function renderContractSizeTable() {
     const tbody = document.getElementById('settings-contract-size-table-body');
     if (!tbody) return;
@@ -749,6 +750,10 @@ function renderContractSizeTable() {
         <tr>
             <td><input type="text" value="${escapeHtml(r.symbol)}" onchange="updateContractSizeField('${r.id}','symbol',this.value.trim().toUpperCase())"></td>
             <td><input type="number" step="1" min="1" value="${r.size}" onchange="updateContractSizeField('${r.id}','size',parseFloat(this.value) || 1)"></td>
+            <td><input type="number" step="0.01" min="0" value="${r.typicalFee || 0}" onchange="updateContractSizeField('${r.id}','typicalFee',parseFloat(this.value) || 0)"></td>
+            <td><input type="number" step="0.01" value="${r.swapLong || 0}" onchange="updateContractSizeField('${r.id}','swapLong',parseFloat(this.value) || 0)"></td>
+            <td><input type="number" step="0.01" value="${r.swapShort || 0}" onchange="updateContractSizeField('${r.id}','swapShort',parseFloat(this.value) || 0)"></td>
+            <td><input type="text" placeholder="1:500" value="${escapeHtml(r.leverage || '')}" onchange="updateContractSizeField('${r.id}','leverage',this.value.trim())"></td>
             <td><button class="txn-remove-btn" onclick="deleteContractSizeRow('${r.id}')" title="Delete"><i class="fa-solid fa-circle-xmark"></i></button></td>
         </tr>`).join('');
 }
@@ -756,7 +761,7 @@ function renderContractSizeTable() {
 function addContractSizeRow() {
     const account = getActiveAccount();
     if (!account.contractSizes) account.contractSizes = [];
-    account.contractSizes.push({ id: genId(), symbol: 'NEWSYMBOL', size: 1 });
+    account.contractSizes.push({ id: genId(), symbol: 'NEWSYMBOL', size: 1, typicalFee: 0, swapLong: 0, swapShort: 0, leverage: '' });
     saveAccountsState();
     renderContractSizeTable();
 }

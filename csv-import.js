@@ -58,6 +58,44 @@ function findCsvHeaderKey(fields, candidates) {
     return null;
 }
 
+// De-duplicates a raw CSV header row so every column gets a distinct key -
+// MT5's own native "History" tab export (not the Exness-style web export)
+// reuses bare "Time"/"Price" for BOTH the open and close side, since it
+// relies on column ORDER, not name, to tell them apart. Object keys can't
+// hold two "Time" values at once, so without this, whichever occurrence
+// parses last would silently overwrite the other (corrupting Entry to equal
+// Exit) - suffixing repeats ("Time", "Time_2") keeps every column readable.
+function dedupeCsvHeaders(rawHeaders) {
+    const seenCounts = new Map();
+    return rawHeaders.map(h => {
+        const base = (h || '').trim();
+        const count = (seenCounts.get(base) || 0) + 1;
+        seenCounts.set(base, count);
+        return count === 1 ? base : `${base}_${count}`;
+    });
+}
+
+// Resolves an open/close column pair. Tries the normal qualified candidates
+// first (e.g. "Open Time" / "Close Time" - most broker exports). If either
+// side comes up empty, falls back to a bare shared name (e.g. plain "Time")
+// that occurs at least twice after dedupeCsvHeaders - native MT5 History
+// exports have no "open"/"close" qualifier at all, just column order, with
+// the open side appearing first.
+function findCsvPairedHeaderKeys(fields, openCandidates, closeCandidates, bareFallbackNames) {
+    let openKey = findCsvHeaderKey(fields, openCandidates);
+    let closeKey = findCsvHeaderKey(fields, closeCandidates);
+    if (openKey && closeKey) return [openKey, closeKey];
+
+    for (const bareName of bareFallbackNames) {
+        const normBare = normalizeHeaderText(bareName);
+        // Strip a dedupeCsvHeaders "_2"/"_3" suffix before comparing, so both
+        // occurrences of "Time"/"Time_2" are recognized as the same bare name.
+        const matches = fields.filter(f => normalizeHeaderText(f.replace(/_\d+$/, '')) === normBare);
+        if (matches.length >= 2) return [matches[0], matches[1]];
+    }
+    return [openKey, closeKey];
+}
+
 // Handles the common broker datetime formats: "2026.06.30 14:23:11",
 // "2026-06-30 14:23", "30.06.2026 14:23" (day-first), with '.', '-', '/'
 // separators and an optional seconds component - normalizes to the
@@ -195,20 +233,50 @@ function handleTradeCsvFileChange(event) {
 }
 
 function importTradesFromCsvText(csvText, filename) {
-    const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true });
+    // Parsed header-less (raw rows) rather than Papa's own header:true mode -
+    // that mode can't represent a CSV with duplicate column names (a native
+    // MT5 "History" export literally has two columns called "Time" and two
+    // called "Price") since each row becomes a plain object keyed by header
+    // text, and a repeated key just overwrites the earlier one. Building rows
+    // ourselves from dedupeCsvHeaders' unique names avoids that data loss.
+    const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
 
-    if (!parsed.meta.fields || parsed.meta.fields.length === 0) {
+    if (!parsed.data || parsed.data.length === 0 || parsed.data[0].length === 0) {
         showCsvImportStatus('Could not read any columns from that file.', true);
         return;
     }
 
-    const fields = parsed.meta.fields;
+    const fields = dedupeCsvHeaders(parsed.data[0]);
+    const rows = parsed.data.slice(1).map(r => {
+        const obj = {};
+        fields.forEach((f, i) => { obj[f] = r[i]; });
+        return obj;
+    });
+
     const columns = {};
     const missing = [];
     Object.entries(CSV_COLUMN_CANDIDATES).forEach(([key, candidates]) => {
         const found = findCsvHeaderKey(fields, candidates);
         if (found) columns[key] = found;
         else if (!CSV_OPTIONAL_COLUMNS.includes(key)) missing.push(key);
+    });
+
+    // Bare-column fallback for reports with no "open"/"close" qualifier at
+    // all (native MT5 History export: just "Time" and "Price", twice each,
+    // open side first) - only kicks in when the normal candidates above
+    // didn't already resolve both sides.
+    const [openTimeKey, closeTimeKey] = findCsvPairedHeaderKeys(
+        fields, CSV_COLUMN_CANDIDATES.openTime, CSV_COLUMN_CANDIDATES.closeTime, ['time']
+    );
+    const [openPriceKey, closePriceKey] = findCsvPairedHeaderKeys(
+        fields, CSV_COLUMN_CANDIDATES.openPrice, CSV_COLUMN_CANDIDATES.closePrice, ['price']
+    );
+    if (openTimeKey) columns.openTime = openTimeKey;
+    if (closeTimeKey) columns.closeTime = closeTimeKey;
+    if (openPriceKey) columns.openPrice = openPriceKey;
+    if (closePriceKey) columns.closePrice = closePriceKey;
+    ['openTime', 'closeTime', 'openPrice', 'closePrice'].forEach(key => {
+        if (!columns[key] && !missing.includes(key)) missing.push(key);
     });
 
     if (missing.length > 0) {
@@ -237,7 +305,7 @@ function importTradesFromCsvText(csvText, filename) {
     });
 
     const importedTrades = [];
-    parsed.data.forEach(row => {
+    rows.forEach(row => {
         const typeRaw = (row[columns.type] || '').trim().toLowerCase();
         if (typeRaw !== 'buy' && typeRaw !== 'sell') return; // skip pending orders/balance rows/etc.
 

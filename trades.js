@@ -42,7 +42,9 @@ function openTradeModal(tradeId) {
             screenshots: [],
             playbookId: null,
             tagIds: defaults.defaultTagId ? [defaults.defaultTagId] : [],
-            legs: [makeDefaultLeg(defaults.defaultQty, defaults.defaultFee)]
+            // Settings > Instrument Settings' "Typical Fee" for this symbol
+            // takes priority over the global Default Fee, when configured.
+            legs: [makeDefaultLeg(defaults.defaultQty, feeForNewLeg(defaults.defaultSymbol, defaults.defaultFee))]
         };
 
     // Older trades stored a single tagId - migrate to the tagIds array in place.
@@ -274,6 +276,15 @@ function renderTradeLegs() {
     `).join('');
 }
 
+// Settings > Instrument Settings' per-symbol "Typical Fee" (≈ the spread
+// cost) auto-fills a new leg's fee field, so it doesn't need retyping on
+// every single trade - falls back to the global Default Fee setting
+// (Settings > Account Settings) when that symbol has no typical fee set.
+function feeForNewLeg(symbol, globalDefaultFee) {
+    const typical = typeof typicalFeeForSymbol === 'function' ? typicalFeeForSymbol(symbol) : null;
+    return typical !== null ? typical : (globalDefaultFee || 0);
+}
+
 function addTradeLeg() {
     // "Default Order Date" setting (Settings > Account Settings): a new leg's
     // date/time is either copied from the previous leg (handy when entering
@@ -288,7 +299,11 @@ function addTradeLeg() {
     const action = lastLeg ? (lastLeg.action === 'buy' ? 'sell' : 'buy') : null;
     const quantity = lastLeg ? lastLeg.quantity : undefined;
 
-    draftTrade.legs.push(makeDefaultLeg(quantity, undefined, datetime, action));
+    const symbol = document.getElementById('trade-modal-symbol').value;
+    const defaultFee = typeof appSettings !== 'undefined' ? appSettings.defaultFee : 0;
+    const fee = feeForNewLeg(symbol, defaultFee);
+
+    draftTrade.legs.push(makeDefaultLeg(quantity, fee, datetime, action));
     renderTradeLegs();
 }
 

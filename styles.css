@@ -2410,6 +2410,35 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     box-sizing: border-box;
 }
 
+/* Instrument Settings: 7 columns of inputs need more room than the settings
+   panel reliably has - scroll sideways instead of crushing every field. */
+.settings-instrument-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.settings-instrument-table thead,
+.settings-instrument-table tbody { display: table; width: 100%; table-layout: fixed; }
+
+.settings-instrument-table th,
+.settings-instrument-table td { min-width: 110px; }
+
+.settings-instrument-table th:first-child,
+.settings-instrument-table td:first-child { min-width: 90px; }
+
+.settings-instrument-table th:last-child,
+.settings-instrument-table td:last-child { min-width: 40px; }
+
+.settings-th-hint {
+    display: block;
+    font-weight: 400;
+    text-transform: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    white-space: normal;
+}
+
 .settings-danger-title {
     color: var(--loss);
     margin: 0 0 20px;

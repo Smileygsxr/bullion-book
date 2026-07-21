@@ -120,15 +120,25 @@ void OnStart()
             rows[r].in_volume += vol;
             rows[r].in_value  += vol * price;
 
-            // Best-effort SL/TP off the order that opened the position
-            ulong order = (ulong)HistoryDealGetInteger(ticket, DEAL_ORDER);
-            if(order > 0)
+            // DEAL_SL/DEAL_TP report the position's protective levels AT THE
+            // TIME of this deal - the exact same source MT5's own History tab
+            // reads for its "S / L"/"T / P" columns, and far more reliable
+            // than the opening ORDER's own SL/TP (tried below as a fallback),
+            // which is frequently 0 for a plain market-order execution even
+            // when the position clearly has stops attached.
+            double sl = HistoryDealGetDouble(ticket, DEAL_SL);
+            double tp = HistoryDealGetDouble(ticket, DEAL_TP);
+            if(sl <= 0 || tp <= 0)
             {
-                double sl = HistoryOrderGetDouble(order, ORDER_SL);
-                double tp = HistoryOrderGetDouble(order, ORDER_TP);
-                if(sl > 0) rows[r].sl = sl;
-                if(tp > 0) rows[r].tp = tp;
+                ulong order = (ulong)HistoryDealGetInteger(ticket, DEAL_ORDER);
+                if(order > 0)
+                {
+                    if(sl <= 0) sl = HistoryOrderGetDouble(order, ORDER_SL);
+                    if(tp <= 0) tp = HistoryOrderGetDouble(order, ORDER_TP);
+                }
             }
+            if(sl > 0) rows[r].sl = sl;
+            if(tp > 0) rows[r].tp = tp;
         }
         else // DEAL_ENTRY_OUT / DEAL_ENTRY_OUT_BY / reversal exits
         {

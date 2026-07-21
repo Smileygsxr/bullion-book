@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="stylesheet" href="styles.css?v=91">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -725,7 +725,7 @@
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
                     <button class="settings-subnav-item" id="settings-tab-contracts" onclick="switchSettingsPanel('contracts')">
-                        <span><i class="fa-solid fa-scale-balanced"></i> Contract Sizes</span>
+                        <span><i class="fa-solid fa-scale-balanced"></i> Instrument Settings</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
                     <button class="settings-subnav-item" id="settings-tab-playbooks" onclick="switchSettingsPanel('playbooks')">
@@ -916,21 +916,35 @@
                         </table>
                     </div>
 
-                    <!-- Contract Sizes: fixes P&L math for lot-based instruments (forex/CFDs) -->
+                    <!-- Instrument Settings: fixes P&L math for lot-based instruments (forex/CFDs),
+                         auto-fills a typical fee per symbol, and keeps swap/leverage on hand for
+                         your own reference (see settings-share-desc below for what's wired in vs
+                         reference-only). -->
                     <div class="settings-panel" id="settings-panel-contracts" style="display: none;">
-                        <h2 class="settings-panel-title">Contract Sizes</h2>
+                        <h2 class="settings-panel-title">Instrument Settings</h2>
                         <p class="settings-share-desc">
-                            A price move only equals real dollars once it's scaled by how much of the
-                            instrument one lot actually represents (e.g. Gold/XAUUSD is 100oz per lot,
-                            so a $10 move on 0.01 lots is $10, not $0.10). This is separate from
-                            leverage, which only affects margin required, never P&L. XAUUSD defaults
-                            to 100 automatically - add other symbols you trade below, or override the
-                            default.
+                            Calibrate each symbol you trade for more accurate stats. <strong>Contract Size</strong>
+                            scales a price move into real dollars (e.g. Gold/XAUUSD is 100oz per lot, so a $10
+                            move on 0.01 lots is $10, not $0.10) - XAUUSD defaults to 100 automatically.
+                            <strong>Typical Fee</strong> is roughly your spread cost per leg - set it once and
+                            it auto-fills new trade legs for that symbol instead of typing it every time
+                            (doesn't touch legs you've already filled in, and CSV-imported trades already
+                            use your broker's own reported cost). <strong>Swap</strong> and <strong>Leverage</strong>
+                            are kept here for your own reference - leverage only affects margin required, never
+                            P&amp;L, so neither is factored into your stats automatically yet.
                         </p>
                         <button class="btn-action btn-blue settings-add-tag-btn" onclick="addContractSizeRow()">Add Symbol</button>
-                        <table class="stats-table settings-tag-table">
+                        <table class="stats-table settings-tag-table settings-instrument-table">
                             <thead>
-                                <tr><th>Symbol</th><th>Contract Size (units per lot)</th><th></th></tr>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Contract Size <span class="settings-th-hint">(units/lot)</span></th>
+                                    <th>Typical Fee <span class="settings-th-hint">(per leg, auto-fills)</span></th>
+                                    <th>Swap Long <span class="settings-th-hint">($/night, reference)</span></th>
+                                    <th>Swap Short <span class="settings-th-hint">($/night, reference)</span></th>
+                                    <th>Leverage <span class="settings-th-hint">(reference)</span></th>
+                                    <th></th>
+                                </tr>
                             </thead>
                             <tbody id="settings-contract-size-table-body"></tbody>
                         </table>
@@ -1740,8 +1754,8 @@
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
-                        <h3>Contract Sizes</h3>
-                        <p>Fixes P&amp;L math for lot-based instruments - e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10. This is separate from leverage, which only affects margin. XAUUSD is built in; add others you trade.</p>
+                        <h3>Instrument Settings</h3>
+                        <p>Per symbol: Contract Size fixes P&amp;L math for lot-based instruments (e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10 - built in for XAUUSD, add others you trade). Typical Fee auto-fills new trade legs for that symbol so you're not retyping your spread cost every time. Swap and Leverage are kept for your own reference - neither feeds into your stats automatically yet.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-book-open"></i>
@@ -1843,7 +1857,7 @@
                     </details>
                     <details class="help-faq-item">
                         <summary>My manually-entered P&amp;L looks wrong for gold/forex - what's happening?</summary>
-                        <p>A price move only equals real dollars once it's scaled by the instrument's contract size (e.g. Gold is 100oz per lot). Check Settings → Contract Sizes and make sure the symbol you're trading is listed with the right value - this doesn't affect CSV-imported trades, which already use your broker's own reported P&amp;L.</p>
+                        <p>A price move only equals real dollars once it's scaled by the instrument's contract size (e.g. Gold is 100oz per lot). Check Settings → Instrument Settings and make sure the symbol you're trading is listed with the right value - this doesn't affect CSV-imported trades, which already use your broker's own reported P&amp;L.</p>
                     </details>
                     <details class="help-faq-item">
                         <summary>Can I bulk-import my trade history instead of entering trades one by one?</summary>
@@ -2442,7 +2456,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=44"></script>
+    <script src="app.js?v=45"></script>
 
 </body>
 </html>

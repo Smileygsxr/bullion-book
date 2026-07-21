@@ -1635,7 +1635,7 @@ const HELP_TILE_GOTO_OVERRIDES = {
 
     'help-settings::Personal Info': { tab: 'personal', highlight: '#settings-panel-personal' },
     'help-settings::Account Settings': { tab: 'account', highlight: '#settings-panel-account' },
-    'help-settings::Contract Sizes': { tab: 'contracts', highlight: '#settings-panel-contracts' },
+    'help-settings::Instrument Settings': { tab: 'contracts', highlight: '#settings-panel-contracts' },
     'help-settings::Playbooks': { tab: 'playbooks', highlight: '#settings-panel-playbooks' },
     'help-settings::Tag Management': { tab: 'tags', highlight: '#settings-panel-tags' },
     'help-settings::Import Trades': { tab: 'import', highlight: '#settings-panel-import' },
