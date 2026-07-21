@@ -3726,6 +3726,12 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     gap: 12px;
 }
 
+.trade-view-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .trade-view-title {
     display: flex;
     align-items: baseline;
@@ -3741,6 +3747,11 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .trade-view-return {
     font-size: 0.9rem;
     font-weight: 600;
+}
+
+.trade-view-instrument-name {
+    font-size: 0.78rem;
+    color: var(--text-muted);
 }
 
 .trade-view-badges {
@@ -4185,6 +4196,7 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .sidebar-toolbar {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 6px;
     margin-bottom: -8px;
 }

@@ -115,12 +115,36 @@ function loadAccountsFromLocalStorage() {
     applyLoadedState(saved);
 }
 
+// One-time cleanup: before normalizeBrokerSymbol (app.js) existed, a broker's
+// raw symbol suffix (e.g. Exness' "XAUUSDm") passed straight through into
+// trade.symbol - silently splitting a symbol's stats across "XAUUSD" and
+// "XAUUSDM", and breaking chart lookups (CHART_SYMBOLS only recognizes the
+// clean name), MAE/MFE, Trade Levels overlays, everything keyed on symbol.
+// Runs once per load, per account; idempotent, so once everything's already
+// clean it's a fast no-op.
+function normalizeStoredTradeSymbols(account) {
+    if (!account || !account.trades || typeof normalizeBrokerSymbol !== 'function') return false;
+    let changed = false;
+    account.trades.forEach(trade => {
+        const clean = normalizeBrokerSymbol(trade.symbol);
+        if (clean !== trade.symbol) {
+            trade.symbol = clean;
+            changed = true;
+        }
+    });
+    return changed;
+}
+
 function applyLoadedState(saved) {
     if (saved && saved.accounts && Object.keys(saved.accounts).length > 0) {
         accountsState = saved;
         if (!accountsState.accounts[accountsState.activeAccountId]) {
             accountsState.activeAccountId = Object.keys(accountsState.accounts)[0];
         }
+        const anyFixed = Object.values(accountsState.accounts)
+            .map(normalizeStoredTradeSymbols)
+            .some(Boolean);
+        if (anyFixed) saveAccountsState();
         renderSidebarAccount();
     } else {
         const account = makeDefaultAccount('Primary Live');

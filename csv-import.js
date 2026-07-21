@@ -241,7 +241,7 @@ function importTradesFromCsvText(csvText, filename) {
         const typeRaw = (row[columns.type] || '').trim().toLowerCase();
         if (typeRaw !== 'buy' && typeRaw !== 'sell') return; // skip pending orders/balance rows/etc.
 
-        const symbol = (row[columns.symbol] || '').trim().toUpperCase();
+        const symbol = normalizeBrokerSymbol(row[columns.symbol]);
         let openTime = parseBrokerDatetime(row[columns.openTime]);
         let closeTime = parseBrokerDatetime(row[columns.closeTime]);
         const volume = parseBrokerNumber(row[columns.volume]);

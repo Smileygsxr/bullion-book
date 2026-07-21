@@ -313,7 +313,7 @@ function updateTradeLeg(id, field, value) {
 function saveTradeModal() {
     clearTradeModalValidation();
 
-    draftTrade.symbol = (document.getElementById('trade-modal-symbol').value || '').trim().toUpperCase();
+    draftTrade.symbol = normalizeBrokerSymbol(document.getElementById('trade-modal-symbol').value);
     draftTrade.target = document.getElementById('trade-modal-target').value;
     draftTrade.stopLoss = document.getElementById('trade-modal-stoploss').value;
     draftTrade.journal = document.getElementById('trade-modal-journal').value;
@@ -1001,6 +1001,12 @@ function openTradeViewModal(event, tradeId) {
     const lastExitLeg = legs.slice().reverse().find(l => l.action === exitAction);
 
     document.getElementById('trade-view-symbol').textContent = row.symbol;
+    const instrumentNameEl = document.getElementById('trade-view-instrument-name');
+    const friendlyName = typeof friendlyInstrumentName === 'function' ? friendlyInstrumentName(row.symbol) : '';
+    if (instrumentNameEl) {
+        instrumentNameEl.textContent = friendlyName;
+        instrumentNameEl.style.display = friendlyName ? 'block' : 'none';
+    }
 
     const returnClass = row.returnAmount > 0 ? 'value-positive' : row.returnAmount < 0 ? 'value-negative' : '';
     const returnEl = document.getElementById('trade-view-return');

@@ -382,6 +382,24 @@ function showPage(pageId, clickedElement) {
     }
 }
 
+// ---- Quick feedback (sidebar toolbar icons) - same address the Help page's
+// Contact & Feedback section already points to, but one click instead of a
+// trip there, and the bug report is pre-filled with which page you're on. ----
+function currentPageLabel() {
+    const active = document.querySelector('.nav-link.active');
+    return active ? active.textContent.trim() : 'Bullion Book';
+}
+
+function openFeatureSuggestionMail() {
+    window.location.href = `mailto:ruanforex@gmail.com?subject=${encodeURIComponent('Bullion Book - Feature Suggestion')}`;
+}
+
+function openBugReportMail() {
+    const subject = encodeURIComponent('Bullion Book - Bug Report');
+    const body = encodeURIComponent(`Page: ${currentPageLabel()}\nWhat happened: \n`);
+    window.location.href = `mailto:ruanforex@gmail.com?subject=${subject}&body=${body}`;
+}
+
 // Pages only re-render when navigated to (showPage above), so switching the
 // active account from the sidebar used to leave the current page showing the
 // OLD account's data until the user clicked away and back. Called by
@@ -434,6 +452,53 @@ const CHART_SYMBOLS = [
     { symbol: 'USDCAD', filePrefix: 'USD-CAD', label: 'USDCAD' },
     { symbol: 'NZDUSD', filePrefix: 'NZD-USD', label: 'NZDUSD' }
 ];
+
+// Broker CSV exports and the MT4/MT5 scripts return the broker's own raw
+// symbol name, which often carries a suffix marking the account type (e.g.
+// Exness' "XAUUSDm" for its Standard/Mini conditions) rather than a
+// different instrument - decoration this app has no use for and that would
+// otherwise split one symbol's stats across "XAUUSD" and "XAUUSDM". If the
+// raw symbol starts with one of our known canonical symbols, trim it down to
+// that; CHART_SYMBOLS is a small fixed list where none is a prefix of
+// another, so this can't misfire between real symbols.
+function normalizeBrokerSymbol(rawSymbol) {
+    const upper = (rawSymbol || '').trim().toUpperCase();
+    const match = CHART_SYMBOLS.find(s => upper.startsWith(s.symbol));
+    return match ? match.symbol : upper;
+}
+
+// Plain-English instrument names for the Trade View modal - covers the
+// CHART_SYMBOLS majors/gold/crypto plus a handful of other tickers common
+// enough for a gold/forex trader to journal (indices, silver, oil). Any
+// symbol not listed here (stocks, exotic pairs, a typo) just shows no
+// subtitle rather than guessing wrong.
+const INSTRUMENT_FRIENDLY_NAMES = {
+    XAUUSD: 'Gold vs US Dollar',
+    XAGUSD: 'Silver vs US Dollar',
+    BTCUSD: 'Bitcoin vs US Dollar',
+    ETHUSD: 'Ethereum vs US Dollar',
+    EURUSD: 'Euro vs US Dollar',
+    GBPUSD: 'British Pound vs US Dollar',
+    USDJPY: 'US Dollar vs Japanese Yen',
+    USDCHF: 'US Dollar vs Swiss Franc',
+    AUDUSD: 'Australian Dollar vs US Dollar',
+    USDCAD: 'US Dollar vs Canadian Dollar',
+    NZDUSD: 'New Zealand Dollar vs US Dollar',
+    EURGBP: 'Euro vs British Pound',
+    EURJPY: 'Euro vs Japanese Yen',
+    GBPJPY: 'British Pound vs Japanese Yen',
+    US500: 'S&P 500 Index',
+    US30: 'Dow Jones Industrial Average',
+    NAS100: 'Nasdaq 100 Index',
+    UK100: 'FTSE 100 Index',
+    GER40: 'DAX 40 Index',
+    USOIL: 'Crude Oil (WTI)',
+    UKOIL: 'Crude Oil (Brent)'
+};
+
+function friendlyInstrumentName(symbol) {
+    return INSTRUMENT_FRIENDLY_NAMES[(symbol || '').trim().toUpperCase()] || '';
+}
 
 const CHART_FILENAME_PATTERN = /^([A-Z0-9]+(?:-[A-Z0-9]+)?)_(1|5|15)Minute_BID_(\d{4}-\d{2}-\d{2})_00_00-23_59_.+\.csv$/i;
 

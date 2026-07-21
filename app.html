@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=87">
+    <link rel="stylesheet" href="styles.css?v=89">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -64,6 +64,12 @@
             </button>
             <button class="sidebar-icon-btn" id="sidebar-mode-toggle-btn" onclick="toggleSidebarModeQuick()" title="Switch to fixed sidebar">
                 <i class="fa-solid fa-table-columns"></i>
+            </button>
+            <button class="sidebar-icon-btn" onclick="openFeatureSuggestionMail()" title="Suggest a feature">
+                <i class="fa-solid fa-lightbulb"></i>
+            </button>
+            <button class="sidebar-icon-btn" onclick="openBugReportMail()" title="Report a bug">
+                <i class="fa-solid fa-bug"></i>
             </button>
         </div>
 
@@ -2293,9 +2299,12 @@
 
             <div class="modal-card-body">
                 <div class="trade-view-header">
-                    <div class="trade-view-title">
-                        <span class="trade-view-symbol" id="trade-view-symbol">-</span>
-                        <span class="trade-view-return" id="trade-view-return">-</span>
+                    <div class="trade-view-title-wrap">
+                        <div class="trade-view-title">
+                            <span class="trade-view-symbol" id="trade-view-symbol">-</span>
+                            <span class="trade-view-return" id="trade-view-return">-</span>
+                        </div>
+                        <span class="trade-view-instrument-name" id="trade-view-instrument-name" style="display: none;"></span>
                     </div>
                     <div class="trade-view-badges">
                         <span class="trade-view-badge" id="trade-view-hold">-</span>
@@ -2432,7 +2441,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=39"></script>
+    <script src="app.js?v=42"></script>
 
 </body>
 </html>
