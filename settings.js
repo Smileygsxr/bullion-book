@@ -24,7 +24,10 @@ let appSettings = {
     sidebarMode: 'hamburger',
     // Risk guardrails (Dashboard warning banner) - 0 = disabled
     maxDailyLoss: 0,
-    maxDailyTrades: 0
+    maxDailyTrades: 0,
+    // First-run guided tour (tutorial.js) - true once finished or skipped,
+    // synced to the login so it doesn't replay on every new device.
+    tutorialDone: false
 };
 
 // ---- Sidebar mode: hamburger drawer vs fixed ----
@@ -229,6 +232,9 @@ function applyLoadedSettings(saved) {
     renderSidebarModeButtons();
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
+    // First login on this account? Offer the guided tour (tutorial.js) -
+    // checked only now, after the account's synced settings have arrived.
+    if (typeof maybeStartAutoTutorial === 'function') maybeStartAutoTutorial();
 }
 
 function saveAppSettings() {

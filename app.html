@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=86">
+    <link rel="stylesheet" href="styles.css?v=87">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -1074,6 +1074,9 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="help-search-input" placeholder="Search help topics..." oninput="filterHelpSections(this.value)">
                 </div>
+                <button type="button" class="help-tour-btn" onclick="startTutorial()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Take the Guided Tour
+                </button>
             </div>
 
             <!-- Quick links -->
@@ -2428,6 +2431,7 @@
     <script src="chart-tools.js?v=7"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
+    <script src="tutorial.js?v=1"></script>
     <script src="app.js?v=39"></script>
 
 </body>
