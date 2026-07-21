@@ -2080,9 +2080,9 @@ date,time,name,actual,forecast,previous,importance
 2026-07-17,9:30pm,CFTC Soybeans Non-Commercial Net Positions,125.4,,112.8,low
 2026-07-17,9:30pm,CFTC Wheat Non-Commercial Net Positions,-16.3,,-49.7,low
 2026-07-17,9:30pm,CFTC Nasdaq 100 Non-Commercial Net Positions,2.7,,2.1,moderate
-2026-07-20,4:00pm,CB Leading Economic Index m/m,,-0.2,0.1,moderate
-2026-07-20,5:30pm,3-Month Bill Auction,,,3.760,low
-2026-07-20,5:30pm,6-Month Bill Auction,,,3.860,low
+2026-07-20,4:00pm,CB Leading Economic Index m/m,-0.2,-0.2,0.1,moderate
+2026-07-20,5:30pm,3-Month Bill Auction,3.730,,3.760,low
+2026-07-20,5:30pm,6-Month Bill Auction,3.835,,3.860,low
 2026-07-22,4:30pm,EIA Crude Oil Stocks Change,,1.978,-1.692,high
 2026-07-22,4:30pm,EIA Cushing Crude Oil Stocks Change,,0.992,0.430,moderate
 2026-07-22,4:30pm,EIA Crude Oil Imports Change,,0.141,-0.399,low
@@ -2123,8 +2123,8 @@ date,time,name,actual,forecast,previous,importance
 2026-07-27,2:30pm,Nondefense Capital Goods Orders excl. Aircraft m/m,,0.6,1.6,low
 2026-07-27,2:30pm,Nondefense Capital Goods Shipments excl. Aircraft m/m,,0.2,0.1,low
 2026-07-27,4:30pm,Dallas Fed Manufacturing Index,,3.5,0.0,low
-2026-07-27,5:30pm,3-Month Bill Auction,,,,low
-2026-07-27,5:30pm,6-Month Bill Auction,,,,low
+2026-07-27,5:30pm,3-Month Bill Auction,,,3.730,low
+2026-07-27,5:30pm,6-Month Bill Auction,,,3.835,low
 2026-07-27,7:00pm,2-Year Note Auction,,,4.189,moderate
 2026-07-27,7:00pm,5-Year Note Auction,,,4.200,moderate
 2026-07-28,2:30pm,Wholesale Inventories m/m,,0.9,0.1,low
@@ -2382,7 +2382,7 @@ date,time,name,actual,forecast,previous,importance
 2026-08-20,2:30pm,Initial Jobless Claims,,,,high
 2026-08-20,2:30pm,Continuing Jobless Claims,,,,moderate
 2026-08-20,2:30pm,Initial Jobless Claims 4-Week Average,,,,low
-2026-08-20,4:00pm,CB Leading Economic Index m/m,,,,moderate
+2026-08-20,4:00pm,CB Leading Economic Index m/m,,-0.1,-0.2,moderate
 2026-08-20,4:30pm,EIA Natural Gas Storage Change,,,,low
 2026-08-20,5:30pm,4-Week Bill Auction,,,,low
 2026-08-20,5:30pm,8-Week Bill Auction,,,,low
