@@ -186,6 +186,9 @@ function handleTradeCsvFileChange(event) {
 
     const reader = new FileReader();
     reader.onload = () => importTradesFromCsvText(reader.result, file.name);
+    // FileReader failures (permission issues, a locked/corrupt file) used to
+    // fail completely silently - no status message, no toast, nothing.
+    reader.onerror = () => showCsvImportStatus(`Could not read "${file.name}" - the file may be locked or corrupted.`, true);
     reader.readAsText(file);
 
     event.target.value = ''; // allow re-selecting the same filename later
@@ -388,9 +391,18 @@ function undoLastCsvImport() {
 
 function showCsvImportStatus(message, isError) {
     const el = document.getElementById('csv-import-status');
-    if (!el) return;
-    el.textContent = message;
-    el.className = `settings-status ${isError ? 'error' : 'success'}`;
+    if (el) {
+        el.textContent = message;
+        el.className = `settings-status ${isError ? 'error' : 'success'}`;
+    }
+
+    // The sidebar's quick-import icon (top of the sidebar, any page) uses this
+    // same status function - without a toast, a success/failure result there
+    // was written into the Import Trades panel's status text while that panel
+    // sat hidden behind whichever page the user was actually on, so nothing
+    // visible ever happened. communityToast (community.js) is a generic
+    // floating success/error toast already used elsewhere in the app.
+    if (typeof communityToast === 'function') communityToast(message, isError);
 }
 
 function renderCsvImportMeta() {

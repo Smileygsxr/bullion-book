@@ -1081,6 +1081,16 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
+/* Both card types are clickable now (toggleStatsMetricTooltip, reused from
+   the Stats page's identical card-click-for-description pattern) */
+.design-fix, .pnl-card { cursor: pointer; }
+
+.pnl-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
 /* Groups the label and value vertically on the left side */
 .card-text-group {
     display: flex;
@@ -1133,6 +1143,21 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     background-color: var(--border-color);
     color: #ffffff;
     border-color: #647080;
+}
+
+/* Count pill inside the "Selected" filter button (Charts page toolbar) */
+.chart-selected-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--accent-gold);
+    color: #131722;
+    font-size: 0.62rem;
+    font-weight: 800;
 }
 
 /* A symbol tab with no chart data fetched for it yet (see mt5_fetch_button.py) */
@@ -1437,6 +1462,52 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     color: var(--text-muted);
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+/* Groups the date caption + Select button on the toolbar's right side - kept
+   as its own flex child so .cpi-chart-toolbar's space-between still only
+   sees two items (left group, right group) instead of spreading three
+   apart unevenly. */
+.cpi-chart-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* "Select" button on each chart block - marks that day (see the "Selected"
+   filter button in the page toolbar, which shows only starred days). */
+.chart-select-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-select-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-light);
+}
+
+.chart-select-btn.active {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: rgba(var(--accent-gold-rgb, 223, 177, 91), 0.1);
+}
+
+/* Selected chart panels get a gold ring so they're spottable while scrolling
+   past dozens of chart blocks - same accent-gold the button itself uses. */
+.xauusd-chart-panel.chart-selected {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 1px var(--accent-gold);
 }
 
 .cpi-chart-body {
@@ -2496,13 +2567,25 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     cursor: pointer;
 }
 
-/* ==== Calendar: national holiday chips (ZA public + US market holidays) ==== */
+/* ==== Calendar: national holiday chips (9 countries - see HOLIDAY_COUNTRIES
+   in calendar.js) ==== */
 .calendar-holiday {
     display: flex;
     align-items: center;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 3px 4px;
     margin-top: 4px;
     min-width: 0;
+}
+
+/* Holds all of a holiday's country tags together as one unit, so they wrap
+   as a group rather than letting the holiday name get sandwiched between
+   tags when a day has many overlapping observers (e.g. Christmas). */
+.calendar-holiday-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    flex-shrink: 0;
 }
 
 .calendar-holiday-tag {
@@ -2514,15 +2597,15 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     border-radius: 4px;
 }
 
-.calendar-holiday-tag.za {
-    background: rgba(46, 189, 133, 0.15);
-    color: #2ebd85;
-}
-
-.calendar-holiday-tag.us {
-    background: rgba(41, 121, 255, 0.15);
-    color: var(--accent-blue);
-}
+.calendar-holiday-tag.za { background: rgba(46, 189, 133, 0.15); color: #2ebd85; }
+.calendar-holiday-tag.us { background: rgba(41, 121, 255, 0.15); color: var(--accent-blue); }
+.calendar-holiday-tag.eu { background: rgba(124, 131, 253, 0.18); color: #9aa0ff; }
+.calendar-holiday-tag.gb { background: rgba(160, 111, 224, 0.18); color: #c19bee; }
+.calendar-holiday-tag.jp { background: rgba(224, 95, 160, 0.18); color: #f090c0; }
+.calendar-holiday-tag.ch { background: rgba(143, 166, 200, 0.18); color: #b7c8e0; }
+.calendar-holiday-tag.au { background: rgba(224, 146, 60, 0.18); color: #f0ab5f; }
+.calendar-holiday-tag.ca { background: rgba(79, 209, 197, 0.18); color: #7de0d3; }
+.calendar-holiday-tag.nz { background: rgba(201, 162, 74, 0.18); color: #e0bd76; }
 
 .calendar-holiday-name {
     font-size: 0.62rem;
@@ -2531,6 +2614,96 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ---- Holiday country filter (chevron next to the Holidays toggle) ---- */
+.calendar-holiday-controls {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.calendar-holiday-filter-btn {
+    width: 28px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.65rem;
+}
+
+.calendar-holiday-filter-btn:hover { background: rgba(255, 255, 255, 0.06); color: var(--text-light); }
+
+.calendar-holiday-filter-btn.active {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.calendar-holiday-filter-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 210px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 30;
+    padding: 10px;
+}
+
+.calendar-holiday-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.calendar-holiday-filter-actions { display: flex; gap: 10px; }
+
+.calendar-holiday-filter-actions button {
+    background: none;
+    border: none;
+    color: var(--accent-blue);
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+}
+
+.calendar-holiday-filter-actions button:hover { text-decoration: underline; }
+
+.calendar-holiday-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.calendar-holiday-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-light);
+}
+
+.calendar-holiday-filter-item:hover { background: rgba(255, 255, 255, 0.05); }
+.calendar-holiday-filter-item input { accent-color: var(--accent-gold); cursor: pointer; }
 
 .calendar-weekly-summary {
     width: 170px;
@@ -2615,7 +2788,8 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
    stack above the base modal layer regardless of DOM order. */
 #generic-confirm-modal-overlay,
 #delete-trade-modal-overlay,
-#delete-note-modal-overlay { z-index: 1100; }
+#delete-note-modal-overlay,
+#quick-playbook-modal-overlay { z-index: 1100; }
 
 .modal-card {
     background: var(--bg-card);
@@ -2822,6 +2996,24 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 
 .modal-add-row-btn:hover {
     background: rgba(var(--accent-blue-rgb), 0.8);
+}
+
+/* Playbook "+" next to the trade modal's Playbook select - same round blue
+   button as modal-add-row-btn (the leg-adder below), just inline and
+   flex-shrink:0 so it never gets squeezed by a long playbook name in the
+   select next to it. */
+.modal-input-with-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-input-with-btn .modal-input { flex: 1; min-width: 0; }
+
+.modal-inline-add-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
 }
 
 .modal-card-footer {
@@ -5440,7 +5632,7 @@ body.privacy-mode .equity-crosshair-label.price {
     bottom: 26px;
     transform: translateX(-50%) translateY(20px);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 9px;
     background: var(--bg-card);
     border: 1px solid rgba(var(--win-rgb), 0.5);
@@ -5448,6 +5640,9 @@ body.privacy-mode .equity-crosshair-label.price {
     border-radius: 12px;
     padding: 11px 18px;
     font-size: 0.84rem;
+    /* Guards against edge-to-edge stretching now that CSV import errors (e.g.
+       a long "couldn't find these columns" list) also render as toasts. */
+    max-width: min(92vw, 480px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     opacity: 0;
     pointer-events: none;

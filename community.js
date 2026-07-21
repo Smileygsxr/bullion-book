@@ -64,7 +64,10 @@ function communityToast(message, isError) {
     toast.innerHTML = `<i class="fa-solid ${isError ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i> ${message}`;
     toast.classList.add('show');
     clearTimeout(toast._hideTimer);
-    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+    // Longer messages (e.g. a CSV import error listing missing columns) get
+    // more time on screen instead of a flat 3.2s that's too short to read.
+    const displayMs = Math.min(7000, Math.max(3200, message.length * 45));
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), displayMs);
 }
 
 function communityRequiresLogin() {

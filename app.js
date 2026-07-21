@@ -2,6 +2,79 @@
 // date string -> { chart, series, container, markersApi, events, data, filesByInterval, currentInterval }
 const cpiChartInstances = new Map();
 
+// ---- Chart selection (Charts page "Select" button + "Selected" filter) ----
+// Lets a user star specific chart days (across any symbol) to come back to
+// later - e.g. days worth reviewing again. Keyed by "filePrefix|date" so
+// selecting a XAUUSD day doesn't also mark that same date selected under
+// EURUSD. Persisted like the other lightweight view-state flags in this app
+// (bb_show_holidays, bb_theme) - the marks themselves should survive a
+// reload, the same way starred emails would.
+const CHART_SELECTION_STORAGE_KEY = 'bb_selected_charts';
+let selectedChartKeys = new Set();
+try {
+    const saved = JSON.parse(localStorage.getItem(CHART_SELECTION_STORAGE_KEY));
+    if (Array.isArray(saved)) selectedChartKeys = new Set(saved);
+} catch (e) { /* ignore corrupt data */ }
+
+// "Show only selected" is a transient view toggle, not part of the marks
+// themselves - like the date/day filters, it resets on reload rather than
+// being remembered.
+let showSelectedChartsOnly = false;
+
+function chartSelectionKey(filePrefix, date) {
+    return `${filePrefix}|${date}`;
+}
+
+function saveChartSelection() {
+    try { localStorage.setItem(CHART_SELECTION_STORAGE_KEY, JSON.stringify(Array.from(selectedChartKeys))); } catch (e) { /* ignore */ }
+}
+
+function syncChartSelectedFilterBadge() {
+    const badge = document.getElementById('chart-selected-count-badge');
+    if (!badge) return;
+    const count = selectedChartKeys.size;
+    badge.textContent = String(count);
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+// Toggles one chart block's selection. buttonEl is the "Select" button inside
+// that block's toolbar; the block itself carries data-file-prefix/data-date
+// (set in renderChartBlocks) so this works regardless of which symbol tab
+// is currently active.
+function toggleChartSelected(buttonEl) {
+    const block = buttonEl.closest('.xauusd-chart-panel');
+    if (!block) return;
+    const key = chartSelectionKey(block.dataset.filePrefix, block.dataset.date);
+
+    const nowSelected = !selectedChartKeys.has(key);
+    if (nowSelected) selectedChartKeys.add(key);
+    else selectedChartKeys.delete(key);
+
+    applyChartSelectedButtonState(block, nowSelected);
+    saveChartSelection();
+    syncChartSelectedFilterBadge();
+
+    // Deselecting while "Selected only" is active should drop this block
+    // from view immediately, same as any other filter change.
+    if (showSelectedChartsOnly && !nowSelected) applyEventFilterAndReload();
+}
+
+function applyChartSelectedButtonState(block, selected) {
+    block.classList.toggle('chart-selected', selected);
+    const btn = block.querySelector('[data-role="chart-select-btn"]');
+    if (!btn) return;
+    btn.classList.toggle('active', selected);
+    btn.innerHTML = selected
+        ? '<i class="fa-solid fa-square-check"></i> Selected'
+        : '<i class="fa-regular fa-square"></i> Select';
+}
+
+function toggleShowSelectedChartsOnly() {
+    showSelectedChartsOnly = !showSelectedChartsOnly;
+    document.getElementById('chart-selected-filter-btn').classList.toggle('active', showSelectedChartsOnly);
+    applyEventFilterAndReload();
+}
+
 // Re-generate this file (via scripts/Export_USD_Calendar.mq5, run inside
 // MT5) whenever you want fresher economic events - it's already
 // pre-filtered to USD only, so nothing here needs to filter by currency.
@@ -169,6 +242,7 @@ const MODAL_BACKDROP_CLOSERS = {
     'delete-trade-modal-overlay': () => closeDeleteTradeModal(),
     'delete-note-modal-overlay': () => closeDeleteNoteModal(),
     'generic-confirm-modal-overlay': () => closeGenericConfirmModal(),
+    'quick-playbook-modal-overlay': () => closeQuickPlaybookModal(),
     'trade-modal-overlay': () => closeTradeModal(),
     'note-modal-overlay': () => closeNoteModal(),
     'day-trades-modal-overlay': () => closeDayTradesModal(),
@@ -218,6 +292,11 @@ function applyEventFilterAndReload() {
             const events = allChartEventsByDate[date] || [];
             return events.some(({ name }) => selectedEventFilters.has(name));
         });
+
+    if (showSelectedChartsOnly) {
+        displayedChartFiles = displayedChartFiles.filter(({ filePrefix, date }) =>
+            selectedChartKeys.has(chartSelectionKey(filePrefix, date)));
+    }
 
     resetChartBatches(container, template);
 }
@@ -486,6 +565,8 @@ function initCpiChart() {
     const scrollArea = document.querySelector('#page-news .news-content-area');
     if (!container || !template) return;
 
+    syncChartSelectedFilterBadge();
+
     Promise.all([
         discoverChartFiles(),
         loadUsdEconomicEvents().catch(err => {
@@ -563,6 +644,7 @@ function resetChartBatches(container, template) {
         const noteParts = [];
         if (selectedEventFilters.size > 0) noteParts.push('the selected event filter(s)');
         if (chartDateFrom || chartDateTo || chartDayFilters.size > 0) noteParts.push('the selected date/day filter');
+        if (showSelectedChartsOnly) noteParts.push('"Selected" - star a chart with its Select button first');
         const filterNote = noteParts.length > 0 ? ` matching ${noteParts.join(' and ')}` : '';
         container.innerHTML = `
             <div style="color: var(--text-muted); text-align: center; padding: 40px; font-family: sans-serif;">
@@ -634,6 +716,14 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         const caption = block.querySelector('.cpi-chart-caption');
         const dateInput = block.querySelector('.cpi-date-input');
         const chartContainer = block.querySelector('.xauusd-lightweight-chart');
+
+        // Drives toggleChartSelected/applyChartSelectedButtonState below -
+        // filePrefix travels with the block (not just activeChartSymbol)
+        // since a chart, once rendered, keeps its own identity even if the
+        // user switches symbol tabs while it's still on screen.
+        block.dataset.filePrefix = activeChartSymbol.filePrefix;
+        block.dataset.date = date;
+        applyChartSelectedButtonState(block, selectedChartKeys.has(chartSelectionKey(activeChartSymbol.filePrefix, date)));
 
         // Weekday next to the date - makes near-empty Sunday charts (forex
         // only reopens ~23:00) instantly self-explanatory. The raw date

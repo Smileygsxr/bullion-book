@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=83">
+    <link rel="stylesheet" href="styles.css?v=86">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -61,6 +61,9 @@
             <input type="file" id="sidebar-csv-import-input" accept=".csv" style="display: none;" onchange="handleTradeCsvFileChange(event)">
             <button class="sidebar-icon-btn" id="filter-toggle-btn" onclick="toggleTradeFilterPanel()" title="Filter trades">
                 <i class="fa-solid fa-sliders"></i>
+            </button>
+            <button class="sidebar-icon-btn" id="sidebar-mode-toggle-btn" onclick="toggleSidebarModeQuick()" title="Switch to fixed sidebar">
+                <i class="fa-solid fa-table-columns"></i>
             </button>
         </div>
 
@@ -183,7 +186,7 @@
 
                 <!-- B. Wins and Losses Block Metrics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a profit. The ring shows their share of all closed trades.')">
                         <div class="card-text-group">
                             <span class="lbl-muted">WINS</span>
                             <span class="val-green" id="stat-wins">0</span>
@@ -196,7 +199,7 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a loss. The ring shows their share of all closed trades.')">
                         <div class="card-text-group">
                             <span class="lbl-muted">LOSSES</span>
                             <span class="val-red" id="stat-losses">0</span>
@@ -213,7 +216,7 @@
 
                 <!-- C. Open and Wash Trade Metrics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Trades that are still open, not yet closed. The ring shows their share of every trade in view.')">
                         <div class="card-text-group">
                             <span class="lbl-muted">OPEN</span>
                             <span class="val-muted" id="stat-open">0</span>
@@ -226,7 +229,7 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Closed trades marked as breakeven - excluded from win/loss totals. The ring shows their share of every trade in view.')">
                         <div class="card-text-group">
                             <span class="lbl-muted">WASH</span>
                             <span class="val-muted" id="stat-wash">0</span>
@@ -243,7 +246,7 @@
 
                 <!-- D. Average Win and Loss Statistics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar profit per winning trade. The ring shows its share versus Avg Loss (the two combined).')">
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG W</span>
                             <span class="val-green" id="stat-avg-win">$0</span>
@@ -256,7 +259,7 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix">
+                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar loss per losing trade. The ring shows its share versus Avg Win (the two combined).')">
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG L</span>
                             <span class="val-red" id="stat-avg-loss">-$0</span>
@@ -272,7 +275,7 @@
                 </div>
 
                 <!-- E. Total PnL Standalone Right Container -->
-                <div class="dash-card pnl-card">
+                <div class="dash-card pnl-card" onclick="toggleStatsMetricTooltip(event, this, 'Total profit or loss across every closed trade currently in view, with percent return below it.')">
                     <span class="lbl-muted title-pnl">PnL</span>
                     <div class="pnl-value" id="stat-pnl-value">$0</div>
                     <div class="pnl-badge-pct" id="stat-pnl-pct">0.0%</div>
@@ -517,9 +520,24 @@
                 <div class="calendar-toolbar-center">
                     <select id="calendar-month-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
                     <select id="calendar-year-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
-                    <button class="news-tab" id="holiday-calendar-toggle" onclick="toggleHolidayCalendar()" title="Show national holidays on the calendar - South African public holidays (ZA) and US market holidays (US)">
-                        <i class="fa-solid fa-umbrella-beach"></i> Holidays
-                    </button>
+                    <div class="calendar-holiday-controls">
+                        <button class="news-tab" id="holiday-calendar-toggle" onclick="toggleHolidayCalendar()" title="Show national holidays on the calendar">
+                            <i class="fa-solid fa-umbrella-beach"></i> Holidays
+                        </button>
+                        <button type="button" class="calendar-holiday-filter-btn" id="calendar-holiday-filter-btn" onclick="toggleHolidayFilterPopover(event)" title="Choose which countries' holidays to show">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div class="calendar-holiday-filter-popover" id="calendar-holiday-filter-popover" style="display: none;">
+                            <div class="calendar-holiday-filter-header">
+                                <span>Show holidays for</span>
+                                <div class="calendar-holiday-filter-actions">
+                                    <button type="button" onclick="setAllHolidayCountries(true)">All</button>
+                                    <button type="button" onclick="setAllHolidayCountries(false)">None</button>
+                                </div>
+                            </div>
+                            <div class="calendar-holiday-filter-list" id="calendar-holiday-filter-list"></div>
+                        </div>
+                    </div>
                 </div>
                 <button class="calendar-nav-btn" onclick="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
@@ -613,6 +631,10 @@
                 <button class="news-tab" id="chart-date-filter-btn" onclick="toggleChartDatePopover(event)" title="Only show charts within a date range">
                     <i class="fa-solid fa-calendar-days"></i> Filter Dates
                 </button>
+                <button class="news-tab" id="chart-selected-filter-btn" onclick="toggleShowSelectedChartsOnly()" title="Show only the charts you've selected">
+                    <i class="fa-solid fa-check-double"></i> Selected
+                    <span class="chart-selected-count-badge" id="chart-selected-count-badge" style="display: none;">0</span>
+                </button>
             </div>
 
             <!-- News Content Workspace Container -->
@@ -653,7 +675,12 @@
                                 </div>
                             </div>
 
-                            <p class="cpi-chart-caption"></p>
+                            <div class="cpi-chart-toolbar-right">
+                                <p class="cpi-chart-caption"></p>
+                                <button type="button" class="chart-select-btn" data-role="chart-select-btn" onclick="toggleChartSelected(this)" title="Select this chart">
+                                    <i class="fa-regular fa-square"></i> Select
+                                </button>
+                            </div>
                         </div>
 
                         <div class="cpi-chart-body cpi-chart-widget-body">
@@ -852,7 +879,7 @@
                         <hr class="settings-divider">
 
                         <h3 class="settings-subtitle">Sidebar Style</h3>
-                        <p class="settings-share-desc">Hamburger tucks the menu behind the &#9776; button until you need it - Fixed pins it open on the left. Small screens always use the hamburger, whatever you pick here.</p>
+                        <p class="settings-share-desc">Hamburger tucks the menu behind the &#9776; button until you need it - Fixed pins it open on the left. Small screens always use the hamburger, whatever you pick here. There's also a quick-toggle icon for this right in the sidebar's own toolbar (next to Privacy/Import/Filter).</p>
                         <div class="sidebar-mode-btns">
                             <button type="button" class="news-tab sidebar-mode-btn" data-mode="hamburger" onclick="selectSidebarMode('hamburger')"><i class="fa-solid fa-bars"></i> Hamburger</button>
                             <button type="button" class="news-tab sidebar-mode-btn" data-mode="fixed" onclick="selectSidebarMode('fixed')"><i class="fa-solid fa-table-columns"></i> Fixed Sidebar</button>
@@ -1086,7 +1113,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-circle-half-stroke"></i>
                         <h3>Performance Rings</h3>
-                        <p>WINS, LOSSES, OPEN, WASH, AVG&nbsp;W and AVG&nbsp;L update live as you log trades. Each ring's fill is proportional to the real percentage.</p>
+                        <p>WINS, LOSSES, OPEN, WASH, AVG&nbsp;W, AVG&nbsp;L and PnL update live as you log trades. Each ring's fill is proportional to the real percentage. Click any card for a short explanation of what it means.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table-list"></i>
@@ -1211,7 +1238,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-link"></i>
                         <h3>Assigning to a Trade</h3>
-                        <p>Pick a Playbook from the dropdown on the New/Edit Trade modal's General tab. It shows on that trade's read-only view too.</p>
+                        <p>Pick a Playbook from the dropdown on the New/Edit Trade modal's General tab, or hit the <strong>+</strong> button beside it to name a brand-new one on the spot without leaving the trade. It shows on that trade's read-only view too.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-pie"></i>
@@ -1376,7 +1403,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-umbrella-beach"></i>
                         <h3>National Holidays</h3>
-                        <p>The Holidays toggle in the toolbar overlays South African public holidays (ZA) and US market holidays (US) on the grid - useful for spotting low-liquidity days when US markets are closed. Works for any year and remembers your choice.</p>
+                        <p>The Holidays toggle overlays public/market holidays for 9 countries - ZA, US, EU, GB, JP, CH, AU, CA and NZ - useful for spotting low-liquidity days in a given currency. Overlapping holidays (e.g. Christmas) group onto one row with a tag per country. Use the chevron beside the toggle to choose which countries show. Works for any year and remembers your choices.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-list"></i>
@@ -1607,6 +1634,11 @@
                         <p>Expand the arrow next to "All Charts" to filter days by event type (e.g. only CPI days) - there's a search box to find event names fast. <strong>Filter Dates</strong> narrows the list to a From/To range. Filters stack.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-star"></i>
+                        <h3>Select &amp; Filter Charts</h3>
+                        <p>Every chart has a <strong>Select</strong> button next to its date - star any day worth coming back to. It's remembered per symbol, so starring a XAUUSD day doesn't also star that date under EURUSD. Click <strong>Selected</strong> in the toolbar to show only your starred charts; the badge shows how many you have.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-bullseye"></i>
                         <h3>Trade Levels</h3>
                         <p>Toggle "Trade Levels" to overlay your Target/Stop-Loss zones on the chart for any trade entered that day - green for the favorable side, red for risk. Only trades matching the chart's symbol are shown.</p>
@@ -1695,7 +1727,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-palette"></i>
                         <h3>Appearance</h3>
-                        <p>Pick from 10 color themes - Slate, Light, Midnight, Ocean, Forest, Amethyst, Ember, Bullion (black &amp; gold), Neon (black &amp; pink) and Blossom (soft pink) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger.</p>
+                        <p>Pick from 10 color themes - Slate, Light, Midnight, Ocean, Forest, Amethyst, Ember, Bullion (black &amp; gold), Neon (black &amp; pink) and Blossom (soft pink) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger. A matching icon in the sidebar's own toolbar (next to Privacy/Import/Filter) flips between the two without opening Settings.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-scale-balanced"></i>
@@ -1926,6 +1958,20 @@
         </div>
     </div>
 
+    <!-- Quick Add Playbook (the "+" beside the trade modal's Playbook select) -->
+    <div id="quick-playbook-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card confirm-modal-card">
+            <div class="confirm-modal-icon"><i class="fa-solid fa-book-open"></i></div>
+            <h3 class="confirm-modal-title">New Playbook</h3>
+            <p class="confirm-modal-body">Give your strategy a name - add its entry/exit rules later from Settings &rarr; Playbooks.</p>
+            <input type="text" id="quick-playbook-name-input" class="modal-input" style="text-align: left;" placeholder="e.g. London Breakout" maxlength="60" onkeydown="if (event.key === 'Enter') confirmQuickAddPlaybook(); if (event.key === 'Escape') closeQuickPlaybookModal();">
+            <div class="confirm-modal-actions">
+                <button class="btn-action btn-danger" onclick="closeQuickPlaybookModal()">Cancel</button>
+                <button class="btn-action btn-blue" onclick="confirmQuickAddPlaybook()">Create</button>
+            </div>
+        </div>
+    </div>
+
     <!-- New Trade Modal -->
     <div id="trade-modal-overlay" class="modal-overlay" style="display: none;">
         <div class="modal-card trade-modal-card">
@@ -1961,7 +2007,12 @@
                     <div class="modal-field-row">
                         <div class="modal-field">
                             <label class="modal-label">Playbook</label>
-                            <select id="trade-modal-playbook" class="modal-input"></select>
+                            <div class="modal-input-with-btn">
+                                <select id="trade-modal-playbook" class="modal-input"></select>
+                                <button type="button" class="modal-add-row-btn modal-inline-add-btn" onclick="quickAddPlaybookFromTradeModal()" title="Create a new playbook">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2377,7 +2428,7 @@
     <script src="chart-tools.js?v=7"></script>
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
-    <script src="app.js?v=37"></script>
+    <script src="app.js?v=39"></script>
 
 </body>
 </html>

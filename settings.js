@@ -43,11 +43,28 @@ function selectSidebarMode(mode) {
     renderSidebarModeButtons();
 }
 
+// Quick-access version of the same Settings > Appearance > Sidebar Style
+// choice, as an icon button that lives in the sidebar itself (top toolbar,
+// next to Privacy/Import/Filter) - flips straight to the opposite mode
+// without a trip into Settings.
+function toggleSidebarModeQuick() {
+    selectSidebarMode(appSettings.sidebarMode === 'fixed' ? 'hamburger' : 'fixed');
+}
+
 function renderSidebarModeButtons() {
     const current = appSettings.sidebarMode === 'fixed' ? 'fixed' : 'hamburger';
     document.querySelectorAll('.sidebar-mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === current);
     });
+
+    const quickBtn = document.getElementById('sidebar-mode-toggle-btn');
+    if (quickBtn) {
+        const isFixed = current === 'fixed';
+        // Icon shows the mode a click will switch TO (matches the privacy-eye
+        // toggle's convention elsewhere in this same toolbar row).
+        quickBtn.innerHTML = isFixed ? '<i class="fa-solid fa-bars"></i>' : '<i class="fa-solid fa-table-columns"></i>';
+        quickBtn.title = isFixed ? 'Switch to hamburger menu' : 'Switch to fixed sidebar';
+    }
 }
 
 function toggleSidebarDrawer() {
@@ -209,6 +226,7 @@ function applyLoadedSettings(saved) {
     // covers logging in on a different device/browser for the first time.
     applyTheme(appSettings.theme);
     applySidebarMode();
+    renderSidebarModeButtons();
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
 }
@@ -674,6 +692,44 @@ function populatePlaybookSelect(selectedId) {
     const playbooks = (getActiveAccount().playbooks) || [];
     select.innerHTML = '<option value="">None</option>' +
         playbooks.map(p => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+}
+
+// The "+" button next to the trade modal's Playbook select - skips the trip
+// to Settings > Playbooks for the common case of just wanting to name a new
+// strategy on the spot. Entry criteria/rules can still be filled in later
+// from Settings; this only needs a name to be immediately selectable. Uses
+// the app's own themed modal (quick-playbook-modal-overlay) rather than the
+// browser's native prompt(), which looks jarring against the rest of the UI.
+function quickAddPlaybookFromTradeModal() {
+    const input = document.getElementById('quick-playbook-name-input');
+    if (input) input.value = '';
+    document.getElementById('quick-playbook-modal-overlay').style.display = 'flex';
+    if (input) setTimeout(() => input.focus(), 50);
+}
+
+function closeQuickPlaybookModal() {
+    document.getElementById('quick-playbook-modal-overlay').style.display = 'none';
+}
+
+function confirmQuickAddPlaybook() {
+    const input = document.getElementById('quick-playbook-name-input');
+    const name = ((input && input.value) || '').trim();
+    if (!name) {
+        if (input) input.focus();
+        return;
+    }
+
+    const account = getActiveAccount();
+    if (!account.playbooks) account.playbooks = [];
+    const playbook = { id: genId(), name, rules: '' };
+    account.playbooks.push(playbook);
+    saveAccountsState();
+
+    populatePlaybookSelect(playbook.id);
+    // Settings > Playbooks might be open behind the modal (or opened later
+    // this session) - keep its list in sync too.
+    if (typeof renderPlaybookList === 'function') renderPlaybookList();
+    closeQuickPlaybookModal();
 }
 
 // ---- Contract Sizes (fixes P&L math for lot-based instruments - see
