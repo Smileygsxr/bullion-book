@@ -579,6 +579,42 @@ function formatTotal(value) {
     return `${sign}${getCurrencySymbol()}${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// ---- Trade log column-header tooltips: hover a label (not the sort icon)
+// for a plain description + the exact formula, e.g. Return % or R-Multiple -
+// the two hardest columns to eyeball back to a number. Reuses the Settings
+// "?" tooltip's visual style, but its own element/positioning since this one
+// sits ABOVE the word (a header near the top of the page has no room below
+// it before the table itself starts) and is pure hover, no click-to-pin. ----
+function getColHeadTooltip() {
+    let el = document.getElementById('col-head-tooltip');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'col-head-tooltip';
+        el.className = 'settings-info-tooltip col-head-tooltip';
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function showColHeadTooltip(event, span) {
+    const tooltip = getColHeadTooltip();
+    tooltip.innerHTML = span.dataset.tooltip;
+    tooltip.style.display = 'block';
+
+    const rect = span.getBoundingClientRect();
+    tooltip.style.left = `${Math.max(8, rect.left)}px`;
+    // Anchored from the bottom of the viewport (not a computed top based on
+    // the tooltip's own height) so it renders correctly above the word on
+    // the very first paint, before the browser has laid out its final size.
+    tooltip.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+    tooltip.style.top = 'auto';
+}
+
+function hideColHeadTooltip() {
+    const tooltip = document.getElementById('col-head-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+}
+
 // ---- Column sorting ----
 const TRADE_SORT_KEYS = [
     'date', 'symbol', 'status', 'direction', 'qty', 'entryPrice', 'exitPrice',
@@ -1290,6 +1326,12 @@ function ensureEquityChart() {
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
         rightPriceScale: {
             visible: true,
+            // No pill-clearance headroom needed here: this card's price pane
+            // is so short (~44px after the card padding, "12" label and time
+            // axis) that no margin could fit the ~24px hover pill plus a gap
+            // without crushing the curve - so the pill is raised OUT of the
+            // pane entirely instead, into the empty label strip above it
+            // (raisePriceLabel below + .equity-crosshair-label.price.raised).
             scaleMargins: { top: 0.15, bottom: 0 },
             localization: { priceFormatter: price => `$${price.toFixed(2)}` }
         },
@@ -1334,7 +1376,11 @@ function ensureEquityChart() {
         crosshairMarkerBorderWidth: 2
     });
 
-    equityLabelControls = attachCrosshairPillLabels(equityChartInstance, equitySeriesInstance, container, '$');
+    // raisePriceLabel: this card's pane is too short for the pill to float
+    // inside it without covering the curve - lift it into the empty strip
+    // beside the trade-count label instead. Dashboard-only; the Stats/News/
+    // Trade View charts are tall enough for the normal in-chart position.
+    equityLabelControls = attachCrosshairPillLabels(equityChartInstance, equitySeriesInstance, container, '$', { raisePriceLabel: true });
 
     // The card's width can change WITHOUT a window resize - e.g. on a fresh
     // machine the app first paints in drawer mode, then the saved "fixed
@@ -1381,6 +1427,10 @@ function attachCrosshairPillLabels(chart, series, container, currencySymbol, opt
         priceLabel.className = 'equity-crosshair-label price';
         container.appendChild(priceLabel);
     }
+    // Short-pane charts (Dashboard equity card) lift the price pill out of
+    // the drawing area into the strip above the container - see the .raised
+    // rule in styles.css. classList.add is idempotent, safe on reuse.
+    if (options.raisePriceLabel) priceLabel.classList.add('raised');
     if (!dateLabel) {
         dateLabel = document.createElement('div');
         dateLabel.className = 'equity-crosshair-label date';
@@ -1502,18 +1552,25 @@ function renderEquityChart(rows) {
         .slice()
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // One point per day so hovering shows the real close date, with same-day
-    // trades collapsed into that day's running total (matches the Stats page chart).
-    const byDay = new Map();
+    // One point per TRADE (unlike the Stats page's equity chart, which stays
+    // one point per day) - a day collapsed to a single running total drew a
+    // straight interpolated line across however many trades happened that
+    // day, which could visually suggest a slow steady bleed when the real
+    // path was, say, one big loss followed by a partial recovery. Each
+    // trade's own close timestamp becomes its point; Lightweight Charts
+    // requires strictly increasing time values, so two trades landing in the
+    // same minute (this app's date fields don't carry seconds) are nudged
+    // forward by a second - invisible here since this chart's crosshair
+    // label only shows the day, not time of day (see showTime in
+    // attachCrosshairPillLabels).
     let cumulative = 0;
-    closed.forEach(r => {
+    let lastTime = null;
+    const data = closed.map(r => {
         cumulative += r.returnAmount;
-        byDay.set(r.date.slice(0, 10), cumulative);
-    });
-
-    const data = Array.from(byDay.entries()).map(([day, value]) => {
-        const [y, m, d] = day.split('-').map(Number);
-        return { time: Date.UTC(y, m - 1, d) / 1000, value };
+        let time = Math.floor(new Date(r.date).getTime() / 1000);
+        if (lastTime !== null && time <= lastTime) time = lastTime + 1;
+        lastTime = time;
+        return { time, value: cumulative };
     });
 
     const finalData = data.length > 0 ? data : [{ time: 0, value: 0 }];

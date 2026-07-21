@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=91">
+    <link rel="stylesheet" href="styles.css?v=93">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -302,11 +302,11 @@
                     <div class="col-head sortable" onclick="sortTradeLog('exitPrice')">Exit <i class="fa-solid fa-sort" id="sort-icon-exitPrice"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('entTot')">Ent Tot <i class="fa-solid fa-sort" id="sort-icon-entTot"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('extTot')">Ext Tot <i class="fa-solid fa-sort" id="sort-icon-extTot"></i></div>
-                    <div class="col-head sortable" onclick="sortTradeLog('pos')">Pos <i class="fa-solid fa-sort" id="sort-icon-pos"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('pos')"><span class="col-head-label" onmouseenter="showColHeadTooltip(event, this)" onmouseleave="hideColHeadTooltip()" data-tooltip="Quantity still open on this trade.<br>= Entry Qty &minus; Exit Qty<br>Shows a dash once the trade is fully closed.">Pos</span> <i class="fa-solid fa-sort" id="sort-icon-pos"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('holdSeconds')">Hold <i class="fa-solid fa-sort" id="sort-icon-holdSeconds"></i></div>
                     <div class="col-head sortable" onclick="sortTradeLog('returnAmount')">Return <i class="fa-solid fa-sort" id="sort-icon-returnAmount"></i></div>
-                    <div class="col-head sortable" onclick="sortTradeLog('returnPct')">Return % <i class="fa-solid fa-sort" id="sort-icon-returnPct"></i></div>
-                    <div class="col-head sortable confidence-col" onclick="sortTradeLog('rMultiple')">R-Multiple <i class="fa-solid fa-sort" id="sort-icon-rMultiple"></i></div>
+                    <div class="col-head sortable" onclick="sortTradeLog('returnPct')"><span class="col-head-label" onmouseenter="showColHeadTooltip(event, this)" onmouseleave="hideColHeadTooltip()" data-tooltip="Percent return on this trade.<br>= (Return $ &divide; Entry Value) &times; 100<br>Entry Value = Entry Price &times; Qty &times; Contract Size (or your account balance, if PnL % Calculation Type is set to balance in Account Settings).">Return %</span> <i class="fa-solid fa-sort" id="sort-icon-returnPct"></i></div>
+                    <div class="col-head sortable confidence-col" onclick="sortTradeLog('rMultiple')"><span class="col-head-label" onmouseenter="showColHeadTooltip(event, this)" onmouseleave="hideColHeadTooltip()" data-tooltip="Return in units of risk (R).<br>= Return $ &divide; Risk Amount<br>Risk Amount = |Entry &minus; Stop-Loss| &times; Qty &times; Contract Size<br>Shows a dash when no Stop-Loss was set on the trade.">R-Multiple</span> <i class="fa-solid fa-sort" id="sort-icon-rMultiple"></i></div>
                     <div class="col-head sortable confidence-col" onclick="sortTradeLog('confidence')">Confidence <i class="fa-solid fa-sort" id="sort-icon-confidence"></i></div>
                 </div>
                 <div class="table-body" id="trade-log-body"></div>

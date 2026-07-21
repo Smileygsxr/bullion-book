@@ -713,6 +713,14 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     top: 4px;
 }
 
+/* Dashboard equity card only (raisePriceLabel in attachCrosshairPillLabels):
+   its price pane is too short (~44px) for the pill to float inside without
+   covering the curve, so it lifts into the empty strip above the chart
+   container, beside the trade-count label - still inside the card. */
+.equity-crosshair-label.price.raised {
+    top: -24px;
+}
+
 .equity-crosshair-label.date {
     bottom: 2px;
 }
@@ -884,6 +892,21 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     cursor: pointer;
 }
 .col-head.sortable i { font-size: 0.7rem; color: var(--text-muted); }
+
+/* Column labels with a hover formula tooltip (Pos, Return %, R-Multiple) -
+   the dotted underline hints there's more info without adding a visible
+   icon to every header. cursor:help overrides the parent .sortable's
+   cursor:pointer while hovering the word itself. */
+.col-head-label {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-muted);
+}
+
+/* Positioned ABOVE its target (see showColHeadTooltip in trades.js) rather
+   than below, like the Settings "?" tooltip this reuses the base style
+   from - a table header sits at the very top of its panel, with the table
+   body immediately underneath, so there's no room to show it below. */
+.col-head-tooltip { line-height: 1.6; }
 
 /* Dashboard trade log rows (mirrors .table-header-row's equal-width flex columns) */
 .table-body {
