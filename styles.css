@@ -1796,12 +1796,27 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     padding: 10px 14px;
     box-sizing: border-box;
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
 }
 
 .stats-metric-card:hover {
+    transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
+
+/* Per-metric accent tone: colors the left border, the label icon, and the
+   hover glow. The left-border color is re-asserted on hover so it keeps its
+   tone instead of being flattened to grey by the neutral border-color above. */
+.stats-metric-green { border-left-color: var(--win); }
+.stats-metric-red { border-left-color: var(--loss); }
+.stats-metric-gold { border-left-color: var(--accent-gold); }
+.stats-metric-blue { border-left-color: var(--accent-blue); }
+
+.stats-metric-green:hover { border-color: rgba(var(--win-rgb), 0.45); border-left-color: var(--win); box-shadow: 0 6px 16px rgba(var(--win-rgb), 0.14); }
+.stats-metric-red:hover { border-color: rgba(var(--loss-rgb), 0.45); border-left-color: var(--loss); box-shadow: 0 6px 16px rgba(var(--loss-rgb), 0.14); }
+.stats-metric-gold:hover { border-color: rgba(var(--accent-gold-rgb), 0.45); border-left-color: var(--accent-gold); box-shadow: 0 6px 16px rgba(var(--accent-gold-rgb), 0.14); }
+.stats-metric-blue:hover { border-color: rgba(var(--accent-blue-rgb), 0.45); border-left-color: var(--accent-blue); box-shadow: 0 6px 16px rgba(var(--accent-blue-rgb), 0.14); }
 
 .stats-metric-label {
     font-size: 0.65rem;
@@ -1810,6 +1825,14 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     font-weight: 700;
     letter-spacing: 0.03em;
 }
+
+/* The small leading icon takes the card's tone color, dot-of-color that makes
+   each tile identifiable without reading the label. */
+.stats-metric-label i { margin-right: 3px; font-size: 0.7rem; }
+.stats-metric-green .stats-metric-label i { color: var(--win); }
+.stats-metric-red .stats-metric-label i { color: var(--loss); }
+.stats-metric-gold .stats-metric-label i { color: var(--accent-gold); }
+.stats-metric-blue .stats-metric-label i { color: var(--accent-blue); }
 
 .stats-metric-value {
     font-size: 0.95rem;
@@ -5072,10 +5095,56 @@ body.privacy-mode .equity-crosshair-label.price {
     white-space: nowrap;
 }
 
-/* Week equity sparkline */
-.review-spark-svg { width: 100%; height: 150px; display: block; }
-.review-spark-dot { cursor: pointer; transition: r 0.1s ease; }
-.review-spark-dot:hover { r: 6; }
+/* Week equity sparkline. The SVG ribbon (curve + fill + glow) is stretched
+   edge-to-edge; the dots ride on top as absolutely-positioned round buttons
+   so they never squash with the SVG's non-uniform scale. */
+.review-spark-wrap { position: relative; width: 100%; height: 150px; margin-top: 6px; }
+.review-spark-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.review-spark-dot {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--bg-card);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: transform 0.12s ease, box-shadow 0.2s ease;
+    z-index: 2;
+}
+.review-spark-dot.up { background: var(--win); }
+.review-spark-dot.down { background: var(--loss); }
+.review-spark-dot:hover { transform: translate(-50%, -50%) scale(1.55); z-index: 3; }
+.review-spark-dot.up:hover { box-shadow: 0 0 12px rgba(var(--win-rgb), 0.7); }
+.review-spark-dot.down:hover { box-shadow: 0 0 12px rgba(var(--loss-rgb), 0.7); }
+
+/* The final dot is where the week's equity ended up - a gentle pulsing halo
+   draws the eye to it. Pauses on hover so the tooltip read is calm. */
+.review-spark-dot.is-last { width: 12px; height: 12px; }
+.review-spark-dot.is-last.up { animation: reviewSparkPulseUp 2s ease-out infinite; }
+.review-spark-dot.is-last.down { animation: reviewSparkPulseDown 2s ease-out infinite; }
+.review-spark-dot.is-last:hover { animation: none; }
+
+@keyframes reviewSparkPulseUp {
+    0% { box-shadow: 0 0 0 0 rgba(var(--win-rgb), 0.55); }
+    70% { box-shadow: 0 0 0 11px rgba(var(--win-rgb), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--win-rgb), 0); }
+}
+@keyframes reviewSparkPulseDown {
+    0% { box-shadow: 0 0 0 0 rgba(var(--loss-rgb), 0.55); }
+    70% { box-shadow: 0 0 0 11px rgba(var(--loss-rgb), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--loss-rgb), 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .review-spark-dot.is-last.up,
+    .review-spark-dot.is-last.down { animation: none; }
+}
 
 .review-panel-hint {
     color: var(--text-muted);

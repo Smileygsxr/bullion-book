@@ -867,11 +867,37 @@ const STATS_METRIC_DESCRIPTIONS = {
     'Times Blown': 'How many times a losing trade wiped your account - the running balance (deposits, withdrawals and trade P&L in date order) dropping to $0 or below. Depositing back above $0 re-arms the counter. Always measured on the whole account, ignoring filters.'
 };
 
+// Icon + accent tone per metric, keyed by label (same key style as
+// STATS_METRIC_DESCRIPTIONS). Tone drives the card's left-border and icon
+// color: green = favourable, red = unfavourable, gold = neutral/reference,
+// blue = activity/size - so the row reads as a color-coded grid at a glance
+// instead of an identical wall of blue tiles.
+const STATS_METRIC_META = {
+    'Win Rate':       { icon: 'fa-bullseye',          tone: 'green' },
+    'Expectancy':     { icon: 'fa-dice',              tone: 'gold' },
+    'Profit Factor':  { icon: 'fa-scale-balanced',    tone: 'gold' },
+    'Avg Win Hold':   { icon: 'fa-stopwatch',         tone: 'green' },
+    'Avg Loss Hold':  { icon: 'fa-stopwatch',         tone: 'red' },
+    'Avg Loss':       { icon: 'fa-arrow-trend-down',  tone: 'red' },
+    'Avg Win':        { icon: 'fa-arrow-trend-up',    tone: 'green' },
+    'Win Streak':     { icon: 'fa-fire',              tone: 'green' },
+    'Loss Streak':    { icon: 'fa-triangle-exclamation', tone: 'red' },
+    'Top Loss':       { icon: 'fa-angles-down',       tone: 'red' },
+    'Top Win':        { icon: 'fa-angles-up',         tone: 'green' },
+    'Avg Daily Vol':  { icon: 'fa-layer-group',       tone: 'blue' },
+    'Avg Size':       { icon: 'fa-weight-hanging',    tone: 'blue' },
+    'Total Fees':     { icon: 'fa-receipt',           tone: 'gold' },
+    'Avg R-Multiple': { icon: 'fa-ruler-horizontal',  tone: 'gold' },
+    'Times Blown':    { icon: 'fa-bomb',              tone: 'red' }
+};
+
 function renderStatsMetricCard([label, value, sensitive]) {
     const description = (STATS_METRIC_DESCRIPTIONS[label] || '').replace(/'/g, "\\'");
+    const meta = STATS_METRIC_META[label] || { icon: '', tone: 'blue' };
+    const iconHtml = meta.icon ? `<i class="fa-solid ${meta.icon}"></i> ` : '';
     return `
-        <div class="stats-metric-card" onclick="toggleStatsMetricTooltip(event, this, '${description}')">
-            <div class="stats-metric-label">${escapeHtml(label)}</div>
+        <div class="stats-metric-card stats-metric-${meta.tone}" onclick="toggleStatsMetricTooltip(event, this, '${description}')">
+            <div class="stats-metric-label">${iconHtml}${escapeHtml(label)}</div>
             <div class="stats-metric-value${sensitive ? ' sensitive-value' : ''}">${value}</div>
         </div>`;
 }
@@ -1978,8 +2004,31 @@ function buildReviewWeeksStrip(allClosed) {
         </div>`;
 }
 
-// Cumulative P&L across the week's trades (oldest first) as an SVG area
-// sparkline; every trade is a hoverable dot.
+// Builds a smooth cubic-bezier path through the given [x,y] points using a
+// Catmull-Rom spline (control handles = (next - prev) / 6) - turns the angular
+// equity polyline into a flowing curve. Shared by the line stroke and the
+// area fill so their top edges match exactly.
+function smoothLinePath(coords) {
+    if (coords.length < 2) return '';
+    let d = `M ${coords[0][0].toFixed(1)},${coords[0][1].toFixed(1)}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+        const p0 = coords[i === 0 ? 0 : i - 1];
+        const p1 = coords[i];
+        const p2 = coords[i + 1];
+        const p3 = coords[i + 2 < coords.length ? i + 2 : coords.length - 1];
+        const t = 1 / 6;
+        const c1x = p1[0] + (p2[0] - p0[0]) * t, c1y = p1[1] + (p2[1] - p0[1]) * t;
+        const c2x = p2[0] - (p3[0] - p1[0]) * t, c2y = p2[1] - (p3[1] - p1[1]) * t;
+        d += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+    }
+    return d;
+}
+
+// Cumulative P&L across the week's trades (oldest first) as a smooth SVG area
+// curve; every trade is a hoverable dot. The ribbon (curve + fill + glow) is
+// SVG stretched edge-to-edge, but the dots are absolutely-positioned HTML
+// elements placed by percentage - so they stay perfectly round instead of
+// being squashed into ellipses by the SVG's non-uniform stretch.
 function buildReviewSparkline(week) {
     if (week.length < 2) return '';
     const ordered = week.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1988,43 +2037,53 @@ function buildReviewSparkline(week) {
     const points = ordered.map(r => ({ row: r, cum: (running += r.returnAmount) }));
     const values = [0].concat(points.map(p => p.cum));
 
-    const w = 900, h = 150, padX = 10, padY = 14;
+    const w = 900, h = 150, padX = 10, padY = 16;
     const min = Math.min(...values), max = Math.max(...values);
     const span = (max - min) || 1;
     const stepX = (w - padX * 2) / (values.length - 1);
     const toX = i => padX + i * stepX;
     const toY = v => padY + (h - padY * 2) * (1 - (v - min) / span);
 
-    const lineCoords = values.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`);
-    const areaPath = `M ${toX(0).toFixed(1)},${toY(0).toFixed(1)} L ${lineCoords.join(' L ')} L ${toX(values.length - 1).toFixed(1)},${h - padY} L ${toX(0).toFixed(1)},${h - padY} Z`;
+    const coords = values.map((v, i) => [toX(i), toY(v)]);
+    const smooth = smoothLinePath(coords);
+    const baseY = (h - padY).toFixed(1);
+    const areaPath = `${smooth} L ${toX(values.length - 1).toFixed(1)},${baseY} L ${toX(0).toFixed(1)},${baseY} Z`;
 
     const finalUp = values[values.length - 1] >= 0;
     const tone = finalUp ? 'var(--win)' : 'var(--loss)';
     const gradId = 'review-spark-grad';
     const zeroY = toY(0).toFixed(1);
 
-    const dots = points.map((p, i) => `
-        <circle class="review-spark-dot" cx="${toX(i + 1).toFixed(1)}" cy="${toY(p.cum).toFixed(1)}" r="4"
-            fill="${p.row.returnAmount >= 0 ? 'var(--win)' : 'var(--loss)'}" stroke="var(--bg-card)" stroke-width="2"
-            data-heat-label="${escapeHtml(p.row.symbol)} &middot; ${formatReviewDayLabel(p.row.date.slice(0, 10))} ${typeof formatTradeTime === 'function' ? formatTradeTime(p.row.date) : ''}"
+    const dots = points.map((p, i) => {
+        const leftPct = (toX(i + 1) / w * 100).toFixed(3);
+        const topPct = (toY(p.cum) / h * 100).toFixed(3);
+        const cls = `review-spark-dot ${p.row.returnAmount >= 0 ? 'up' : 'down'}${i === points.length - 1 ? ' is-last' : ''}`;
+        const time = typeof formatTradeTime === 'function' ? formatTradeTime(p.row.date) : '';
+        return `<button type="button" class="${cls}" style="left:${leftPct}%;top:${topPct}%"
+            data-heat-label="${escapeHtml(p.row.symbol)} &middot; ${formatReviewDayLabel(p.row.date.slice(0, 10))} ${time}"
             data-heat-count="1" data-heat-winrate="" data-heat-pnl="${p.row.returnAmount}"
-            onclick="openTradeViewModal(null, '${p.row.id}')"></circle>`).join('');
+            onclick="openTradeViewModal(null, '${p.row.id}')"></button>`;
+    }).join('');
 
     return `
         <div class="stats-panel review-animate">
             <div class="stats-panel-title">WEEK EQUITY CURVE <span class="review-panel-hint">hover a dot for the trade, click to open it</span></div>
-            <svg class="review-spark-svg" id="review-spark-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                <defs>
-                    <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="${tone}" stop-opacity="0.35"/>
-                        <stop offset="100%" stop-color="${tone}" stop-opacity="0"/>
-                    </linearGradient>
-                </defs>
-                <line x1="0" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4" stroke-width="1"/>
-                <path d="${areaPath}" fill="url(#${gradId})"/>
-                <polyline points="${lineCoords.join(' ')}" fill="none" stroke="${tone}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <div class="review-spark-wrap">
+                <svg class="review-spark-svg" id="review-spark-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="${tone}" stop-opacity="0.32"/>
+                            <stop offset="55%" stop-color="${tone}" stop-opacity="0.10"/>
+                            <stop offset="100%" stop-color="${tone}" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <line x1="0" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="rgba(255,255,255,0.12)" stroke-dasharray="4 4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                    <path d="${areaPath}" fill="url(#${gradId})"/>
+                    <path d="${smooth}" fill="none" stroke="${tone}" stroke-width="7" stroke-opacity="0.16" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                    <path d="${smooth}" fill="none" stroke="${tone}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                </svg>
                 ${dots}
-            </svg>
+            </div>
         </div>`;
 }
 
