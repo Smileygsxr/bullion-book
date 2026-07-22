@@ -383,6 +383,7 @@ function resetChartToolbarFilters() {
     hideAllNews = true;
     document.querySelectorAll('.importance-filter-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('news-none-filter-btn').classList.add('active');
+    saveNewsImportanceFilters();
     refreshNewsVisibility();
 
     clearCurrencyFilter();
@@ -629,6 +630,7 @@ const CHART_SYMBOLS = [
     { symbol: 'XAUUSD', filePrefix: 'XAU-USD', label: 'XAUUSD' },
     { symbol: 'BTCUSD', filePrefix: 'BTC-USD', label: 'BTCUSD' },
     { symbol: 'US500', filePrefix: 'US500', label: 'US500' },
+    { symbol: 'UKOIL', filePrefix: 'UKOIL', label: 'UKOIL' },
     { symbol: 'EURUSD', filePrefix: 'EUR-USD', label: 'EURUSD' },
     { symbol: 'GBPUSD', filePrefix: 'GBP-USD', label: 'GBPUSD' },
     { symbol: 'USDJPY', filePrefix: 'USD-JPY', label: 'USDJPY' },
@@ -715,6 +717,7 @@ const TV_WIDGET_SYMBOLS = {
     XAUUSD: 'OANDA:XAUUSD',
     BTCUSD: 'BITSTAMP:BTCUSD',
     US500: 'FOREXCOM:SPXUSD',
+    UKOIL: 'TVC:UKOIL',
     EURUSD: 'FX:EURUSD',
     GBPUSD: 'FX:GBPUSD',
     USDJPY: 'FX:USDJPY',
@@ -853,6 +856,7 @@ function initCpiChart() {
             renderChartSymbolTabs();
             applyActiveSymbolFilter();
             renderCurrencyFilterChips(eventsByDate);
+            restoreNewsImportanceFilters();
             renderEventFilterTabs(eventsByDate);
         })
         .catch(err => {
@@ -1313,9 +1317,45 @@ function toggleImportanceFilter(level, clickedButton) {
     const noneBtn = document.getElementById('news-none-filter-btn');
     if (noneBtn) noneBtn.classList.remove('active');
 
+    saveNewsImportanceFilters();
     refreshNewsVisibility();
     refreshEventRowVisibility();
     // News Time Markers follow the same importance filter
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+}
+
+// Persists the High/Medium/Low selection plus the "None" (hideAllNews) state
+// to the user's settings (Firestore when logged in, localStorage for guests -
+// same split as newsCurrencyFilters), so the importance filter survives a
+// reload and follows the login across devices.
+function saveNewsImportanceFilters() {
+    if (typeof appSettings === 'undefined') return;
+    appSettings.newsImportanceFilters = Array.from(selectedImportanceFilters);
+    appSettings.newsHideAllNews = hideAllNews;
+    if (typeof saveAppSettings === 'function') saveAppSettings();
+}
+
+// Re-applies the saved importance selection to the static High/Medium/Low/None
+// buttons and the underlying state on load - the mirror of the per-toggle
+// saves above. Called once the calendar data is in (see initCpiChart), the
+// same point renderCurrencyFilterChips restores the currency chips.
+function restoreNewsImportanceFilters() {
+    if (typeof appSettings !== 'undefined' && Array.isArray(appSettings.newsImportanceFilters)) {
+        selectedImportanceFilters.clear();
+        appSettings.newsImportanceFilters.forEach(tier => selectedImportanceFilters.add(tier));
+    }
+    if (typeof appSettings !== 'undefined' && typeof appSettings.newsHideAllNews === 'boolean') {
+        hideAllNews = appSettings.newsHideAllNews;
+    }
+
+    document.querySelectorAll('.importance-filter-btn').forEach(btn => {
+        const level = btn.dataset.importance;
+        const on = level === 'none' ? hideAllNews : selectedImportanceFilters.has(level);
+        btn.classList.toggle('active', on);
+    });
+
+    refreshNewsVisibility();
+    refreshEventRowVisibility();
     cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
 }
 
@@ -1331,6 +1371,7 @@ function toggleNoNewsFilter(clickedButton) {
             if (btn !== clickedButton) btn.classList.remove('active');
         });
     }
+    saveNewsImportanceFilters();
     refreshNewsVisibility();
     // News Time Markers hide/show along with the rest of the news
     cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));

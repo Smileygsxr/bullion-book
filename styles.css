@@ -830,22 +830,41 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .ring-red .progress-ring-fg { stroke: var(--loss); }
 .ring-grey .progress-ring-fg { stroke: var(--text-muted); }
 
-/* Right PnL Profile Card Styling */
+/* Right PnL "hero" card - the headline figure, so it's given a soft radial
+   gold wash and a larger value than the metric tiles beside it. The value/
+   badge colors are still driven live by JS (green vs red), so the neutral
+   gold background reads as premium framing rather than a win/loss cue. */
 .pnl-card {
     flex: 1;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-width: 130px;
+    min-width: 150px;
     margin-left: 15px;
+    gap: 6px;
+    border-radius: 14px;
+    background:
+        radial-gradient(130% 100% at 50% 0%, rgba(var(--accent-gold-rgb), 0.10), transparent 62%),
+        var(--bg-card);
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.title-pnl { transform: translateY(-4px); }
+.pnl-card-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+.title-pnl {
+    transform: none;
+    letter-spacing: 1px;
+}
 .pnl-value {
     color: var(--win);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 4px 0;
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 0;
 }
 .pnl-badge-pct {
     background-color: rgba(var(--win-rgb), 0.1);
@@ -1085,18 +1104,24 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     flex-direction: column;
     gap: 8px;
 }*/
-/* Custom utility to size and layout the updated cards */
+/* Custom utility to size and layout the updated cards. Three-part rhythm:
+   a colored icon badge, the label/value text, then the progress ring pushed
+   to the far right (margin-left:auto) - reads left-to-right as identity ->
+   figure -> proportion. */
 .design-fix {
     width: 240px;
-    height: 65px;          /* Increased slightly from 55px to give text vertical breathing room */
-    display: flex;         /* Ensures horizontal layout distribution */
-    align-items: center;   /* Perfectly centers text stack and circle vertically */
-    justify-content: space-between; /* Pushes text to the left, ring to the right */
+    height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
     padding: 10px 16px;
     box-sizing: border-box;
     border-radius: 14px;
     transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+.design-fix .progress-ring { margin-left: auto; }
 
 .design-fix:hover {
     transform: translateY(-2px);
@@ -1104,14 +1129,39 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
+/* Colored icon badge on the left of each metric card (and the PnL hero) -
+   a rounded square tinted with the card's semantic color. */
+.stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+.stat-icon-green { background: rgba(var(--win-rgb), 0.14); color: var(--win); }
+.stat-icon-red { background: rgba(var(--loss-rgb), 0.14); color: var(--loss); }
+.stat-icon-blue { background: rgba(var(--accent-blue-rgb), 0.14); color: var(--accent-blue); }
+.stat-icon-gold { background: rgba(var(--accent-gold-rgb), 0.14); color: var(--accent-gold); }
+
+/* Per-card hover glow tinted to match the card's semantic color, overriding
+   the neutral .design-fix:hover shadow above (equal specificity, later in
+   source order so these win). */
+.dash-metric-green:hover { border-color: rgba(var(--win-rgb), 0.45); box-shadow: 0 8px 22px rgba(var(--win-rgb), 0.15); }
+.dash-metric-red:hover { border-color: rgba(var(--loss-rgb), 0.45); box-shadow: 0 8px 22px rgba(var(--loss-rgb), 0.15); }
+.dash-metric-blue:hover { border-color: rgba(var(--accent-blue-rgb), 0.45); box-shadow: 0 8px 22px rgba(var(--accent-blue-rgb), 0.15); }
+.dash-metric-gold:hover { border-color: rgba(var(--accent-gold-rgb), 0.45); box-shadow: 0 8px 22px rgba(var(--accent-gold-rgb), 0.15); }
+
 /* Both card types are clickable now (toggleStatsMetricTooltip, reused from
    the Stats page's identical card-click-for-description pattern) */
 .design-fix, .pnl-card { cursor: pointer; }
 
 .pnl-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    border-color: rgba(var(--accent-gold-rgb), 0.4);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
 }
 
 /* Groups the label and value vertically on the left side */

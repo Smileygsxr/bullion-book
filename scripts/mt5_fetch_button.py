@@ -37,6 +37,7 @@ SYMBOLS = {
     "XAUUSDm": "XAU-USD",
     "BTCUSDm": "BTC-USD",
     "US500m": "US500",
+    "UKOILm": "UKOIL",
     "EURUSDm": "EUR-USD",
     "GBPUSDm": "GBP-USD",
     "USDJPYm": "USD-JPY",

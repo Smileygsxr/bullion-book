@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=98">
+    <link rel="stylesheet" href="styles.css?v=99">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -198,7 +198,8 @@
 
                 <!-- B. Wins and Losses Block Metrics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a profit. The ring shows their share of all closed trades.')">
+                    <div class="dash-card design-fix dash-metric-green" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a profit. The ring shows their share of all closed trades.')">
+                        <div class="stat-icon stat-icon-green"><i class="fa-solid fa-trophy"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">WINS</span>
                             <span class="val-green" id="stat-wins">0</span>
@@ -211,7 +212,8 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a loss. The ring shows their share of all closed trades.')">
+                    <div class="dash-card design-fix dash-metric-red" onclick="toggleStatsMetricTooltip(event, this, 'Number of closed trades that ended in a loss. The ring shows their share of all closed trades.')">
+                        <div class="stat-icon stat-icon-red"><i class="fa-solid fa-circle-xmark"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">LOSSES</span>
                             <span class="val-red" id="stat-losses">0</span>
@@ -228,7 +230,8 @@
 
                 <!-- C. Open and Wash Trade Metrics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Trades that are still open, not yet closed. The ring shows their share of every trade in view.')">
+                    <div class="dash-card design-fix dash-metric-blue" onclick="toggleStatsMetricTooltip(event, this, 'Trades that are still open, not yet closed. The ring shows their share of every trade in view.')">
+                        <div class="stat-icon stat-icon-blue"><i class="fa-solid fa-hourglass-half"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">OPEN</span>
                             <span class="val-muted" id="stat-open">0</span>
@@ -241,7 +244,8 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Closed trades marked as breakeven - excluded from win/loss totals. The ring shows their share of every trade in view.')">
+                    <div class="dash-card design-fix dash-metric-gold" onclick="toggleStatsMetricTooltip(event, this, 'Closed trades marked as breakeven - excluded from win/loss totals. The ring shows their share of every trade in view.')">
+                        <div class="stat-icon stat-icon-gold"><i class="fa-solid fa-scale-balanced"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">WASH</span>
                             <span class="val-muted" id="stat-wash">0</span>
@@ -258,7 +262,8 @@
 
                 <!-- D. Average Win and Loss Statistics -->
                 <div class="metrics-group">
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar profit per winning trade. The ring shows its share versus Avg Loss (the two combined).')">
+                    <div class="dash-card design-fix dash-metric-green" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar profit per winning trade. The ring shows its share versus Avg Loss (the two combined).')">
+                        <div class="stat-icon stat-icon-green"><i class="fa-solid fa-arrow-trend-up"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG W</span>
                             <span class="val-green" id="stat-avg-win">$0</span>
@@ -271,7 +276,8 @@
                             <span class="progress-ring-label">0%</span>
                         </div>
                     </div>
-                    <div class="dash-card design-fix" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar loss per losing trade. The ring shows its share versus Avg Win (the two combined).')">
+                    <div class="dash-card design-fix dash-metric-red" onclick="toggleStatsMetricTooltip(event, this, 'Average dollar loss per losing trade. The ring shows its share versus Avg Win (the two combined).')">
+                        <div class="stat-icon stat-icon-red"><i class="fa-solid fa-arrow-trend-down"></i></div>
                         <div class="card-text-group">
                             <span class="lbl-muted">AVG L</span>
                             <span class="val-red" id="stat-avg-loss">-$0</span>
@@ -288,7 +294,8 @@
 
                 <!-- E. Total PnL Standalone Right Container -->
                 <div class="dash-card pnl-card" onclick="toggleStatsMetricTooltip(event, this, 'Total profit or loss across every closed trade currently in view, with percent return below it.')">
-                    <span class="lbl-muted title-pnl">PnL</span>
+                    <div class="stat-icon stat-icon-gold pnl-card-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                    <span class="lbl-muted title-pnl">Net PnL</span>
                     <div class="pnl-value" id="stat-pnl-value">$0</div>
                     <div class="pnl-badge-pct" id="stat-pnl-pct">0.0%</div>
                 </div>
@@ -618,7 +625,7 @@
                             </p>
                             <p class="news-info-guide-title">How to use this page</p>
                             <ul class="news-info-guide-list">
-                                <li>Use the symbol tabs (XAUUSD, BTCUSD, US500, majors) to switch which instrument's charts are shown.</li>
+                                <li>Use the symbol tabs (XAUUSD, BTCUSD, US500, UKOIL, majors) to switch which instrument's charts are shown.</li>
                                 <li>Use the <strong>Currency</strong> button to pick one or more currencies (USD, EUR, JPY, etc.) to only show news for those - remembered for next time you log in.</li>
                                 <li>Click an event name under the arrow (&#9656;) toggle to only show charts from days that event occurred.</li>
                                 <li>Use the High / Medium / Low chips to filter events by importance.</li>
@@ -1645,7 +1652,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-arrows-up-down"></i>
                         <h3>MAE / MFE</h3>
-                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade - plus an MFE:MAE edge ratio (above 1x = the market moves in your favor more than against you). Works for any symbol with chart data (XAUUSD, BTCUSD, US500 and the majors); same-day trades only.</p>
+                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade - plus an MFE:MAE edge ratio (above 1x = the market moves in your favor more than against you). Works for any symbol with chart data (XAUUSD, BTCUSD, US500, UKOIL and the majors); same-day trades only.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-wave-square"></i>
@@ -1666,7 +1673,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-candlestick"></i>
                         <h3>Daily Charts, 10 Symbols</h3>
-                        <p>One interactive candlestick chart per trading day. Use the symbol tabs (XAUUSD, BTCUSD, US500 and the 7 major forex pairs) to switch instruments - tabs are greyed out until that symbol has data.</p>
+                        <p>One interactive candlestick chart per trading day. Use the symbol tabs (XAUUSD, BTCUSD, US500, UKOIL and the 7 major forex pairs) to switch instruments - tabs are greyed out until that symbol has data.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-clock"></i>
@@ -2526,7 +2533,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=49"></script>
+    <script src="app.js?v=51"></script>
 
 </body>
 </html>

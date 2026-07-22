@@ -31,7 +31,13 @@ let appSettings = {
     // Charts page currency filter chips (3-letter ISO codes, e.g. ["USD"]) -
     // empty array shows every currency's news. See renderCurrencyFilterChips
     // in app.js.
-    newsCurrencyFilters: []
+    newsCurrencyFilters: [],
+    // Charts page importance chips (High/Medium/Low). newsImportanceFilters is
+    // the selected tiers (e.g. ["high"]); newsHideAllNews mirrors the "None"
+    // chip (true = strip hidden entirely). See restoreNewsImportanceFilters in
+    // app.js. Defaults keep the first-load "None on, news hidden" behavior.
+    newsImportanceFilters: [],
+    newsHideAllNews: true
 };
 
 // ---- Sidebar mode: hamburger drawer vs fixed ----

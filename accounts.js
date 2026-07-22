@@ -65,7 +65,12 @@ const BUILT_IN_CONTRACT_SIZES = {
     USDCHF: 100000,
     AUDUSD: 100000,
     USDCAD: 100000,
-    NZDUSD: 100000
+    NZDUSD: 100000,
+    // Brent crude CFD - most brokers quote 1 lot = 100 barrels (Exness
+    // Standard). Verify against your own broker in Settings > Instrument
+    // Settings if your Return % looks off; imported Return $ is unaffected
+    // (it uses the broker's own reported P&L).
+    UKOIL: 100
 };
 
 function getContractSizeForSymbol(symbol) {
