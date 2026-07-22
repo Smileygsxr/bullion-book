@@ -75,17 +75,30 @@ function toggleShowSelectedChartsOnly() {
     applyEventFilterAndReload();
 }
 
-// Re-generate this file (via scripts/Export_USD_Calendar.mq5, run inside
-// MT5) whenever you want fresher economic events - it's already
-// pre-filtered to USD only, so nothing here needs to filter by currency.
+// Re-generate this file (via scripts/Export_Economic_Calendar.mq5, run
+// inside MT5) whenever you want fresher economic events - it covers every
+// currency now, filtered client-side via the currency chips (see
+// renderCurrencyFilterChips) rather than being pre-filtered at export time.
 const ECONOMIC_EVENTS_CSV_PATH = './data/EconomicEvents.csv';
 
-// Header row: date,time,name,actual,forecast,previous,importance - one row
-// per event, date already ISO ("2026-07-03"), time already "8:30am"-style,
-// importance one of high/moderate/low/none (matches MT5's own Calendar tab).
+// Header row: date,time,name,currency,actual,forecast,previous,importance -
+// one row per event, date already ISO ("2026-07-03"), time already
+// "8:30am"-style, importance one of high/moderate/low/none (matches MT5's
+// own Calendar tab), currency a 3-letter ISO code ("USD", "EUR", ...).
 const IMPORTANCE_RANK = { high: 3, moderate: 2, low: 1, none: 0 };
 
-function loadUsdEconomicEvents() {
+// "8:30am"-style (lowercase, no space - see the CSV parsing below) to minutes
+// since midnight, for chronological sorting/comparison. Unparseable or blank
+// times sort to the end rather than crashing the whole day's event list.
+function parseEventTimeToMinutes(timeStr) {
+    const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})(am|pm)$/);
+    if (!match) return Number.MAX_SAFE_INTEGER;
+    let hour = parseInt(match[1], 10) % 12;
+    if (match[3] === 'pm') hour += 12;
+    return hour * 60 + parseInt(match[2], 10);
+}
+
+function loadEconomicEvents() {
     return fetch(`${ECONOMIC_EVENTS_CSV_PATH}?t=${Date.now()}`)
         .then(response => {
             if (!response.ok) throw new Error("EconomicEvents.csv not found.");
@@ -106,6 +119,7 @@ function loadUsdEconomicEvents() {
                 eventsByDate[date].push({
                     time: (row.time || '').trim().replace(/\s+/g, '').toLowerCase(),
                     name,
+                    currency: (row.currency || '').trim().toUpperCase(),
                     actual: (row.actual || '').trim(),
                     forecast: (row.forecast || '').trim(),
                     previous: (row.previous || '').trim(),
@@ -113,10 +127,13 @@ function loadUsdEconomicEvents() {
                 });
             });
 
-            // High-impact first within each day, so the events that actually
-            // move price aren't buried under a pile of low-impact noise.
+            // Chronological within each day - events used to sort by importance
+            // tier only (high first), which left times scrambled within a tier
+            // (whatever order the source CSV happened to list them in). The
+            // High/Medium/Low/None chips already let you filter OUT lower-impact
+            // noise, so the list itself now just reads top-to-bottom in time order.
             Object.values(eventsByDate).forEach(events => {
-                events.sort((a, b) => IMPORTANCE_RANK[b.importance] - IMPORTANCE_RANK[a.importance]);
+                events.sort((a, b) => parseEventTimeToMinutes(a.time) - parseEventTimeToMinutes(b.time));
             });
 
             return eventsByDate;
@@ -164,6 +181,123 @@ function clearEventFilters() {
     applyEventFilterAndReload();
 }
 
+// Currency filter chips (multi-select) - which currencies' news rows show
+// above each chart. Built fresh from whatever currencies are actually present
+// in the loaded calendar data (the MT5 export now covers every currency, not
+// just USD - see scripts/Export_Economic_Calendar.mq5). Unlike the event-name
+// tabs, this selection is remembered per user (Firestore for logged-in users,
+// localStorage for guests - see appSettings in settings.js) so it doesn't
+// reset every time the page reloads.
+let selectedCurrencyFilters = new Set();
+
+function renderCurrencyFilterChips(eventsByDate) {
+    const container = document.getElementById('currency-filter-tabs');
+    if (!container) return;
+
+    const currencies = new Set();
+    Object.values(eventsByDate).forEach(events => {
+        events.forEach(({ currency }) => { if (currency) currencies.add(currency); });
+    });
+
+    // Re-sync from the saved preference every time this renders (e.g. once
+    // appSettings has actually finished loading after login), dropping any
+    // saved code that isn't in this data so nothing gets silently hidden by
+    // an invisible, stale filter with no active chip to explain why.
+    const saved = (typeof appSettings !== 'undefined' && Array.isArray(appSettings.newsCurrencyFilters))
+        ? appSettings.newsCurrencyFilters
+        : [];
+    selectedCurrencyFilters = new Set(saved.filter(code => currencies.has(code)));
+
+    container.innerHTML = '';
+    syncCurrencyFilterButtonState();
+    if (currencies.size === 0) return;
+
+    Array.from(currencies).sort().forEach(code => {
+        const button = document.createElement('button');
+        button.className = 'news-tab';
+        button.textContent = code;
+        button.classList.toggle('active', selectedCurrencyFilters.has(code));
+        button.addEventListener('click', () => toggleCurrencyFilter(code, button));
+        container.appendChild(button);
+    });
+
+    refreshEventRowVisibility();
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+}
+
+function toggleCurrencyFilter(code, clickedButton) {
+    if (selectedCurrencyFilters.has(code)) {
+        selectedCurrencyFilters.delete(code);
+        clickedButton.classList.remove('active');
+    } else {
+        selectedCurrencyFilters.add(code);
+        clickedButton.classList.add('active');
+    }
+    if (typeof appSettings !== 'undefined') {
+        appSettings.newsCurrencyFilters = Array.from(selectedCurrencyFilters);
+        if (typeof saveAppSettings === 'function') saveAppSettings();
+    }
+    syncCurrencyFilterButtonState();
+    refreshEventRowVisibility();
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+}
+
+// Highlights the toolbar's "Currency" button itself whenever one or more
+// currencies are selected, same as how "Filter Dates" lights up when a date
+// range is active - so you can tell a filter is narrowing things down even
+// with the popover closed.
+function syncCurrencyFilterButtonState() {
+    const btn = document.getElementById('chart-currency-filter-btn');
+    if (btn) btn.classList.toggle('active', selectedCurrencyFilters.size > 0);
+}
+
+function toggleChartCurrencyPopover(event) {
+    const popover = document.getElementById('chart-currency-popover');
+    if (!popover) return;
+
+    if (popover.style.display === 'block') {
+        popover.style.display = 'none';
+        return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    popover.style.left = `${rect.left}px`;
+    popover.style.top = `${rect.bottom + 6}px`;
+    popover.style.display = 'block';
+}
+
+function clearCurrencyFilter() {
+    selectedCurrencyFilters.clear();
+    document.querySelectorAll('#currency-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
+    if (typeof appSettings !== 'undefined') {
+        appSettings.newsCurrencyFilters = [];
+        if (typeof saveAppSettings === 'function') saveAppSettings();
+    }
+    syncCurrencyFilterButtonState();
+    refreshEventRowVisibility();
+    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+    document.getElementById('chart-currency-popover').style.display = 'none';
+}
+
+// Shared by both the High/Medium/Low importance chips and the Currency chips -
+// a row must pass BOTH filter dimensions (an empty selection on either one
+// means that dimension isn't narrowing anything).
+function eventRowPassesFilters(row) {
+    const importanceOk = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
+    const currencyOk = selectedCurrencyFilters.size === 0 || selectedCurrencyFilters.has(row.dataset.currency);
+    return importanceOk && currencyOk;
+}
+
+function refreshEventRowVisibility() {
+    document.querySelectorAll('#chart-blocks-container .cpi-mini-event').forEach(row => {
+        // The Actual/Forecast/Previous column-label header is also a
+        // .cpi-mini-event (for layout alignment) but has no importance/currency -
+        // filtering must never hide it, or the columns lose their labels.
+        if (row.classList.contains('cpi-mini-events-header')) return;
+        row.style.display = eventRowPassesFilters(row) ? '' : 'none';
+    });
+}
+
 // Date range (inclusive, ISO "YYYY-MM-DD" strings) plus an optional
 // weekday multi-select (e.g. only Mondays) narrowing which chart dates are
 // shown - independent of tradeLogFilters (filters.js), since this filters
@@ -209,7 +343,8 @@ function applyChartDateFilter() {
             .map(chip => parseInt(chip.dataset.day, 10))
     );
 
-    document.getElementById('chart-date-filter-btn').classList.toggle('active', !!(chartDateFrom || chartDateTo || chartDayFilters.size > 0));
+    document.getElementById('chart-date-filter-btn').classList.toggle('active',
+        !!(chartDateFrom || chartDateTo || chartDayFilters.size > 0));
     document.getElementById('chart-date-range-popover').style.display = 'none';
     applyEventFilterAndReload();
 }
@@ -226,10 +361,59 @@ function clearChartDateFilter() {
     applyEventFilterAndReload();
 }
 
+// "Reset Filters" (Charts toolbar) - one click back to every filter/toggle's
+// default state: date range, weekday, event-name tabs, importance tiers,
+// News Time Markers, Trade Levels, and "Selected only". Starred charts
+// themselves (selectedChartKeys) are marks, not a filter, so they're left alone.
+function resetChartToolbarFilters() {
+    chartDateFrom = null;
+    chartDateTo = null;
+    chartDayFilters = new Set();
+    document.getElementById('chart-date-from').value = '';
+    document.getElementById('chart-date-to').value = '';
+    document.querySelectorAll('#chart-day-chips .chart-day-chip').forEach(chip => chip.classList.remove('active'));
+    document.getElementById('chart-date-filter-btn').classList.remove('active');
+    document.getElementById('chart-date-range-popover').style.display = 'none';
+
+    selectedEventFilters.clear();
+    document.querySelectorAll('#event-filter-tabs .news-tab').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('all-charts-tab').classList.add('active');
+
+    selectedImportanceFilters.clear();
+    hideAllNews = true;
+    document.querySelectorAll('.importance-filter-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('news-none-filter-btn').classList.add('active');
+    refreshNewsVisibility();
+
+    clearCurrencyFilter();
+
+    newsTimeLinesEnabled = false;
+    document.getElementById('news-time-lines-toggle').classList.remove('active');
+    tradeOverlaysEnabled = false;
+    document.getElementById('trade-overlays-toggle').classList.remove('active');
+    cpiChartInstances.forEach((_, dateString) => {
+        applyNewsTimeMarkers(dateString);
+        applyTradeOverlays(dateString);
+    });
+
+    showSelectedChartsOnly = false;
+    document.getElementById('chart-selected-filter-btn').classList.remove('active');
+
+    applyEventFilterAndReload();
+}
+
 document.addEventListener('click', event => {
     const popover = document.getElementById('chart-date-range-popover');
     if (!popover || popover.style.display === 'none') return;
     const filterBtn = event.target.closest('#chart-date-filter-btn');
+    if (popover.contains(event.target) || filterBtn) return;
+    popover.style.display = 'none';
+});
+
+document.addEventListener('click', event => {
+    const popover = document.getElementById('chart-currency-popover');
+    if (!popover || popover.style.display === 'none') return;
+    const filterBtn = event.target.closest('#chart-currency-filter-btn');
     if (popover.contains(event.target) || filterBtn) return;
     popover.style.display = 'none';
 });
@@ -323,10 +507,10 @@ function toggleNewsInfoPanel() {
 }
 
 function toggleEventTabsCollapse() {
-    const tabsContainer = document.getElementById('event-filter-tabs');
+    const collapseArea = document.getElementById('event-tabs-collapse-area');
     const toggleButton = document.getElementById('event-tabs-toggle');
-    const isCollapsed = tabsContainer.style.display === 'none';
-    tabsContainer.style.display = isCollapsed ? 'flex' : 'none';
+    const isCollapsed = collapseArea.style.display === 'none';
+    collapseArea.style.display = isCollapsed ? 'flex' : 'none';
     toggleButton.innerHTML = isCollapsed ? '&#9662;' : '&#9656;';
 }
 
@@ -655,7 +839,7 @@ function initCpiChart() {
 
     Promise.all([
         discoverChartFiles(),
-        loadUsdEconomicEvents().catch(err => {
+        loadEconomicEvents().catch(err => {
             console.error("Economic events load error:", err.message);
             return {};
         })
@@ -668,6 +852,7 @@ function initCpiChart() {
             allChartEventsByDate = eventsByDate;
             renderChartSymbolTabs();
             applyActiveSymbolFilter();
+            renderCurrencyFilterChips(eventsByDate);
             renderEventFilterTabs(eventsByDate);
         })
         .catch(err => {
@@ -868,7 +1053,7 @@ function toggleNewsTimeLines() {
 }
 
 // Parses "4:00pm" / "12:30am" (no space, lowercase, as produced by
-// loadUsdEconomicEvents' time column) into 24-hour { hour, minute }. Returns null if unparseable.
+// loadEconomicEvents' time column) into 24-hour { hour, minute }. Returns null if unparseable.
 function parseEventClockTime(timeStr) {
     const match = (timeStr || '').match(/^(\d{1,2}):(\d{2})(am|pm)$/i);
     if (!match) return null;
@@ -885,11 +1070,14 @@ function buildNewsTimeMarkers(dateString, events) {
 
     // Markers mirror the events strip's visibility: hidden entirely while
     // "None" is active, and narrowed to the selected High/Medium/Low tiers
-    // otherwise - filtering for High should only mark high-impact times.
+    // and/or currencies otherwise - filtering for High/USD should only mark
+    // high-impact USD times.
     if (hideAllNews) return [];
-    const visibleEvents = selectedImportanceFilters.size === 0
-        ? events
-        : events.filter(({ importance }) => selectedImportanceFilters.has(importance || 'none'));
+    const visibleEvents = events.filter(({ importance, currency }) => {
+        const importanceOk = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(importance || 'none');
+        const currencyOk = selectedCurrencyFilters.size === 0 || selectedCurrencyFilters.has(currency || '');
+        return importanceOk && currencyOk;
+    });
 
     const seenTimes = new Set();
     const markers = [];
@@ -1126,14 +1314,7 @@ function toggleImportanceFilter(level, clickedButton) {
     if (noneBtn) noneBtn.classList.remove('active');
 
     refreshNewsVisibility();
-    document.querySelectorAll('#chart-blocks-container .cpi-mini-event').forEach(row => {
-        // The Actual/Forecast/Previous column-label header is also a
-        // .cpi-mini-event (for layout alignment) but has no importance -
-        // filtering must never hide it, or the columns lose their labels.
-        if (row.classList.contains('cpi-mini-events-header')) return;
-        const visible = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
-        row.style.display = visible ? '' : 'none';
-    });
+    refreshEventRowVisibility();
     // News Time Markers follow the same importance filter
     cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
 }
@@ -1174,12 +1355,14 @@ function renderEventsForDate(block, date, eventsByDate) {
 
     if (!miniData || !eventsList || !events || events.length === 0) return;
 
-    eventsList.innerHTML = events.map(({ time, name, actual, forecast, previous, importance }) => {
+    eventsList.innerHTML = events.map(({ time, name, currency, actual, forecast, previous, importance }) => {
         const actualColorClass = getActualColorClass(name, actual, forecast);
-        const hidden = selectedImportanceFilters.size > 0 && !selectedImportanceFilters.has(importance || 'none');
+        const hidden = (selectedImportanceFilters.size > 0 && !selectedImportanceFilters.has(importance || 'none'))
+            || (selectedCurrencyFilters.size > 0 && !selectedCurrencyFilters.has(currency || ''));
         return `
-        <div class="cpi-mini-event" data-importance="${importance || 'none'}" style="${hidden ? 'display:none;' : ''}">
+        <div class="cpi-mini-event" data-importance="${importance || 'none'}" data-currency="${currency || ''}" style="${hidden ? 'display:none;' : ''}">
             <span class="cpi-mini-event-name">${name}</span>
+            <span class="cpi-mini-event-currency">${currency || ''}</span>
             <span class="cpi-mini-event-importance-dot importance-${importance || 'none'}" title="${(importance || 'none')} impact"></span>
             <span class="cpi-mini-event-vals">
                 <input type="text" class="cpi-edit-input cpi-mini-input ${actualColorClass}" value="${actual}" title="Actual" readonly>

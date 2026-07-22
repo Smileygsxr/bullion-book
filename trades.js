@@ -732,6 +732,17 @@ function closeTradeRowMenu() {
 
 document.addEventListener('click', closeTradeRowMenu);
 
+// "Tag & Playbook" row-menu shortcut - jumps straight into the edit modal
+// (skipping the read-only Trade View modal in between) landing on the
+// General tab, where Tags and Playbook already sit side by side with their
+// own quick-add "+" buttons - the fastest existing path to tagging a trade.
+function handleQuickTagPlaybookClick(event) {
+    event.stopPropagation();
+    const tradeId = document.getElementById('trade-row-menu').dataset.tradeId;
+    closeTradeRowMenu();
+    openTradeModal(tradeId);
+}
+
 function handleWashToggleClick(event) {
     event.stopPropagation();
     const tradeId = document.getElementById('trade-row-menu').dataset.tradeId;

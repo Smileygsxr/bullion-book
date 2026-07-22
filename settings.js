@@ -27,7 +27,11 @@ let appSettings = {
     maxDailyTrades: 0,
     // First-run guided tour (tutorial.js) - true once finished or skipped,
     // synced to the login so it doesn't replay on every new device.
-    tutorialDone: false
+    tutorialDone: false,
+    // Charts page currency filter chips (3-letter ISO codes, e.g. ["USD"]) -
+    // empty array shows every currency's news. See renderCurrencyFilterChips
+    // in app.js.
+    newsCurrencyFilters: []
 };
 
 // ---- Sidebar mode: hamburger drawer vs fixed ----

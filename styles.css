@@ -1168,6 +1168,17 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     border-color: #647080;
 }
 
+/* "Reset Filters" (Charts toolbar) - an action, not a toggle, so it's given
+   an accent outline to stand out from the plain grey filter/toggle pills. */
+.chart-reset-filters-btn {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+.chart-reset-filters-btn:hover {
+    background-color: rgba(var(--accent-gold-rgb), 0.12);
+    color: var(--accent-gold);
+}
+
 /* Count pill inside the "Selected" filter button (Charts page toolbar) */
 .chart-selected-count-badge {
     display: inline-flex;
@@ -1333,6 +1344,18 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     white-space: nowrap;
 }
 
+/* Which currency/economy a news row belongs to (e.g. "USD", "JPY") - sits
+   just left of the event name, since generic names like Exports/Imports/
+   Trade Balance repeat across every currency. */
+.cpi-mini-event-currency {
+    width: 24px;
+    flex-shrink: 0;
+    font-size: 0.52rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    white-space: nowrap;
+}
+
 .cpi-mini-event-time {
     width: 44px;
     font-size: 0.55rem;
@@ -1340,7 +1363,7 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     white-space: nowrap;
 }
 
-/* Matches MT5's own Calendar tab impact colors (see Export_USD_Calendar.mq5) */
+/* Matches MT5's own Calendar tab impact colors (see Export_Economic_Calendar.mq5) */
 .cpi-mini-event-importance-dot {
     width: 6px;
     height: 6px;
@@ -3975,6 +3998,24 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     border-color: var(--accent-blue);
 }
 
+/* Event-name filter tabs (Charts toolbar's "▶" disclosure) - now that the
+   calendar covers 8 currencies instead of just USD, this list can run into
+   the hundreds of chips. Boxing it with a capped height and its own scroll
+   keeps it from sprawling down the whole page; align-content packs rows
+   tightly from the top instead of spreading them out to fill the box. */
+.event-filter-tabs-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
 .help-search-wrap {
     position: relative;
     max-width: 420px;
@@ -6279,10 +6320,12 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     #page-news .news-content-area { margin-top: 0 !important; }
     #page-news .news-header,
     #page-news #chart-symbol-tabs,
-    #page-news .news-toggle-row { display: none !important; }
+    #page-news .news-toggle-row,
+    #page-news #news-info-toggle { display: none !important; }
     #page-news.mobile-filters-open .news-header,
     #page-news.mobile-filters-open #chart-symbol-tabs,
-    #page-news.mobile-filters-open .news-toggle-row { display: flex !important; }
+    #page-news.mobile-filters-open .news-toggle-row,
+    #page-news.mobile-filters-open #news-info-toggle { display: flex !important; }
 
     /* Stat tiles: 2-up grid instead of six full-width stripes. The equity
        chart spans both columns; display:contents flattens the three

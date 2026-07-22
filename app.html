@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=93">
+    <link rel="stylesheet" href="styles.css?v=98">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -578,7 +578,7 @@
         <!-- ========================================== -->
         <!-- 4. NEWS PAGE VIEW WITH SUB-PAGES -->
         <!-- ========================================== -->
-        <div id="page-news" class="view-section" style="display: none; width: 100%; flex-direction: column; gap: 20px; align-items: flex-start;">
+        <div id="page-news" class="view-section" style="display: none; width: 100%; flex-direction: column; gap: 10px; align-items: flex-start;">
 
             <!-- Mobile only: the filter/symbol pill rows below stack ~6 rows
                  deep on a phone before the first chart - this button collapses
@@ -589,64 +589,82 @@
                 <i class="fa-solid fa-chevron-down news-mobile-filters-chevron"></i>
             </button>
 
-            <!-- News Filter Segment Header Row -->
-            <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); width: 100%;">
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
-                    <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
-                    <div class="event-tab-search-wrap">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="event-tab-search" placeholder="Search event types..." oninput="filterEventTabs(this.value)">
+            <!-- News toolbar: header+toggle rows stack in one column on the left,
+                 the "About this page" (?) button sits vertically centered beside
+                 both rows on the far right. -->
+            <div style="display: flex; align-items: center; gap: 14px; width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0;">
+                    <!-- News Filter Segment Header Row -->
+                    <header class="news-header" style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); width: 100%;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button class="news-tab active" id="all-charts-tab" onclick="clearEventFilters()">All Charts</button>
+                                <button class="event-tabs-toggle" id="event-tabs-toggle" onclick="toggleEventTabsCollapse()" title="Show/hide event filters">&#9656;</button>
+                                <div class="event-tab-search-wrap">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="event-tab-search" placeholder="Search event types..." oninput="filterEventTabs(this.value)">
+                                </div>
+                            </div>
+                            <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
+                            <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
+                        </div>
+                        <div id="event-tabs-collapse-area" style="display: none; flex-direction: column; gap: 8px; width: 100%;">
+                            <div id="event-filter-tabs" class="event-filter-tabs-box"></div>
+                        </div>
+                        <div id="news-info-panel" class="news-info-panel" style="display: none;">
+                            <p class="news-info-warning">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                Charts and economic news on this page are imported manually once a day, not streamed live from your broker. Prices may differ slightly from your broker's exact feed due to spread, execution timing, or the manual import schedule - treat this page as reference context, not tick-accurate data.
+                            </p>
+                            <p class="news-info-guide-title">How to use this page</p>
+                            <ul class="news-info-guide-list">
+                                <li>Use the symbol tabs (XAUUSD, BTCUSD, US500, majors) to switch which instrument's charts are shown.</li>
+                                <li>Use the <strong>Currency</strong> button to pick one or more currencies (USD, EUR, JPY, etc.) to only show news for those - remembered for next time you log in.</li>
+                                <li>Click an event name under the arrow (&#9656;) toggle to only show charts from days that event occurred.</li>
+                                <li>Use the High / Medium / Low chips to filter events by importance.</li>
+                                <li>Use <strong>Filter Dates</strong> to narrow the chart list to a specific date range.</li>
+                                <li>Toggle <strong>News Time Markers</strong> to mark each chart at the time its event(s) happened.</li>
+                                <li>Toggle <strong>Trade Levels</strong> to overlay your entry/target/stop-loss zones for trades placed that day.</li>
+                            </ul>
+                        </div>
+                    </header>
+
+                    <div class="news-toggle-row" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">
+                            <i class="fa-solid fa-arrow-up"></i> News Time Markers
+                        </button>
+                        <button class="news-tab" id="trade-overlays-toggle" onclick="toggleTradeOverlays()" title="Show entry/target/stop-loss zones for trades placed that day">
+                            <i class="fa-solid fa-bullseye"></i> Trade Levels
+                        </button>
+                        <button class="news-tab importance-filter-btn" data-importance="high" onclick="toggleImportanceFilter('high', this)" title="Show only high-impact events">
+                            <span class="cpi-mini-event-importance-dot importance-high"></span> High
+                        </button>
+                        <button class="news-tab importance-filter-btn" data-importance="moderate" onclick="toggleImportanceFilter('moderate', this)" title="Show only medium-impact events">
+                            <span class="cpi-mini-event-importance-dot importance-moderate"></span> Medium
+                        </button>
+                        <button class="news-tab importance-filter-btn" data-importance="low" onclick="toggleImportanceFilter('low', this)" title="Show only low-impact events">
+                            <span class="cpi-mini-event-importance-dot importance-low"></span> Low
+                        </button>
+                        <button class="news-tab importance-filter-btn active" id="news-none-filter-btn" data-importance="none" onclick="toggleNoNewsFilter(this)" title="Hide all news above the charts">
+                            <span class="cpi-mini-event-importance-dot importance-none"></span> None
+                        </button>
+                        <button class="news-tab" id="chart-currency-filter-btn" onclick="toggleChartCurrencyPopover(event)" title="Show news for only certain currencies">
+                            <i class="fa-solid fa-coins"></i> Currency
+                        </button>
+                        <button class="news-tab" id="chart-date-filter-btn" onclick="toggleChartDatePopover(event)" title="Narrow charts by date range or weekday">
+                            <i class="fa-solid fa-calendar-days"></i> Filter Dates
+                        </button>
+                        <button class="news-tab" id="chart-selected-filter-btn" onclick="toggleShowSelectedChartsOnly()" title="Show only the charts you've selected">
+                            <i class="fa-solid fa-check-double"></i> Selected
+                            <span class="chart-selected-count-badge" id="chart-selected-count-badge" style="display: none;">0</span>
+                        </button>
+                        <button class="news-tab chart-reset-filters-btn" id="chart-reset-filters-btn" onclick="resetChartToolbarFilters()" title="Reset all chart filters back to default">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
+                        </button>
                     </div>
-                    <button class="news-info-toggle" id="news-info-toggle" onclick="toggleNewsInfoPanel()" title="About this page">?</button>
                 </div>
-                <div id="event-filter-tabs" style="display: none; flex-wrap: wrap; gap: 8px;"></div>
-                <div id="news-info-panel" class="news-info-panel" style="display: none;">
-                    <p class="news-info-warning">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        Charts and economic news on this page are imported manually once a day, not streamed live from your broker. Prices may differ slightly from your broker's exact feed due to spread, execution timing, or the manual import schedule - treat this page as reference context, not tick-accurate data.
-                    </p>
-                    <p class="news-info-guide-title">How to use this page</p>
-                    <ul class="news-info-guide-list">
-                        <li>Use the symbol tabs (XAUUSD, BTCUSD, US500, majors) to switch which instrument's charts are shown.</li>
-                        <li>Click an event name under the arrow (&#9656;) toggle to only show charts from days that event occurred.</li>
-                        <li>Use the High / Medium / Low chips to filter events by importance.</li>
-                        <li>Use <strong>Filter Dates</strong> to narrow the chart list to a specific date range.</li>
-                        <li>Toggle <strong>News Time Markers</strong> to mark each chart at the time its event(s) happened.</li>
-                        <li>Toggle <strong>Trade Levels</strong> to overlay your entry/target/stop-loss zones for trades placed that day.</li>
-                    </ul>
-                </div>
-            </header>
 
-            <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
-            <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
-
-            <div class="news-toggle-row" style="display: flex; align-items: center; gap: 8px; margin: -14px 0; flex-wrap: wrap;">
-                <button class="news-tab" id="news-time-lines-toggle" onclick="toggleNewsTimeLines()" title="Mark each chart at its news event time(s)">
-                    <i class="fa-solid fa-arrow-up"></i> News Time Markers
-                </button>
-                <button class="news-tab" id="trade-overlays-toggle" onclick="toggleTradeOverlays()" title="Show entry/target/stop-loss zones for trades placed that day">
-                    <i class="fa-solid fa-bullseye"></i> Trade Levels
-                </button>
-                <button class="news-tab importance-filter-btn" data-importance="high" onclick="toggleImportanceFilter('high', this)" title="Show only high-impact events">
-                    <span class="cpi-mini-event-importance-dot importance-high"></span> High
-                </button>
-                <button class="news-tab importance-filter-btn" data-importance="moderate" onclick="toggleImportanceFilter('moderate', this)" title="Show only medium-impact events">
-                    <span class="cpi-mini-event-importance-dot importance-moderate"></span> Medium
-                </button>
-                <button class="news-tab importance-filter-btn" data-importance="low" onclick="toggleImportanceFilter('low', this)" title="Show only low-impact events">
-                    <span class="cpi-mini-event-importance-dot importance-low"></span> Low
-                </button>
-                <button class="news-tab importance-filter-btn active" id="news-none-filter-btn" data-importance="none" onclick="toggleNoNewsFilter(this)" title="Hide all news above the charts">
-                    <span class="cpi-mini-event-importance-dot importance-none"></span> None
-                </button>
-                <button class="news-tab" id="chart-date-filter-btn" onclick="toggleChartDatePopover(event)" title="Only show charts within a date range">
-                    <i class="fa-solid fa-calendar-days"></i> Filter Dates
-                </button>
-                <button class="news-tab" id="chart-selected-filter-btn" onclick="toggleShowSelectedChartsOnly()" title="Show only the charts you've selected">
-                    <i class="fa-solid fa-check-double"></i> Selected
-                    <span class="chart-selected-count-badge" id="chart-selected-count-badge" style="display: none;">0</span>
-                </button>
+                <button class="news-info-toggle" id="news-info-toggle" onclick="toggleNewsInfoPanel()" title="About this page">?</button>
             </div>
 
             <!-- News Content Workspace Container -->
@@ -675,6 +693,7 @@
                                     <div class="cpi-mini-events-col">
                                         <div class="cpi-mini-event cpi-mini-events-header">
                                             <span class="cpi-mini-event-name" style="visibility: hidden;">&nbsp;</span>
+                                            <span class="cpi-mini-event-currency" style="visibility: hidden;">USD</span>
                                             <span class="cpi-mini-event-vals">
                                                 <span class="cpi-mini-col-label">Actual</span>
                                                 <span class="cpi-mini-col-label">Forecast</span>
@@ -1657,7 +1676,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-circle-dot"></i>
                         <h3>Economic Events</h3>
-                        <p>USD calendar events (with Actual/Forecast/Previous values and a colored importance dot) appear above each day's chart. They're hidden by default - the <strong>None</strong> chip is on until you pick High, Medium or Low to show those tiers.</p>
+                        <p>Calendar events for every currency (with Actual/Forecast/Previous values and a colored importance dot) appear above each day's chart - use the <strong>Currency</strong> button to narrow it down (e.g. USD only). They're hidden by default - the <strong>None</strong> chip is on until you pick High, Medium or Low to show those tiers.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-filter"></i>
@@ -1677,7 +1696,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-arrow-up"></i>
                         <h3>News Time Markers</h3>
-                        <p>Toggle this to drop a marker on each chart at the exact time of that day's USD economic news events.</p>
+                        <p>Toggle this to drop a marker on each chart at the exact time of that day's economic news events (respects the currency and importance filters).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-ruler"></i>
@@ -1943,6 +1962,9 @@
 
     <!-- Shared per-row "..." menu for the dashboard trade log (positioned via JS, see toggleTradeRowMenu) -->
     <div id="trade-row-menu" class="trade-row-menu" style="display: none;">
+        <button class="trade-row-menu-item" onclick="handleQuickTagPlaybookClick(event)">
+            <i class="fa-solid fa-tags"></i> Tag &amp; Playbook
+        </button>
         <button class="trade-row-menu-item" onclick="handleWashToggleClick(event)">
             <i class="fa-solid fa-scale-balanced"></i> <span id="trade-row-menu-wash-label">Mark as Wash</span>
         </button>
@@ -2163,6 +2185,18 @@
         <div style="display: flex; gap: 8px; margin-top: 14px;">
             <button class="custom-date-popover-btn btn-blue" onclick="applyChartDateFilter()">Apply</button>
             <button class="custom-date-popover-btn btn-neutral" onclick="clearChartDateFilter()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Chart currency popover (News page - which currencies' news rows show
+         above each chart; chips apply instantly, no Apply step needed) -->
+    <div id="chart-currency-popover" class="custom-date-popover" style="display: none;">
+        <div class="modal-field">
+            <label class="modal-label">Currency</label>
+            <div id="currency-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button class="custom-date-popover-btn btn-neutral" onclick="clearCurrencyFilter()">Clear</button>
         </div>
     </div>
 
@@ -2492,7 +2526,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=45"></script>
+    <script src="app.js?v=49"></script>
 
 </body>
 </html>
