@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=109">
+    <link rel="stylesheet" href="styles.css?v=110">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -139,6 +139,10 @@
                 <span class="support-heart heart-2">&hearts;</span>
                 <i class="fa-solid fa-mug-hot"></i>
             </a>
+            <!-- Build stamp, filled in by renderAppVersion() from version.json
+                 (generated at deploy time - see scripts/write-version.js).
+                 Stays empty when that file isn't there, e.g. running locally. -->
+            <p class="sidebar-version" id="sidebar-version"></p>
         </div>
 
         <!-- 4. Logged-in User Profile Circle -->
@@ -2529,7 +2533,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=52"></script>
+    <script src="app.js?v=53"></script>
 
 </body>
 </html>

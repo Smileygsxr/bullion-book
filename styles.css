@@ -393,6 +393,19 @@ Formats the main application name in bold white text and positions a bright blue
     padding: 4px 4px 14px;
 }
 
+/* Build stamp under the support block. Empty (and so invisible, thanks to
+   :empty) until renderAppVersion fills it in from version.json. */
+.sidebar-version {
+    margin: 0;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.sidebar-version:empty { display: none; }
+
 .sidebar-support-text {
     margin: 0;
     font-size: 0.76rem;

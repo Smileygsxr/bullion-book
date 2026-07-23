@@ -1938,3 +1938,24 @@ function initHelpTileGoTo() {
 }
 
 document.addEventListener('DOMContentLoaded', initHelpTileGoTo);
+
+// ---- Build stamp in the sidebar footer ----
+// version.json is written at deploy time from Vercel's VERCEL_GIT_COMMIT_SHA
+// (scripts/write-version.js). It deliberately fails silent: running locally
+// there's no such file, so the element stays empty and CSS (:empty) hides it
+// entirely rather than showing a broken or misleading version.
+function renderAppVersion() {
+    const el = document.getElementById('sidebar-version');
+    if (!el) return;
+
+    fetch('./version.json')
+        .then(response => (response.ok ? response.json() : null))
+        .then(info => {
+            if (!info || !info.commit || info.commit === 'dev') return;
+            el.textContent = `build ${info.commit}`;
+            if (info.builtAt) el.title = `Deployed ${info.builtAt}`;
+        })
+        .catch(() => { /* no version.json (local dev) - leave it blank */ });
+}
+
+document.addEventListener('DOMContentLoaded', renderAppVersion);

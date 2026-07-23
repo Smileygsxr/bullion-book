@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+
+# Generated at deploy time by scripts/write-version.js
+version.json
