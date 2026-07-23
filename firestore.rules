@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Bullion Book Firestore security rules.
+//
+// Derived from the app's actual access patterns:
+//   users/{uid}                  - accounts.js, settings.js, chart-tools.js
+//   communityShares/{shareId}    - community.js (Trade Wall)
+//   communityLeaderboard/{entry} - community.js (weekly board)
+//
+// Deploy with:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Private journal data -------------------------------------------
+    // One document per user holding bullionAccounts (every trade, note and
+    // account), appSettings, chartDrawings and profilePhotoDataUrl. This is
+    // the sensitive data - only ever readable/writable by its owner. Nothing
+    // in the app reads another user's document.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ---- Trade Wall (public) --------------------------------------------
+    // Deliberately world-readable: loadTradeWall() runs for logged-out
+    // visitors too. The payload carries no dollar amounts - only symbol,
+    // direction, status, R-multiple, return %, hold time and a display name.
+    match /communityShares/{shareId} {
+      allow read: if true;
+
+      // You may only post as yourself.
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+
+      // Anyone signed in can react to anyone's card, so updates are allowed
+      // across users - but ONLY to the reactions map, and only to the three
+      // known counters. Every other field (uid, symbol, rMultiple, ...) is
+      // frozen after creation, so a reaction can't be used to rewrite a card.
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+                    && request.resource.data.reactions.keys().hasOnly(['fire', 'rocket', 'clap']);
+
+      // Only the author can take their own card down.
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ---- Weekly leaderboard (public) ------------------------------------
+    // One document per user per week, keyed "{uid}_{weekKey}". Also read by
+    // logged-out visitors. Enforcing the key shape stops anyone writing an
+    // entry under someone else's id.
+    match /communityLeaderboard/{entryId} {
+      allow read: if true;
+
+      allow create, update: if request.auth != null
+                            && request.resource.data.uid == request.auth.uid
+                            && entryId == request.auth.uid + '_' + request.resource.data.weekKey;
+
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
+    }
+
+    // ---- Everything else -------------------------------------------------
+    // Default deny: any collection not listed above is unreachable.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

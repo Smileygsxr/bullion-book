@@ -989,7 +989,6 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         if (titleEl) titleEl.textContent = activeChartSymbol.label;
 
         const caption = block.querySelector('.cpi-chart-caption');
-        const dateInput = block.querySelector('.cpi-date-input');
         const chartContainer = block.querySelector('.xauusd-lightweight-chart');
 
         // Drives toggleChartSelected/applyChartSelectedButtonState below -
@@ -1008,7 +1007,6 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         caption.dataset.date = date;
         const liveBadge = date === todayGmt2String() ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span> ' : '';
         caption.innerHTML = `${liveBadge}<span class="cpi-caption-day${weekday === 'Saturday' || weekday === 'Sunday' ? ' weekend' : ''}">${weekday}</span> ${date}`;
-        if (dateInput) dateInput.value = date;
 
         const events = eventsByDate[date] || [];
         block.dataset.eventNames = events.map(({ name }) => name).join('|');

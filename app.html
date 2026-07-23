@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=108">
+    <link rel="stylesheet" href="styles.css?v=109">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -483,9 +483,9 @@
         <!-- ========================================== -->
         <div id="page-review" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
             <div class="review-toolbar">
-                <button class="calendar-nav-btn" onclick="shiftReviewWeek(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button aria-label="Previous week" class="calendar-nav-btn" onclick="shiftReviewWeek(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <div class="review-week-label" id="review-week-label"></div>
-                <button class="calendar-nav-btn" onclick="shiftReviewWeek(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button aria-label="Next week" class="calendar-nav-btn" onclick="shiftReviewWeek(1)"><i class="fa-solid fa-chevron-right"></i></button>
                 <button class="news-tab" id="review-this-week-btn" onclick="resetReviewWeek()">This Week</button>
             </div>
             <div id="review-content"></div>
@@ -535,7 +535,7 @@
         <!-- ========================================== -->
         <div id="page-calendar" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
             <div class="calendar-toolbar">
-                <button class="calendar-nav-btn" onclick="shiftCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button aria-label="Previous month" class="calendar-nav-btn" onclick="shiftCalendarMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <div class="calendar-toolbar-center">
                     <select id="calendar-month-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
                     <select id="calendar-year-select" class="calendar-select" onchange="onCalendarMonthYearChange()"></select>
@@ -558,7 +558,7 @@
                         </div>
                     </div>
                 </div>
-                <button class="calendar-nav-btn" onclick="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button aria-label="Next month" class="calendar-nav-btn" onclick="shiftCalendarMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
 
             <div class="calendar-layout">
@@ -693,10 +693,6 @@
                                 </div>
 
                                 <div class="cpi-mini-data" style="display: none;">
-                                    <div class="cpi-mini-datetime" style="display: none;">
-                                        <input type="date" class="cpi-edit-input cpi-mini-input cpi-date-input" value="">
-                                        <input type="time" class="cpi-edit-input cpi-mini-input cpi-time-input" value="08:30">
-                                    </div>
                                     <div class="cpi-mini-events-col">
                                         <div class="cpi-mini-event cpi-mini-events-header">
                                             <span class="cpi-mini-event-name" style="visibility: hidden;">&nbsp;</span>
@@ -2051,7 +2047,7 @@
         <div class="modal-card trade-modal-card">
             <div class="modal-card-header">
                 <span id="trade-modal-title">New Trade</span>
-                <button class="modal-close-btn" onclick="closeTradeModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close trade editor" class="modal-close-btn" onclick="closeTradeModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="trade-modal-tabs">
@@ -2274,7 +2270,7 @@
         <div class="modal-card note-modal-card">
             <div class="modal-card-header">
                 <span>Edit Day Note</span>
-                <button class="modal-close-btn" onclick="closeNoteModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close note" class="modal-close-btn" onclick="closeNoteModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="modal-card-body">
@@ -2282,25 +2278,25 @@
                     <div class="note-toggle-group">
                         <label class="modal-label">Mood</label>
                         <div class="note-toggle-set" id="note-mood-set">
-                            <button class="note-toggle-btn" data-value="happy" onclick="selectNoteOption('mood','happy')"><i class="fa-regular fa-face-smile"></i></button>
-                            <button class="note-toggle-btn" data-value="neutral" onclick="selectNoteOption('mood','neutral')"><i class="fa-regular fa-face-meh"></i></button>
-                            <button class="note-toggle-btn" data-value="sad" onclick="selectNoteOption('mood','sad')"><i class="fa-regular fa-face-frown"></i></button>
+                            <button aria-label="Mood: happy" class="note-toggle-btn" data-value="happy" onclick="selectNoteOption('mood','happy')"><i class="fa-regular fa-face-smile"></i></button>
+                            <button aria-label="Mood: neutral" class="note-toggle-btn" data-value="neutral" onclick="selectNoteOption('mood','neutral')"><i class="fa-regular fa-face-meh"></i></button>
+                            <button aria-label="Mood: sad" class="note-toggle-btn" data-value="sad" onclick="selectNoteOption('mood','sad')"><i class="fa-regular fa-face-frown"></i></button>
                         </div>
                     </div>
                     <div class="note-toggle-group">
                         <label class="modal-label">Mkt Condition</label>
                         <div class="note-toggle-set" id="note-condition-set">
-                            <button class="note-toggle-btn" data-value="up" onclick="selectNoteOption('condition','up')"><i class="fa-solid fa-arrow-trend-up"></i></button>
-                            <button class="note-toggle-btn" data-value="range" onclick="selectNoteOption('condition','range')"><i class="fa-solid fa-right-left"></i></button>
-                            <button class="note-toggle-btn" data-value="down" onclick="selectNoteOption('condition','down')"><i class="fa-solid fa-arrow-trend-down"></i></button>
+                            <button aria-label="Market condition: trending up" class="note-toggle-btn" data-value="up" onclick="selectNoteOption('condition','up')"><i class="fa-solid fa-arrow-trend-up"></i></button>
+                            <button aria-label="Market condition: ranging" class="note-toggle-btn" data-value="range" onclick="selectNoteOption('condition','range')"><i class="fa-solid fa-right-left"></i></button>
+                            <button aria-label="Market condition: trending down" class="note-toggle-btn" data-value="down" onclick="selectNoteOption('condition','down')"><i class="fa-solid fa-arrow-trend-down"></i></button>
                         </div>
                     </div>
                     <div class="note-toggle-group">
                         <label class="modal-label">Mkt Volatility</label>
                         <div class="note-toggle-set" id="note-volatility-set">
-                            <button class="note-toggle-btn" data-value="low" onclick="selectNoteOption('volatility','low')"><i class="fa-solid fa-signal" style="opacity:0.4;"></i></button>
-                            <button class="note-toggle-btn" data-value="medium" onclick="selectNoteOption('volatility','medium')"><i class="fa-solid fa-chart-simple"></i></button>
-                            <button class="note-toggle-btn" data-value="high" onclick="selectNoteOption('volatility','high')"><i class="fa-solid fa-chart-column"></i></button>
+                            <button aria-label="Volatility: low" class="note-toggle-btn" data-value="low" onclick="selectNoteOption('volatility','low')"><i class="fa-solid fa-signal" style="opacity:0.4;"></i></button>
+                            <button aria-label="Volatility: medium" class="note-toggle-btn" data-value="medium" onclick="selectNoteOption('volatility','medium')"><i class="fa-solid fa-chart-simple"></i></button>
+                            <button aria-label="Volatility: high" class="note-toggle-btn" data-value="high" onclick="selectNoteOption('volatility','high')"><i class="fa-solid fa-chart-column"></i></button>
                         </div>
                     </div>
                 </div>
@@ -2345,7 +2341,7 @@
         <div class="modal-card day-trades-card">
             <div class="modal-card-header">
                 <span id="day-trades-modal-title">Trades</span>
-                <button class="modal-close-btn" onclick="closeDayTradesModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close day's trades" class="modal-close-btn" onclick="closeDayTradesModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-card-body">
                 <div id="day-trades-list" class="day-trades-list"></div>
@@ -2360,7 +2356,7 @@
         <div class="modal-card review-tile-modal-card">
             <div class="modal-card-header">
                 <span id="review-tile-modal-title">Details</span>
-                <button class="modal-close-btn" onclick="closeReviewTileModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close details" class="modal-close-btn" onclick="closeReviewTileModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-card-body" id="review-tile-modal-body"></div>
         </div>
@@ -2385,7 +2381,7 @@
         <div class="modal-card trade-view-card">
             <div class="modal-card-header">
                 <span>Trade View</span>
-                <button class="modal-close-btn" onclick="closeTradeViewModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close trade view" class="modal-close-btn" onclick="closeTradeViewModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="modal-card-body">
@@ -2457,7 +2453,7 @@
     <!-- Full-size screenshot viewer - opened by clicking a thumbnail in the
          Trade View panel above. -->
     <div id="screenshot-lightbox-overlay" class="screenshot-lightbox-overlay" style="display: none;" onclick="closeScreenshotLightbox()">
-        <button class="screenshot-lightbox-close" onclick="closeScreenshotLightbox()"><i class="fa-solid fa-xmark"></i></button>
+        <button aria-label="Close screenshot" class="screenshot-lightbox-close" onclick="closeScreenshotLightbox()"><i class="fa-solid fa-xmark"></i></button>
         <img id="screenshot-lightbox-img" src="" alt="Trade screenshot" onclick="event.stopPropagation()">
     </div>
 
@@ -2466,7 +2462,7 @@
         <div class="modal-card">
             <div class="modal-card-header">
                 <span>Account & Transactions</span>
-                <button class="modal-close-btn" onclick="closeAccountModal()"><i class="fa-solid fa-xmark"></i></button>
+                <button aria-label="Close account settings" class="modal-close-btn" onclick="closeAccountModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <div class="modal-card-body">
@@ -2533,7 +2529,7 @@
     <script src="community.js?v=2"></script>
     <script src="coach.js?v=4"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=52"></script>
 
 </body>
 </html>

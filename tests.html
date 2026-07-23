@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Bullion Book - Trade Math Tests</title>
+    <style>
+        body { background:#131722; color:#d1d4dc; font-family:system-ui,sans-serif; margin:0; padding:28px; }
+        h1 { font-size:1.2rem; margin:0 0 4px; }
+        .lead { color:#848e9c; font-size:0.85rem; margin:0 0 20px; max-width:70ch; line-height:1.5; }
+        #summary { font-size:1rem; font-weight:700; padding:12px 16px; border-radius:10px; margin-bottom:18px; display:inline-block; }
+        .allpass { background:rgba(46,189,133,0.12); color:#2ebd85; border:1px solid rgba(46,189,133,0.4); }
+        .anyfail { background:rgba(246,70,93,0.12); color:#f6465d; border:1px solid rgba(246,70,93,0.4); }
+        table { border-collapse:collapse; width:100%; font-size:0.82rem; }
+        th,td { text-align:left; padding:7px 10px; border-bottom:1px solid #2a2e39; vertical-align:top; }
+        th { color:#848e9c; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.04em; }
+        .pass { color:#2ebd85; font-weight:700; }
+        .fail { color:#f6465d; font-weight:700; }
+        code { color:#dfb15b; font-family:ui-monospace,Consolas,monospace; }
+    </style>
+</head>
+<body>
+    <h1>Trade math tests</h1>
+    <p class="lead">
+        Exercises the real <code>computeTradeSummary()</code> from <code>trades.js</code> - the function behind
+        every P&amp;L, Return %, R-multiple and WIN/LOSS/WASH/OPEN status in the app. Open this file in a
+        browser to run. Its four dependencies (<code>getActiveAccount</code>, <code>appSettings</code>,
+        <code>getContractSizeForSymbol</code>, <code>computeAccountBalance</code>) are stubbed below so the
+        function can be tested in isolation.
+    </p>
+
+    <div id="summary"></div>
+    <table id="results">
+        <thead><tr><th>#</th><th>Case</th><th>Field</th><th>Expected</th><th>Actual</th><th>Result</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        // ---- Stubs for trades.js's four external dependencies -------------
+        // Contract sizes mirror BUILT_IN_CONTRACT_SIZES in accounts.js.
+        var CONTRACT_SIZES = { XAUUSD: 100, EURUSD: 100000 };
+        var appSettings = { pnlCalcType: 'capital', breakevenRange: 0, defaultGridDate: 'trade-open' };
+        function getContractSizeForSymbol(symbol) { return CONTRACT_SIZES[symbol] || 1; }
+        function getActiveAccount() { return { trades: [], contractSizes: [] }; }
+        function computeAccountBalance() { return 10000; }
+    </script>
+    <script src="trades.js"></script>
+    <script>
+    (function () {
+        var leg = function (action, quantity, price, fee) {
+            return { id: 'l', action: action, datetime: '2026-07-20T10:0' + (leg.n = (leg.n || 0) + 1) + ':00',
+                     quantity: quantity, price: price, fee: fee || 0 };
+        };
+        var trade = function (symbol, legs, extra) {
+            var t = { id: 't', symbol: symbol, legs: legs, tagIds: [] };
+            for (var k in extra) t[k] = extra[k];
+            return t;
+        };
+
+        // Expected values independently verified by hand-arithmetic before being written here.
+        var CASES = [
+            { name: 'Long win (XAUUSD 0.01 @ 4000 -> 4010)',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4010)]),
+              expect: { direction: 'long', status: 'WIN', returnAmount: 10, returnPct: 0.25, entTot: 4000, extTot: 4010, pos: 0 } },
+
+            { name: 'Short win (sell 4010 -> buy 4000) - sign must flip',
+              trade: trade('XAUUSD', [leg('sell', 0.01, 4010), leg('buy', 0.01, 4000)]),
+              expect: { direction: 'short', status: 'WIN', returnAmount: 10 } },
+
+            { name: 'Losing trade is negative and flagged LOSS',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4010), leg('sell', 0.01, 4000)]),
+              expect: { direction: 'long', status: 'LOSS', returnAmount: -10 } },
+
+            { name: 'R-multiple = profit / risk (stop 5 away, won 10)',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4010)], { stopLoss: '3995' }),
+              expect: { rMultiple: 2, returnAmount: 10 } },
+
+            { name: 'No stop-loss set -> R-multiple is null, not 0',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4010)]),
+              expect: { rMultiple: null } },
+
+            { name: 'Fees are subtracted from P&L (2 + 2)',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000, 2), leg('sell', 0.01, 4010, 2)]),
+              expect: { returnAmount: 6, fees: 4 } },
+
+            { name: 'Single leg = still OPEN, no P&L yet',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000)]),
+              expect: { status: 'OPEN', returnAmount: null, returnPct: null, pos: 0.01 } },
+
+            { name: 'Marked as wash zeroes P&L and forces WASH',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4010)], { forceWash: true }),
+              expect: { status: 'WASH', returnAmount: 0 } },
+
+            { name: 'Imported trade: broker P&L overrides the computed one',
+              trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4010)], { overrideReturnAmount: 7.5 }),
+              expect: { status: 'WIN', returnAmount: 7.5 } },
+
+            { name: 'Contract size respected (EURUSD 0.01, 10 pips = $1)',
+              trade: trade('EURUSD', [leg('buy', 0.01, 1.10000), leg('sell', 0.01, 1.10100)]),
+              expect: { returnAmount: 1, entTot: 1100, extTot: 1101 } },
+
+            { name: 'Partial close leaves the remainder open in Pos',
+              trade: trade('XAUUSD', [leg('buy', 0.02, 4000), leg('sell', 0.01, 4010)]),
+              expect: { status: 'WIN', returnAmount: 10, pos: 0.01, entTot: 8000 } },
+
+            { name: 'Unknown symbol falls back to contract size 1',
+              trade: trade('NOPE', [leg('buy', 1, 100), leg('sell', 1, 110)]),
+              expect: { returnAmount: 10 } }
+        ];
+
+        // Breakeven-range case needs a different appSettings, so it runs separately.
+        var BE_CASE = { name: 'Breakeven range reclassifies a small win as WASH (P&L kept)',
+            trade: trade('XAUUSD', [leg('buy', 0.01, 4000), leg('sell', 0.01, 4003)]),
+            expect: { status: 'WASH', returnAmount: 3 }, breakevenRange: 5 };
+
+        var tbody = document.querySelector('#results tbody');
+        var pass = 0, fail = 0, row = 0;
+
+        function near(a, b) {
+            if (a === null || b === null) return a === b;
+            if (typeof a !== 'number' || typeof b !== 'number') return a === b;
+            return Math.abs(a - b) < 1e-6;
+        }
+
+        function runCase(c, index) {
+            var prevBE = appSettings.breakevenRange;
+            if (c.breakevenRange) appSettings.breakevenRange = c.breakevenRange;
+
+            var actual;
+            try {
+                actual = computeTradeSummary(c.trade);
+            } catch (err) {
+                appSettings.breakevenRange = prevBE;
+                fail++;
+                tbody.insertAdjacentHTML('beforeend',
+                    '<tr><td>' + index + '</td><td>' + c.name + '</td><td colspan="3">threw: ' +
+                    String(err && err.message) + '</td><td class="fail">FAIL</td></tr>');
+                return;
+            }
+            appSettings.breakevenRange = prevBE;
+
+            var first = true;
+            for (var key in c.expect) {
+                var want = c.expect[key], got = actual[key];
+                var ok = near(want, got);
+                ok ? pass++ : fail++;
+                tbody.insertAdjacentHTML('beforeend',
+                    '<tr><td>' + (first ? index : '') + '</td><td>' + (first ? c.name : '') + '</td>' +
+                    '<td><code>' + key + '</code></td><td>' + JSON.stringify(want) + '</td>' +
+                    '<td>' + JSON.stringify(got) + '</td>' +
+                    '<td class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + '</td></tr>');
+                first = false;
+            }
+        }
+
+        CASES.concat([BE_CASE]).forEach(function (c) { runCase(c, ++row); });
+
+        var el = document.getElementById('summary');
+        el.textContent = fail === 0
+            ? 'All ' + pass + ' assertions passed'
+            : fail + ' of ' + (pass + fail) + ' assertions FAILED';
+        el.className = fail === 0 ? 'allpass' : 'anyfail';
+    })();
+    </script>
+</body>
+</html>

@@ -1314,11 +1314,6 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     flex-wrap: wrap;
 }
 
-.cpi-mini-datetime {
-    display: flex;
-    gap: 6px;
-}
-
 .cpi-mini-events-col {
     display: flex;
     flex-direction: column;
@@ -1414,11 +1409,6 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .cpi-edit-input.cpi-value-up,
 .cpi-edit-input.cpi-value-down {
     color: var(--text-light);
-}
-
-.cpi-mini-datetime .cpi-mini-input {
-    width: auto;
-    min-width: unset;
 }
 
 .cpi-edit-input {
