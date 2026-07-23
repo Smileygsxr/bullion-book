@@ -123,7 +123,6 @@ function renderSidebarProfile() {
         const nameLabel = document.getElementById('sidebar-username');
         const loginBtn = document.getElementById('sidebar-login-btn');
         const logoutBtn = document.getElementById('sidebar-logout-btn');
-        const navLogoutLink = document.getElementById('nav-logout-link');
         if (!avatarImg || !avatarFallback || !nameLabel || !loginBtn || !logoutBtn) return;
 
         if (user) {
@@ -139,22 +138,12 @@ function renderSidebarProfile() {
                 avatarImg.style.display = 'none';
                 avatarFallback.style.display = 'block';
             }
-
-            if (navLogoutLink) {
-                navLogoutLink.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Log Out';
-                navLogoutLink.onclick = logOut;
-            }
         } else {
             nameLabel.textContent = 'Account';
             avatarImg.style.display = 'none';
             avatarFallback.style.display = 'block';
             loginBtn.style.display = 'flex';
             logoutBtn.style.display = 'none';
-
-            if (navLogoutLink) {
-                navLogoutLink.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Log In';
-                navLogoutLink.onclick = function () { window.location.href = 'login.html'; };
-            }
         }
     });
 }

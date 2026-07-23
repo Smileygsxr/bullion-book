@@ -1697,11 +1697,6 @@ function renderDashboardStats(rows) {
     }
 }
 
-function setAttr(id, attr, value) {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute(attr, value);
-}
-
 // OPEN/WASH rings are green when there are entries, plain grey when there are none
 function setRingColorState(id, hasEntries) {
     const el = document.getElementById(id);

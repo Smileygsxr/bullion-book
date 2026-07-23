@@ -296,13 +296,6 @@ Formats the main application name in bold white text and positions a bright blue
     transition: all 0.2s ease;
 }
 
-.nav-link-wip {
-    font-size: 0.62rem;
-    font-weight: 600;
-    color: var(--accent-gold);
-    opacity: 0.85;
-}
-
 .news-info-toggle {
     display: flex;
     align-items: center;
@@ -763,26 +756,11 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     justify-content: space-between;
 }
 
-.metric-pill {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 30px; /* High value creates oval container tracks */
-    padding: 8px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 150px;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
 /* Typography States Mapping Styles */
 .lbl-muted { color: var(--text-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
 .val-green { color: var(--win); font-size: 1rem; font-weight: 700; }
 .val-red { color: var(--loss); font-size: 1rem; font-weight: 700; }
 .val-muted { color: var(--text-light); }
-.pct-muted { color: #647080; font-size: 0.75rem; }
 
 /* Mini Progress Percent Indicators - real SVG radial progress (proportional arc),
    not the old CSS-border trick (which only ever drew a static quarter-circle
@@ -1093,17 +1071,6 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .value-positive { color: var(--win); font-weight: 600; }
 .value-negative { color: var(--loss); font-weight: 600; }
 
-/*.design-fix {
-    width: 240px;          
-    height: 10px;         
-    align-items: center;
-    justify-content: space-between;
-}
-.card-text-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}*/
 /* Custom utility to size and layout the updated cards. Three-part rhythm:
    a colored icon badge, the label/value text, then the progress ring pushed
    to the far right (margin-left:auto) - reads left-to-right as identity ->
@@ -1507,12 +1474,6 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     color: var(--text-light);
     font-size: 1rem;
     font-weight: 700;
-}
-
-.cpi-chart-subtitle {
-    margin: 2px 0 0;
-    color: var(--text-muted);
-    font-size: 0.8rem;
 }
 
 .interval-toggle-set {
@@ -7571,101 +7532,6 @@ html[data-theme="blossom"] {
     .coach-bull:hover, .coach-bull.charging { animation: none; }
 }
 
-/* ==== Donate modal ==== */
-.donate-modal-card { max-width: 420px; }
-
-.donate-modal-lead {
-    margin: 0 0 14px;
-    color: var(--text-muted);
-    font-size: 0.84rem;
-    line-height: 1.55;
-}
-
-.donate-presets {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-.donate-preset {
-    padding: 10px 0;
-    background: var(--bg-dark);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-light);
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: border-color 0.12s ease, background 0.12s ease, transform 0.1s ease;
-}
-
-.donate-preset:hover { transform: translateY(-2px); }
-
-.donate-preset.active {
-    border-color: rgba(var(--accent-gold-rgb), 0.6);
-    background: rgba(var(--accent-gold-rgb), 0.12);
-    color: var(--accent-gold);
-}
-
-.donate-custom-row { margin-bottom: 16px; }
-
-.donate-custom-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 6px;
-}
-
-.donate-custom-input-wrap > span { color: var(--text-muted); font-weight: 700; }
-
-.donate-submit-btn {
-    width: 100%;
-    justify-content: center;
-}
-
-.donate-modal-note {
-    margin: 12px 0 0;
-    color: var(--text-muted);
-    font-size: 0.7rem;
-    line-height: 1.5;
-    display: flex;
-    align-items: baseline;
-    gap: 7px;
-}
-
-.donate-modal-note i { color: var(--win); }
-
-/* Donate modal: one-time vs monthly toggle */
-.donate-mode-toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
-.donate-mode-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 9px 0;
-    background: var(--bg-dark);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
-}
-
-.donate-mode-btn.active {
-    border-color: rgba(var(--accent-gold-rgb), 0.6);
-    background: rgba(var(--accent-gold-rgb), 0.12);
-    color: var(--accent-gold);
-}
-
 /* Bull v3: photo/render image instead of the hand-drawn SVG */
 .coach-bull { width: 165px; height: 110px; }
 
@@ -8188,17 +8054,6 @@ html[data-theme="blossom"] {
 }
 
 .review-tile-summary-bar-fill { height: 100%; border-radius: 3px; background: var(--win); }
-
-/* Worst Day: notes / lesson bullets */
-.review-tile-bullets {
-    margin: 0;
-    padding-left: 14px;
-    font-size: 0.68rem;
-    color: var(--text-light);
-    line-height: 1.45;
-}
-
-.review-tile-bullets a { color: var(--accent-blue); }
 
 /* Avg Per Trade: session rows */
 .review-session-mini-row {

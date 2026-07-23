@@ -367,12 +367,6 @@ function shareWeekToCommunity() {
 }
 
 // ---- Leaderboard ----
-const LEADERBOARD_METRICS = {
-    totalR: { label: 'Total R', suffix: 'R' },
-    winRate: { label: 'Win Rate', suffix: '%' },
-    profitFactor: { label: 'Profit Factor', suffix: '' }
-};
-
 function setLeaderboardMetric(metric) {
     leaderboardMetric = metric;
     loadLeaderboard();
