@@ -1882,7 +1882,34 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .wl-compare-value {
     font-size: 0.95rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
+
+/* One metric = the two figures plus a split bar showing how they weigh
+   against each other. The boundary between the green and red segments is the
+   signal: dead centre means evenly matched, pushed left means losses dominate. */
+.wl-compare-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wl-compare-bar {
+    display: flex;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.wl-compare-bar > div { transition: width 0.5s ease; }
+.wl-compare-bar-win { background: var(--win); }
+.wl-compare-bar-loss { background: var(--loss); }
+
+/* Header labels stay tinted to their side, beating the muted colour the
+   shared .wl-compare-header-row rule sets further down. */
+.wl-compare-header-row .wl-compare-value.win { color: var(--win); }
+.wl-compare-header-row .wl-compare-value.loss { color: var(--loss); }
 
 .wl-compare-value.win {
     text-align: right;
@@ -1936,25 +1963,99 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     align-items: center;
 }
 
-.mae-mfe-item {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    margin: 0 32px;
+/* MAE vs MFE read as two opposing forces, so they're laid out facing each
+   other with the diverging bar between them and the resulting edge ratio as
+   the headline underneath. */
+.mae-mfe-sides {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 8px;
 }
 
+.mae-mfe-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    text-align: left;
+}
+
+.mae-mfe-side.right { text-align: right; }
+
 .mae-mfe-label {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 .mae-mfe-value {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
+
+.mae-mfe-sub {
+    font-size: 0.63rem;
+    color: var(--text-muted);
+}
+
+.mae-mfe-ratio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    margin-top: 12px;
+}
+
+.mae-mfe-ratio-val {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+.mae-mfe-ratio-label {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Shared centre-anchored comparison bar (see statDivergeBar in stats.js):
+   both halves grow outwards from the middle, each scaled against the larger
+   of the pair, so the longer side is simply the bigger number. */
+.stat-diverge {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 6px;
+}
+
+.stat-diverge-half {
+    flex: 1;
+    display: flex;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stat-diverge-half.left { justify-content: flex-end; }
+
+.stat-diverge-fill { height: 100%; transition: width 0.5s ease; }
+.stat-diverge-fill.fill-win { background: var(--win); }
+.stat-diverge-fill.fill-loss { background: var(--loss); }
+.stat-diverge-fill.fill-gold { background: var(--accent-gold); }
+.stat-diverge-fill.fill-blue { background: var(--accent-blue); }
+
+/* Volatility panel header sides tinted to match their bar colours, beating
+   the muted colour the shared .wl-compare-header-row rule sets. */
+.wl-compare-header-row .wl-compare-value.vol-high { color: var(--accent-gold); }
+.wl-compare-header-row .wl-compare-value.vol-low { color: var(--accent-blue); }
 
 .mae-mfe-note {
     margin: 14px 0 0;
@@ -4920,16 +5021,6 @@ body.privacy-mode .equity-crosshair-label.price {
     gap: 16px;
 }
 
-.review-trade-line {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    font-size: 0.86rem;
-}
-
-.review-trade-line span:nth-child(2) { flex: 1; }
-
 .review-empty {
     color: var(--text-muted);
     text-align: center;
@@ -5098,8 +5189,24 @@ body.privacy-mode .equity-crosshair-label.price {
 /* Week equity sparkline. The SVG ribbon (curve + fill + glow) is stretched
    edge-to-edge; the dots ride on top as absolutely-positioned round buttons
    so they never squash with the SVG's non-uniform scale. */
-.review-spark-wrap { position: relative; width: 100%; height: 150px; margin-top: 6px; }
+.review-spark-wrap { position: relative; width: 100%; height: 150px; margin-top: 6px; cursor: pointer; }
 .review-spark-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Vertical crosshair - snaps to whichever dot is horizontally nearest the
+   cursor. Sits under the dots (z-index 1 vs 2) and never eats their hover. */
+.review-spark-trackline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px dashed rgba(var(--win-rgb), 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, left 0.1s ease;
+    z-index: 1;
+}
+.review-spark-trackline.visible { opacity: 1; }
+.review-spark-trackline.down { border-left-color: rgba(var(--loss-rgb), 0.55); }
 
 .review-spark-dot {
     position: absolute;
@@ -5119,16 +5226,23 @@ body.privacy-mode .equity-crosshair-label.price {
 }
 .review-spark-dot.up { background: var(--win); }
 .review-spark-dot.down { background: var(--loss); }
-.review-spark-dot:hover { transform: translate(-50%, -50%) scale(1.55); z-index: 3; }
-.review-spark-dot.up:hover { box-shadow: 0 0 12px rgba(var(--win-rgb), 0.7); }
-.review-spark-dot.down:hover { box-shadow: 0 0 12px rgba(var(--loss-rgb), 0.7); }
+
+/* .active is driven by the crosshair (nearest dot to the cursor); :hover is
+   kept so the dot still responds when the pointer is right on top of it. */
+.review-spark-dot:hover,
+.review-spark-dot.active { transform: translate(-50%, -50%) scale(1.55); z-index: 3; }
+.review-spark-dot.up:hover,
+.review-spark-dot.up.active { box-shadow: 0 0 12px rgba(var(--win-rgb), 0.7); }
+.review-spark-dot.down:hover,
+.review-spark-dot.down.active { box-shadow: 0 0 12px rgba(var(--loss-rgb), 0.7); }
 
 /* The final dot is where the week's equity ended up - a gentle pulsing halo
    draws the eye to it. Pauses on hover so the tooltip read is calm. */
 .review-spark-dot.is-last { width: 12px; height: 12px; }
 .review-spark-dot.is-last.up { animation: reviewSparkPulseUp 2s ease-out infinite; }
 .review-spark-dot.is-last.down { animation: reviewSparkPulseDown 2s ease-out infinite; }
-.review-spark-dot.is-last:hover { animation: none; }
+.review-spark-dot.is-last:hover,
+.review-spark-dot.is-last.active { animation: none; }
 
 @keyframes reviewSparkPulseUp {
     0% { box-shadow: 0 0 0 0 rgba(var(--win-rgb), 0.55); }
@@ -5156,9 +5270,110 @@ body.privacy-mode .equity-crosshair-label.price {
 }
 
 /* Takeaways: icon bullets */
-.review-takeaways { list-style: none; padding-left: 4px; }
-.review-takeaways li { display: flex; align-items: baseline; gap: 10px; }
-.review-takeaways li > i { color: var(--accent-blue); font-size: 0.8rem; flex-shrink: 0; }
+/* Takeaways render as full-width tone-coded cards rather than sparse bullet
+   lines - fills the panel's width, and the list centers itself in whatever
+   height the notes panel beside it sets, so there's no dead space either way. */
+.review-takeaways-panel { display: flex; flex-direction: column; }
+
+.review-takeaways {
+    list-style: none;
+    padding-left: 0;
+    flex: 1;
+    justify-content: center;
+    gap: 10px;
+}
+
+.review-takeaways li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 10px;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.review-tone-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+}
+
+.review-takeaway-text { flex: 1; min-width: 0; }
+
+.review-tone-green { border-left-color: var(--win); }
+.review-tone-red { border-left-color: var(--loss); }
+.review-tone-gold { border-left-color: var(--accent-gold); }
+.review-tone-blue { border-left-color: var(--accent-blue); }
+
+.review-tone-green .review-tone-icon { background: rgba(var(--win-rgb), 0.14); color: var(--win); }
+.review-tone-red .review-tone-icon { background: rgba(var(--loss-rgb), 0.14); color: var(--loss); }
+.review-tone-gold .review-tone-icon { background: rgba(var(--accent-gold-rgb), 0.14); color: var(--accent-gold); }
+.review-tone-blue .review-tone-icon { background: rgba(var(--accent-blue-rgb), 0.14); color: var(--accent-blue); }
+
+.review-tone-green:hover { transform: translateY(-2px); border-color: rgba(var(--win-rgb), 0.45); box-shadow: 0 6px 16px rgba(var(--win-rgb), 0.12); }
+.review-tone-red:hover { transform: translateY(-2px); border-color: rgba(var(--loss-rgb), 0.45); box-shadow: 0 6px 16px rgba(var(--loss-rgb), 0.12); }
+.review-tone-gold:hover { transform: translateY(-2px); border-color: rgba(var(--accent-gold-rgb), 0.45); box-shadow: 0 6px 16px rgba(var(--accent-gold-rgb), 0.12); }
+.review-tone-blue:hover { transform: translateY(-2px); border-color: rgba(var(--accent-blue-rgb), 0.45); box-shadow: 0 6px 16px rgba(var(--accent-blue-rgb), 0.12); }
+
+/* Best / worst trade rows - same tone-card vocabulary as the takeaways, with
+   a role label above the instrument and the P&L stacked over its R-multiple. */
+.review-trade-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.review-trade-card + .review-trade-card { margin-top: 10px; }
+
+.review-trade-card-main { flex: 1; min-width: 0; }
+
+.review-trade-card-tag {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.review-trade-card-sym {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.review-trade-card-vals { text-align: right; flex-shrink: 0; }
+
+.review-trade-card-pnl {
+    font-size: 0.98rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.review-trade-card-r {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 1px;
+}
 
 /* Expandable day-by-day rows */
 .review-day-list { display: flex; flex-direction: column; }
@@ -5243,15 +5458,6 @@ body.privacy-mode .equity-crosshair-label.price {
 .review-day-trade-open { color: var(--text-muted); font-size: 0.68rem; }
 
 /* Clickable best/worst trade lines */
-.review-trade-line.clickable {
-    cursor: pointer;
-    border-radius: 8px;
-    padding: 8px 10px;
-    transition: background 0.12s ease;
-}
-
-.review-trade-line.clickable:hover { background: rgba(255, 255, 255, 0.04); }
-
 /* Entrance animation, staggered per tile */
 .review-animate { animation: reviewFadeUp 0.45s ease both; }
 .review-hero .review-tiles .review-tile:nth-child(2) { animation-delay: 0.06s; }
@@ -7023,7 +7229,6 @@ html.light-base .nav-link:hover { background-color: rgba(0, 0, 0, 0.05); }
 html.light-base .btn-edit:hover { background-color: rgba(0, 0, 0, 0.07); }
 html.light-base .sidebar-profile { background: rgba(0, 0, 0, 0.02); }
 html.light-base .sidebar-profile:hover,
-html.light-base .review-trade-line.clickable:hover,
 html.light-base .review-week-cell:hover,
 html.light-base .cw-react-btn:hover,
 html.light-base .review-day-row.clickable .review-day-head:hover { background: rgba(0, 0, 0, 0.05); }
@@ -7033,6 +7238,8 @@ html.light-base .cw-react-btn { background: rgba(0, 0, 0, 0.04); }
 html.light-base .ps-break-track,
 html.light-base .tt-milestone-track,
 html.light-base .review-day-minibar,
+html.light-base .wl-compare-bar,
+html.light-base .stat-diverge-half,
 html.light-base .stats-heatmap-cell.empty { background: rgba(0, 0, 0, 0.06); }
 
 html.light-base .pro-score-grid-ring { stroke: rgba(0, 0, 0, 0.1); }

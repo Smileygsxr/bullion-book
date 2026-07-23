@@ -251,8 +251,7 @@ function bindProScoreTooltip(container) {
     container.addEventListener('mousemove', event => {
         const hit = event.target.closest('.pro-score-hit');
         if (!hit || tooltip.style.display === 'none') return;
-        tooltip.style.left = `${event.clientX + 14}px`;
-        tooltip.style.top = `${event.clientY - 12}px`;
+        positionStatsTooltip(tooltip, event);
     });
 
     container.addEventListener('mouseout', event => {
@@ -464,21 +463,48 @@ function renderMaeMfeStats(closed) {
 
         const symbolCount = new Set(eligible.map(r => r.symbol)).size;
         el.innerHTML = `
-            <div class="mae-mfe-item">
-                <span class="mae-mfe-label">Avg MAE (worst drawdown)</span>
-                <span class="mae-mfe-value value-negative sensitive-value">${formatTotal(avgMae)}</span>
+            <div class="mae-mfe-sides">
+                <div class="mae-mfe-side">
+                    <span class="mae-mfe-label">Avg MAE</span>
+                    <span class="mae-mfe-value value-negative sensitive-value">${formatTotal(avgMae)}</span>
+                    <span class="mae-mfe-sub">worst drawdown</span>
+                </div>
+                <div class="mae-mfe-side right">
+                    <span class="mae-mfe-label">Avg MFE</span>
+                    <span class="mae-mfe-value value-positive sensitive-value">${formatTotal(avgMfe)}</span>
+                    <span class="mae-mfe-sub">best unrealized</span>
+                </div>
             </div>
-            <div class="mae-mfe-item">
-                <span class="mae-mfe-label">Avg MFE (best unrealized)</span>
-                <span class="mae-mfe-value value-positive sensitive-value">${formatTotal(avgMfe)}</span>
-            </div>
+            ${statDivergeBar(avgMae, avgMfe, 'fill-loss', 'fill-win')}
             ${edgeRatio !== null ? `
-            <div class="mae-mfe-item">
-                <span class="mae-mfe-label">MFE : MAE edge ratio</span>
-                <span class="mae-mfe-value ${edgeRatio >= 1 ? 'value-positive' : 'value-negative'}">${edgeRatio.toFixed(2)}x</span>
+            <div class="mae-mfe-ratio">
+                <span class="mae-mfe-ratio-val ${edgeRatio >= 1 ? 'value-positive' : 'value-negative'}">${edgeRatio.toFixed(2)}x</span>
+                <span class="mae-mfe-ratio-label">MFE : MAE edge ratio</span>
             </div>` : ''}
             <p class="mae-mfe-note">Based on ${valid.length} of ${eligible.length} trade${eligible.length === 1 ? '' : 's'} in view across ${symbolCount} symbol${symbolCount === 1 ? '' : 's'} with available chart data (same-day trades only).</p>`;
     });
+}
+
+// A centre-anchored comparison bar: the two sides grow outwards from the
+// middle, each scaled against the larger of the pair, so the longer bar is
+// simply the bigger figure. Deliberately NOT a part-to-whole split - these
+// pairs (MAE vs MFE, high- vs low-volatility win rates) don't sum to anything
+// meaningful, so a 100%-stacked bar would imply a relationship that isn't there.
+function statDivergeBar(leftMag, rightMag, leftTone, rightTone) {
+    const left = Math.abs(leftMag) || 0;
+    const right = Math.abs(rightMag) || 0;
+    const max = Math.max(left, right);
+    const leftPct = max > 0 ? (left / max) * 100 : 0;
+    const rightPct = max > 0 ? (right / max) * 100 : 0;
+    return `
+        <div class="stat-diverge">
+            <div class="stat-diverge-half left">
+                <div class="stat-diverge-fill ${leftTone}" style="width:${leftPct.toFixed(1)}%"></div>
+            </div>
+            <div class="stat-diverge-half right">
+                <div class="stat-diverge-fill ${rightTone}" style="width:${rightPct.toFixed(1)}%"></div>
+            </div>
+        </div>`;
 }
 
 // ---- Performance vs. Volatility ----
@@ -565,24 +591,29 @@ function renderVolatilityStats(closed) {
                 ? `<span class="${n < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(n)}</span>`
                 : '-';
 
+            // Magnitudes ride alongside the formatted text so each row gets a
+            // bar showing which volatility regime the figure favours.
             const rowDefs = [
-                ['Trades', high.trades, low.trades],
-                ['Win Rate', high.trades > 0 ? `${high.winRate.toFixed(0)}%` : '-', low.trades > 0 ? `${low.winRate.toFixed(0)}%` : '-'],
-                ['Total P&L', valFmt(high.total, high.trades), valFmt(low.total, low.trades)],
-                ['Average', valFmt(high.avg, high.trades), valFmt(low.avg, low.trades)]
+                { label: 'Trades', high: high.trades, low: low.trades, highMag: high.trades, lowMag: low.trades },
+                { label: 'Win Rate', high: high.trades > 0 ? `${high.winRate.toFixed(0)}%` : '-', low: low.trades > 0 ? `${low.winRate.toFixed(0)}%` : '-', highMag: high.winRate, lowMag: low.winRate },
+                { label: 'Total P&L', high: valFmt(high.total, high.trades), low: valFmt(low.total, low.trades), highMag: high.total, lowMag: low.total },
+                { label: 'Average', high: valFmt(high.avg, high.trades), low: valFmt(low.avg, low.trades), highMag: high.avg, lowMag: low.avg }
             ];
 
             container.innerHTML = `
                 <div class="wl-compare-row wl-compare-header-row">
-                    <div class="wl-compare-value left">High Volatility Days</div>
+                    <div class="wl-compare-value left vol-high">High Volatility Days</div>
                     <div class="wl-compare-label"></div>
-                    <div class="wl-compare-value right">Low Volatility Days</div>
+                    <div class="wl-compare-value right vol-low">Low Volatility Days</div>
                 </div>
-                ${rowDefs.map(([label, highVal, lowVal]) => `
-                <div class="wl-compare-row">
-                    <div class="wl-compare-value left">${highVal}</div>
-                    <div class="wl-compare-label">${label}</div>
-                    <div class="wl-compare-value right">${lowVal}</div>
+                ${rowDefs.map(row => `
+                <div class="wl-compare-item">
+                    <div class="wl-compare-row">
+                        <div class="wl-compare-value left">${row.high}</div>
+                        <div class="wl-compare-label">${row.label}</div>
+                        <div class="wl-compare-value right">${row.low}</div>
+                    </div>
+                    ${statDivergeBar(row.highMag, row.lowMag, 'fill-gold', 'fill-blue')}
                 </div>`).join('')}
                 <p class="mae-mfe-note">Split at the median daily range (${dayMedian.toFixed(2)}% of price) across ${rangeByDay.size} symbol-day${rangeByDay.size === 1 ? '' : 's'} with chart data - percent-based so different symbols compare fairly.</p>`;
         });
@@ -678,8 +709,7 @@ function renderTotalTradesPanel(rows, closed, wins, losses) {
         body.addEventListener('mousemove', event => {
             const seg = event.target.closest('.tt-seg[data-heat-label]');
             if (!seg || tooltip.style.display === 'none') return;
-            tooltip.style.left = `${event.clientX + 14}px`;
-            tooltip.style.top = `${event.clientY - 12}px`;
+            positionStatsTooltip(tooltip, event);
         });
         body.addEventListener('mouseout', event => {
             const seg = event.target.closest('.tt-seg[data-heat-label]');
@@ -697,23 +727,52 @@ function renderWinsLossesCompare(wins, losses) {
     const lossTotal = losses.reduce((sum, r) => sum + r.returnAmount, 0);
     const winAvg = average(wins.map(r => r.returnAmount));
     const lossAvg = average(losses.map(r => r.returnAmount));
+    const winHold = wins.length > 0 ? average(wins.map(r => r.holdSeconds)) : 0;
+    const lossHold = losses.length > 0 ? average(losses.map(r => r.holdSeconds)) : 0;
     const largestWin = wins.reduce((best, r) => (!best || r.returnAmount > best.returnAmount ? r : best), null);
     const largestLoss = losses.reduce((worst, r) => (!worst || r.returnAmount < worst.returnAmount ? r : worst), null);
 
+    // Each row carries the raw magnitudes behind its two figures as well as the
+    // formatted text, so the split bar underneath can show the balance between
+    // them - e.g. an Average row whose red side is visibly wider says losses
+    // outweigh wins before you've read a single number.
     const rowDefs = [
-        ['Trades', wins.length, losses.length, false],
-        ['Total P&L', formatTotal(winTotal), formatTotal(lossTotal), true],
-        ['Average', wins.length > 0 ? formatTotal(winAvg) : '-', losses.length > 0 ? formatTotal(lossAvg) : '-', true],
-        ['Avg Hold', wins.length > 0 ? formatAvgHold(average(wins.map(r => r.holdSeconds))) : '-', losses.length > 0 ? formatAvgHold(average(losses.map(r => r.holdSeconds))) : '-', false],
-        ['Largest', largestWin ? formatTotal(largestWin.returnAmount) : '-', largestLoss ? formatTotal(largestLoss.returnAmount) : '-', true]
+        { label: 'Trades', win: wins.length, loss: losses.length, winMag: wins.length, lossMag: losses.length },
+        { label: 'Total P&L', win: formatTotal(winTotal), loss: formatTotal(lossTotal), winMag: Math.abs(winTotal), lossMag: Math.abs(lossTotal), sensitive: true },
+        { label: 'Average', win: wins.length > 0 ? formatTotal(winAvg) : '-', loss: losses.length > 0 ? formatTotal(lossAvg) : '-', winMag: Math.abs(winAvg), lossMag: Math.abs(lossAvg), sensitive: true },
+        { label: 'Avg Hold', win: wins.length > 0 ? formatAvgHold(winHold) : '-', loss: losses.length > 0 ? formatAvgHold(lossHold) : '-', winMag: winHold, lossMag: lossHold },
+        { label: 'Largest', win: largestWin ? formatTotal(largestWin.returnAmount) : '-', loss: largestLoss ? formatTotal(largestLoss.returnAmount) : '-', winMag: largestWin ? Math.abs(largestWin.returnAmount) : 0, lossMag: largestLoss ? Math.abs(largestLoss.returnAmount) : 0, sensitive: true }
     ];
 
-    container.innerHTML = rowDefs.map(([label, winVal, lossVal, sensitive]) => `
-        <div class="wl-compare-row">
-            <div class="wl-compare-value win ${sensitive ? 'sensitive-value' : ''}">${winVal}</div>
-            <div class="wl-compare-label">${label}</div>
-            <div class="wl-compare-value loss ${sensitive ? 'sensitive-value' : ''}">${lossVal}</div>
-        </div>`).join('');
+    // Header names the two sides - previously you had to infer which column was
+    // which from the green/red text colour alone.
+    const header = `
+        <div class="wl-compare-row wl-compare-header-row">
+            <div class="wl-compare-value win">Wins</div>
+            <div class="wl-compare-label"></div>
+            <div class="wl-compare-value loss">Losses</div>
+        </div>`;
+
+    container.innerHTML = header + rowDefs.map(row => {
+        const total = row.winMag + row.lossMag;
+        // No data on either side leaves the track empty rather than showing a
+        // 50/50 split, which would read as a genuine tie.
+        const winPct = total > 0 ? (row.winMag / total) * 100 : 0;
+        const lossPct = total > 0 ? 100 - winPct : 0;
+        const sens = row.sensitive ? ' sensitive-value' : '';
+        return `
+        <div class="wl-compare-item">
+            <div class="wl-compare-row">
+                <div class="wl-compare-value win${sens}">${row.win}</div>
+                <div class="wl-compare-label">${row.label}</div>
+                <div class="wl-compare-value loss${sens}">${row.loss}</div>
+            </div>
+            <div class="wl-compare-bar">
+                <div class="wl-compare-bar-win" style="width:${winPct.toFixed(1)}%"></div>
+                <div class="wl-compare-bar-loss" style="width:${lossPct.toFixed(1)}%"></div>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function average(values) {
@@ -1144,8 +1203,7 @@ function bindDivergingBarTooltip(container) {
     container.addEventListener('mousemove', event => {
         const row = event.target.closest('.stats-bar-row[data-bar-value]');
         if (!row || tooltip.style.display === 'none') return;
-        tooltip.style.left = `${event.clientX + 14}px`;
-        tooltip.style.top = `${event.clientY - 12}px`;
+        positionStatsTooltip(tooltip, event);
     });
 
     container.addEventListener('mouseout', event => {
@@ -1405,8 +1463,7 @@ function bindHeatmapTooltip(container) {
     container.addEventListener('mousemove', event => {
         const cell = event.target.closest('.stats-heatmap-cell[data-heat-label]');
         if (!cell || tooltip.style.display === 'none') return;
-        tooltip.style.left = `${event.clientX + 14}px`;
-        tooltip.style.top = `${event.clientY - 12}px`;
+        positionStatsTooltip(tooltip, event);
     });
 
     container.addEventListener('mouseout', event => {
@@ -2004,6 +2061,28 @@ function buildReviewWeeksStrip(allClosed) {
         </div>`;
 }
 
+// One best/worst trade row: a tone-coded card (icon badge, role label, then
+// instrument/date, with the P&L and its R-multiple stacked on the right).
+// Tone follows the trade's actual P&L sign rather than its best/worst role -
+// in an all-red week the "best" trade is still a loss and shouldn't be
+// dressed up in green.
+function reviewTradeCard(label, icon, trade) {
+    const negative = trade.returnAmount < 0;
+    const hasR = trade.rMultiple !== null && trade.rMultiple !== undefined;
+    return `
+        <div class="review-trade-card review-tone-${negative ? 'red' : 'green'}" onclick="openTradeViewModal(null, '${trade.id}')">
+            <span class="review-tone-icon"><i class="fa-solid ${icon}"></i></span>
+            <div class="review-trade-card-main">
+                <div class="review-trade-card-tag">${label}</div>
+                <div class="review-trade-card-sym">${escapeHtml(trade.symbol)} &middot; ${formatReviewDayLabel(trade.date.slice(0, 10))}</div>
+            </div>
+            <div class="review-trade-card-vals">
+                <div class="review-trade-card-pnl ${negative ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(trade.returnAmount)}</div>
+                ${hasR ? `<div class="review-trade-card-r">${trade.rMultiple.toFixed(1)}R</div>` : ''}
+            </div>
+        </div>`;
+}
+
 // Builds a smooth cubic-bezier path through the given [x,y] points using a
 // Catmull-Rom spline (control handles = (next - prev) / 6) - turns the angular
 // equity polyline into a flowing curve. Shared by the line stroke and the
@@ -2060,14 +2139,14 @@ function buildReviewSparkline(week) {
         const cls = `review-spark-dot ${p.row.returnAmount >= 0 ? 'up' : 'down'}${i === points.length - 1 ? ' is-last' : ''}`;
         const time = typeof formatTradeTime === 'function' ? formatTradeTime(p.row.date) : '';
         return `<button type="button" class="${cls}" style="left:${leftPct}%;top:${topPct}%"
+            data-spark-cum="${p.cum}" data-trade-id="${p.row.id}"
             data-heat-label="${escapeHtml(p.row.symbol)} &middot; ${formatReviewDayLabel(p.row.date.slice(0, 10))} ${time}"
-            data-heat-count="1" data-heat-winrate="" data-heat-pnl="${p.row.returnAmount}"
-            onclick="openTradeViewModal(null, '${p.row.id}')"></button>`;
+            data-heat-count="1" data-heat-winrate="" data-heat-pnl="${p.row.returnAmount}"></button>`;
     }).join('');
 
     return `
         <div class="stats-panel review-animate">
-            <div class="stats-panel-title">WEEK EQUITY CURVE <span class="review-panel-hint">hover a dot for the trade, click to open it</span></div>
+            <div class="stats-panel-title">WEEK EQUITY CURVE <span class="review-panel-hint">hover anywhere for the nearest trade, click to open it</span></div>
             <div class="review-spark-wrap">
                 <svg class="review-spark-svg" id="review-spark-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
                     <defs>
@@ -2082,6 +2161,7 @@ function buildReviewSparkline(week) {
                     <path d="${smooth}" fill="none" stroke="${tone}" stroke-width="7" stroke-opacity="0.16" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
                     <path d="${smooth}" fill="none" stroke="${tone}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
                 </svg>
+                <div class="review-spark-trackline"></div>
                 ${dots}
             </div>
         </div>`;
@@ -2217,6 +2297,7 @@ function renderReviewPage() {
     const takeaways = [];
     takeaways.push({
         icon: netPnl >= 0 ? 'fa-flag-checkered' : 'fa-flag',
+        tone: netPnl >= 0 ? 'green' : 'red',
         html: netPnl >= 0
             ? `Finished the week <strong class="value-positive sensitive-value">${formatTotal(netPnl)}</strong> up over ${week.length} trade(s).`
             : `Finished the week <strong class="value-negative sensitive-value">${formatTotal(netPnl)}</strong> down over ${week.length} trade(s).`
@@ -2224,24 +2305,25 @@ function renderReviewPage() {
     if (allClosed.length > week.length) {
         takeaways.push({
             icon: winRateDelta >= 0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down',
+            tone: winRateDelta >= 0 ? 'green' : 'red',
             html: winRateDelta >= 0
                 ? `Win rate of <strong>${winRate.toFixed(0)}%</strong> ran <strong class="value-positive">${winRateDelta.toFixed(0)} points above</strong> your all-time ${allWinRate.toFixed(0)}%.`
                 : `Win rate of <strong>${winRate.toFixed(0)}%</strong> ran <strong class="value-negative">${Math.abs(winRateDelta).toFixed(0)} points below</strong> your all-time ${allWinRate.toFixed(0)}%.`
         });
     }
     if (bestDay && byDay.get(bestDay).pnl > 0) {
-        takeaways.push({ icon: 'fa-trophy', html: `Strongest day: <strong>${formatReviewDayLabel(bestDay)}</strong> (<span class="value-positive sensitive-value">${formatTotal(byDay.get(bestDay).pnl)}</span> over ${byDay.get(bestDay).count} trade(s)).` });
+        takeaways.push({ icon: 'fa-trophy', tone: 'green', html: `Strongest day: <strong>${formatReviewDayLabel(bestDay)}</strong> (<span class="value-positive sensitive-value">${formatTotal(byDay.get(bestDay).pnl)}</span> over ${byDay.get(bestDay).count} trade(s)).` });
     }
     if (worstDay && byDay.get(worstDay).pnl < 0) {
-        takeaways.push({ icon: 'fa-triangle-exclamation', html: `Toughest day: <strong>${formatReviewDayLabel(worstDay)}</strong> (<span class="value-negative sensitive-value">${formatTotal(byDay.get(worstDay).pnl)}</span> over ${byDay.get(worstDay).count} trade(s)).` });
+        takeaways.push({ icon: 'fa-triangle-exclamation', tone: 'red', html: `Toughest day: <strong>${formatReviewDayLabel(worstDay)}</strong> (<span class="value-negative sensitive-value">${formatTotal(byDay.get(worstDay).pnl)}</span> over ${byDay.get(worstDay).count} trade(s)).` });
     }
     const worstTag = tagRows[tagRows.length - 1];
     if (worstTag && worstTag.pnl < 0) {
-        takeaways.push({ icon: 'fa-tag', html: `"<strong>${escapeHtml(worstTag.name)}</strong>" trades cost <span class="value-negative sensitive-value">${formatTotal(worstTag.pnl)}</span> this week - worth reviewing before next week.` });
+        takeaways.push({ icon: 'fa-tag', tone: 'red', html: `"<strong>${escapeHtml(worstTag.name)}</strong>" trades cost <span class="value-negative sensitive-value">${formatTotal(worstTag.pnl)}</span> this week - worth reviewing before next week.` });
     }
     const bestTag = tagRows[0];
     if (bestTag && bestTag.pnl > 0) {
-        takeaways.push({ icon: 'fa-star', html: `"<strong>${escapeHtml(bestTag.name)}</strong>" was the best-working setup: <span class="value-positive sensitive-value">${formatTotal(bestTag.pnl)}</span> across ${bestTag.count} trade(s).` });
+        takeaways.push({ icon: 'fa-star', tone: 'green', html: `"<strong>${escapeHtml(bestTag.name)}</strong>" was the best-working setup: <span class="value-positive sensitive-value">${formatTotal(bestTag.pnl)}</span> across ${bestTag.count} trade(s).` });
     }
 
     const avgWinAmt = wins.length > 0 ? average(wins.map(r => r.returnAmount)) : 0;
@@ -2331,9 +2413,13 @@ function renderReviewPage() {
         ${buildReviewSparkline(week)}
 
         <div class="review-notes-row">
-            <div class="stats-panel review-animate">
+            <div class="stats-panel review-animate review-takeaways-panel">
                 <div class="stats-panel-title">TAKEAWAYS</div>
-                <ul class="review-takeaways">${takeaways.map(t => `<li><i class="fa-solid ${t.icon}"></i><span>${t.html}</span></li>`).join('')}</ul>
+                <ul class="review-takeaways">${takeaways.map(t => `
+                    <li class="review-tone-${t.tone || 'blue'}">
+                        <span class="review-tone-icon"><i class="fa-solid ${t.icon}"></i></span>
+                        <span class="review-takeaway-text">${t.html}</span>
+                    </li>`).join('')}</ul>
             </div>
             ${notesPanelHtml}
         </div>
@@ -2347,17 +2433,8 @@ function renderReviewPage() {
             <div class="review-stack">
                 <div class="stats-panel review-animate">
                     <div class="stats-panel-title">BEST / WORST TRADE <span class="review-panel-hint">click to open</span></div>
-                    <div class="review-trade-line clickable" onclick="openTradeViewModal(null, '${bestTrade.id}')">
-                        <i class="fa-solid fa-arrow-trend-up value-positive"></i>
-                        <span>${escapeHtml(bestTrade.symbol)} &middot; ${formatReviewDayLabel(bestTrade.date.slice(0, 10))}</span>
-                        <span class="${bestTrade.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(bestTrade.returnAmount)}${bestTrade.rMultiple !== null ? ` (${bestTrade.rMultiple.toFixed(1)}R)` : ''}</span>
-                    </div>
-                    ${worstTrade !== bestTrade ? `
-                    <div class="review-trade-line clickable" onclick="openTradeViewModal(null, '${worstTrade.id}')">
-                        <i class="fa-solid fa-arrow-trend-down value-negative"></i>
-                        <span>${escapeHtml(worstTrade.symbol)} &middot; ${formatReviewDayLabel(worstTrade.date.slice(0, 10))}</span>
-                        <span class="${worstTrade.returnAmount < 0 ? 'value-negative' : 'value-positive'} sensitive-value">${formatTotal(worstTrade.returnAmount)}${worstTrade.rMultiple !== null ? ` (${worstTrade.rMultiple.toFixed(1)}R)` : ''}</span>
-                    </div>` : ''}
+                    ${reviewTradeCard('Best trade', 'fa-trophy', bestTrade)}
+                    ${worstTrade !== bestTrade ? reviewTradeCard('Worst trade', 'fa-arrow-trend-down', worstTrade) : ''}
                 </div>
 
                 <div class="stats-panel review-animate">
@@ -2540,7 +2617,9 @@ function bindReviewTooltips() {
 
     content.addEventListener('mouseover', event => {
         const el = event.target.closest(selector);
-        if (!el) return;
+        // The week curve runs its own proximity-based crosshair below, so its
+        // dots are excluded here - otherwise both would fight over the tooltip.
+        if (!el || el.closest('.review-spark-wrap')) return;
         const text = el.dataset.heatText;
         const pnl = parseFloat(el.dataset.heatPnl);
         const count = el.dataset.heatCount;
@@ -2554,18 +2633,112 @@ function bindReviewTooltips() {
             </div>`}
             ${count ? `<div class="stats-bar-tooltip-label">${count} trade(s)</div>` : ''}`;
         tooltip.style.display = 'block';
+        // Position immediately, not only on the next mousemove - hovering the
+        // rightmost dot otherwise flashed the tooltip at its stale position.
+        positionStatsTooltip(tooltip, event);
     });
 
     content.addEventListener('mousemove', event => {
         const el = event.target.closest(selector);
-        if (!el || tooltip.style.display === 'none') return;
-        tooltip.style.left = `${event.clientX + 14}px`;
-        tooltip.style.top = `${event.clientY - 12}px`;
+        if (!el || el.closest('.review-spark-wrap') || tooltip.style.display === 'none') return;
+        positionStatsTooltip(tooltip, event);
     });
 
     content.addEventListener('mouseout', event => {
         const el = event.target.closest(selector);
+        if (!el || el.closest('.review-spark-wrap')) return;
         const toEl = event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(selector);
-        if (el && el !== toEl) tooltip.style.display = 'none';
+        if (el !== toEl) tooltip.style.display = 'none';
+    });
+
+    // ---- Week equity curve crosshair ----
+    // Tracks the whole plot area rather than the 9px dots themselves: moving
+    // anywhere over the chart snaps a vertical line to whichever dot is
+    // horizontally closest to the cursor, highlights it and shows its trade.
+    content.addEventListener('mousemove', event => {
+        const wrap = event.target.closest('.review-spark-wrap');
+        if (!wrap) return;
+        const dot = nearestSparkDot(wrap, event.clientX);
+        if (!dot) return;
+
+        const line = wrap.querySelector('.review-spark-trackline');
+        if (line) {
+            line.style.left = dot.style.left;
+            line.classList.toggle('down', dot.classList.contains('down'));
+            line.classList.add('visible');
+        }
+        wrap.querySelectorAll('.review-spark-dot.active').forEach(d => {
+            if (d !== dot) d.classList.remove('active');
+        });
+        dot.classList.add('active');
+
+        const pnl = parseFloat(dot.dataset.heatPnl);
+        tooltip.innerHTML = `
+            <div class="stats-bar-tooltip-label">${escapeHtml(dot.dataset.heatLabel)}</div>
+            <div class="stats-bar-tooltip-value">
+                <span class="stats-bar-tooltip-swatch ${pnl < 0 ? 'negative' : 'positive'}"></span>
+                <span class="sensitive-value">${formatTotal(pnl)}</span>
+            </div>
+            <div class="stats-bar-tooltip-label">Equity <span class="sensitive-value">${formatTotal(parseFloat(dot.dataset.sparkCum))}</span></div>`;
+        tooltip.style.display = 'block';
+        positionStatsTooltip(tooltip, event);
+    });
+
+    content.addEventListener('mouseout', event => {
+        const wrap = event.target.closest('.review-spark-wrap');
+        const toWrap = event.relatedTarget && event.relatedTarget.closest
+            && event.relatedTarget.closest('.review-spark-wrap');
+        if (!wrap || wrap === toWrap) return;
+
+        const line = wrap.querySelector('.review-spark-trackline');
+        if (line) line.classList.remove('visible');
+        wrap.querySelectorAll('.review-spark-dot.active').forEach(d => d.classList.remove('active'));
+        tooltip.style.display = 'none';
+    });
+
+    // Clicking anywhere on the plot opens whichever trade the crosshair is on,
+    // so you don't have to hit the dot itself.
+    content.addEventListener('click', event => {
+        const wrap = event.target.closest('.review-spark-wrap');
+        if (!wrap) return;
+        const dot = nearestSparkDot(wrap, event.clientX);
+        if (dot && dot.dataset.tradeId) openTradeViewModal(null, dot.dataset.tradeId);
     });
 }
+
+// Which week-curve dot sits closest horizontally to the given viewport X.
+// Dots are positioned in percent, so their pixel X is derived from the wrap's
+// current width - keeping this correct at any container size.
+function nearestSparkDot(wrap, clientX) {
+    const rect = wrap.getBoundingClientRect();
+    const x = clientX - rect.left;
+    let best = null, bestDist = Infinity;
+    wrap.querySelectorAll('.review-spark-dot').forEach(dot => {
+        const dist = Math.abs((parseFloat(dot.style.left) / 100) * rect.width - x);
+        if (dist < bestDist) { bestDist = dist; best = dot; }
+    });
+    return best;
+}
+
+// Keeps the (position:fixed, nowrap) shared tooltip fully on screen. Every
+// hover tooltip on this page used to pin it to clientX + 14 unconditionally,
+// so hovering anything near the right edge - the week curve's last dot, the
+// last heatmap column, the right end of a bar - pushed it past the viewport
+// and the text was visibly clipped. Flips to the cursor's left when it would
+// overflow, and clamps vertically the same way. Shared by the review curve,
+// pro-score radar, stacked segments, bar rows and the heatmap.
+function positionStatsTooltip(tooltip, event) {
+    const gap = 14, edge = 8;
+    const rect = tooltip.getBoundingClientRect();
+
+    let left = event.clientX + gap;
+    if (left + rect.width > window.innerWidth - edge) left = event.clientX - rect.width - gap;
+    left = Math.max(edge, Math.min(left, window.innerWidth - rect.width - edge));
+
+    let top = event.clientY - 12;
+    top = Math.max(edge, Math.min(top, window.innerHeight - rect.height - edge));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+}
+
