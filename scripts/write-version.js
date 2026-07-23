@@ -10,8 +10,17 @@
 const fs = require('fs');
 const path = require('path');
 
+// ---- BUMP THIS when you ship something worth calling a new release. -------
+// It's the only manual bit: the commit hash and date below fill themselves in
+// on every deploy, but this is the friendly number users actually see.
+//   1.0 -> 1.1  for new features
+//   1.0 -> 1.0.1 for small fixes
+const APP_VERSION = '1.0';
+// --------------------------------------------------------------------------
+
 const sha = process.env.VERCEL_GIT_COMMIT_SHA || '';
 const payload = {
+    version: APP_VERSION,
     commit: sha ? sha.slice(0, 7) : 'dev',
     // Date only - a full timestamp is noise in a sidebar footer.
     builtAt: new Date().toISOString().slice(0, 10)

@@ -1939,11 +1939,15 @@ function initHelpTileGoTo() {
 
 document.addEventListener('DOMContentLoaded', initHelpTileGoTo);
 
-// ---- Build stamp in the sidebar footer ----
-// version.json is written at deploy time from Vercel's VERCEL_GIT_COMMIT_SHA
-// (scripts/write-version.js). It deliberately fails silent: running locally
-// there's no such file, so the element stays empty and CSS (:empty) hides it
-// entirely rather than showing a broken or misleading version.
+// ---- Version stamp under the sidebar account block ----
+// version.json is written at deploy time (scripts/write-version.js): a manual
+// release number plus Vercel's commit hash and build date. The visible label
+// is the friendly "v1.0"; the exact commit hides in the tooltip, where it's
+// there when debugging but not cluttering the sidebar.
+//
+// Deliberately fails silent: running locally there's no version.json, so the
+// element stays empty and CSS (:empty) hides it rather than showing a broken
+// or misleading version.
 function renderAppVersion() {
     const el = document.getElementById('sidebar-version');
     if (!el) return;
@@ -1951,9 +1955,13 @@ function renderAppVersion() {
     fetch('./version.json')
         .then(response => (response.ok ? response.json() : null))
         .then(info => {
-            if (!info || !info.commit || info.commit === 'dev') return;
-            el.textContent = `build ${info.commit}`;
-            if (info.builtAt) el.title = `Deployed ${info.builtAt}`;
+            if (!info || !info.version) return;
+            el.textContent = `v${info.version}`;
+
+            const detail = [];
+            if (info.commit && info.commit !== 'dev') detail.push(`build ${info.commit}`);
+            if (info.builtAt) detail.push(`deployed ${info.builtAt}`);
+            if (detail.length) el.title = detail.join(' · ');
         })
         .catch(() => { /* no version.json (local dev) - leave it blank */ });
 }
