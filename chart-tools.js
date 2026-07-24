@@ -236,6 +236,20 @@ function attachChartTools(opts) {
     window.addEventListener('mousemove', tools.windowMoveHandler);
     window.addEventListener('mouseup', tools.windowUpHandler);
 
+    // Touch equivalents so drawings can be grabbed and dragged on phones/tablets.
+    // touchstart is non-passive so beginChartDrawingDrag can preventDefault when
+    // it lands on a handle; touchmove is non-passive so an in-progress drag can
+    // stop the page/chart from scrolling underneath the finger.
+    tools.svg.addEventListener('touchstart', e => beginChartDrawingDrag(tools, e), { passive: false });
+    tools.windowTouchMoveHandler = e => {
+        if (tools.drag) e.preventDefault();
+        moveChartDrawingDrag(tools, e);
+    };
+    tools.windowTouchEndHandler = () => endChartDrawingDrag(tools);
+    window.addEventListener('touchmove', tools.windowTouchMoveHandler, { passive: false });
+    window.addEventListener('touchend', tools.windowTouchEndHandler);
+    window.addEventListener('touchcancel', tools.windowTouchEndHandler);
+
     tools.resizeObserver = new ResizeObserver(() => renderChartDrawings(tools));
     tools.resizeObserver.observe(tools.container);
 
@@ -284,6 +298,9 @@ function attachChartTools(opts) {
         document.removeEventListener('keydown', tools.keyHandler);
         window.removeEventListener('mousemove', tools.windowMoveHandler);
         window.removeEventListener('mouseup', tools.windowUpHandler);
+        window.removeEventListener('touchmove', tools.windowTouchMoveHandler);
+        window.removeEventListener('touchend', tools.windowTouchEndHandler);
+        window.removeEventListener('touchcancel', tools.windowTouchEndHandler);
         if (tools.resizeObserver) tools.resizeObserver.disconnect();
         liveChartTools.delete(tools);
     };
@@ -300,9 +317,13 @@ function chartToolsCoordToTime(tools, x) {
     return tools.data[idx].time;
 }
 
+// Works for both mouse and touch events - a touch drag reads the first
+// (or last, on touchend) touch point, so the same drag logic drives finger
+// and cursor alike.
 function chartToolsMouseXY(tools, e) {
     const rect = tools.svg.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const p = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+    return { x: p.clientX - rect.left, y: p.clientY - rect.top };
 }
 
 function beginChartDrawingDrag(tools, e) {
@@ -515,26 +536,40 @@ function buildChartToolsToolbar(tools) {
     grip.className = 'chart-tools-grip';
     grip.title = 'Drag to move';
     grip.innerHTML = '<i class="fa-solid fa-grip-lines"></i>';
-    grip.addEventListener('mousedown', e => {
+    // Draggable by mouse or touch. A tiny coord helper reads whichever the
+    // event carries, so one code path serves both.
+    const gripPoint = ev => {
+        const p = (ev.touches && ev.touches[0]) || (ev.changedTouches && ev.changedTouches[0]) || ev;
+        return { x: p.clientX, y: p.clientY };
+    };
+    const startGripDrag = e => {
         e.preventDefault();
         e.stopPropagation();
-        const startX = e.clientX, startY = e.clientY;
+        const start = gripPoint(e);
         const startLeft = bar.offsetLeft, startTop = bar.offsetTop;
 
         const onMove = ev => {
+            if (ev.cancelable) ev.preventDefault();
+            const pt = gripPoint(ev);
             const maxLeft = tools.container.clientWidth - bar.offsetWidth;
             const maxTop = tools.container.clientHeight - bar.offsetHeight;
-            bar.style.left = `${Math.max(0, Math.min(maxLeft, startLeft + ev.clientX - startX))}px`;
-            bar.style.top = `${Math.max(0, Math.min(maxTop, startTop + ev.clientY - startY))}px`;
+            bar.style.left = `${Math.max(0, Math.min(maxLeft, startLeft + pt.x - start.x))}px`;
+            bar.style.top = `${Math.max(0, Math.min(maxTop, startTop + pt.y - start.y))}px`;
         };
         const onUp = () => {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onUp);
             positionChartToolsPanels(tools);
         };
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
-    });
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onUp);
+    };
+    grip.addEventListener('mousedown', startGripDrag);
+    grip.addEventListener('touchstart', startGripDrag, { passive: false });
     bar.appendChild(grip);
 
     // Collapse/expand the rail down to just the grip + this chevron

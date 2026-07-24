@@ -6563,14 +6563,30 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .dashboard-main,
     html.sidebar-drawer-mode .dashboard-main { padding: 12px 10px 14px 10px; gap: 12px; }
 
+    /* 100vh on a phone spans BEHIND the browser chrome and the OS navigation
+       bar, so the scroll area's bottom sat off-screen and the last content
+       (Tags This Week, Coach goals) was unreachable. 100dvh tracks the real
+       visible height; the scroll pages then add a safe-area-aware bottom pad
+       so their final row always clears the gesture/nav strip. */
+    body, .dashboard-main { height: 100dvh; }
+    .view-section { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+
     /* The burger no longer owns a dead 56px strip: each page's first toolbar
        row is indented past the fixed 42px burger (at 12,12; page side padding
-       is 10px, so 52px clears it with a small gap) and shares its row. */
+       is 10px, so 52px clears it with a small gap) and shares its row. Each
+       toolbar is also given the burger's 42px height so their contents sit on
+       the same centre line as the burger rather than floating higher. */
     .page-date-range-bar,
     .calendar-toolbar,
     .review-toolbar,
     .community-header,
     .news-mobile-filters-btn { margin-left: 52px; }
+
+    .calendar-toolbar,
+    .review-toolbar,
+    .community-header { min-height: 42px; }
+    .review-toolbar,
+    .community-header { width: auto; }
 
     /* One scrollable pill row beside the burger instead of three wrapped
        (and now indented) lines - the bar's base styles already handle
@@ -6669,7 +6685,6 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        has to fit in what's left. Tighten the month/year selects, shrink the
        nav arrows, and drop the "Holidays" text to its icon so the whole row
        stops overflowing off the right edge. */
-    .calendar-toolbar { min-height: 42px; }
     .calendar-toolbar-center { gap: 5px; align-items: center; min-width: 0; }
     .calendar-toolbar .calendar-nav-btn { width: 30px; height: 30px; flex-shrink: 0; }
     .calendar-toolbar .calendar-select {
@@ -6679,6 +6694,20 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     }
     #holiday-calendar-toggle { font-size: 0; padding: 6px 9px; }
     #holiday-calendar-toggle i { font-size: 0.9rem; }
+
+    /* Keep every calendar cell the SAME height whether holidays are shown or
+       not. A holiday used to grow its cell (and so its whole week row) taller,
+       stretching the grid unevenly. Fixed-height rows + clipped overflow lock
+       the size; the holiday shows as its compact country chip (name hidden on
+       phones - it's in the cell's title tooltip). */
+    .calendar-grid { grid-auto-rows: 92px; }
+    .calendar-day { min-height: 0; height: 100%; overflow: hidden; padding: 7px; }
+    .calendar-holiday-name { display: none; }
+    .calendar-holiday { margin-top: 3px; }
+
+    /* The week label reserved a 240px min-width that overflowed a phone; let it
+       shrink and centre in whatever space is left beside the nav arrows. */
+    .review-toolbar .review-week-label { min-width: 0; flex: 1; font-size: 0.86rem; }
 
     /* Data-entry tables inside modals (New Trade legs; Account transactions)
        carry native date/number inputs whose intrinsic width overflowed the
