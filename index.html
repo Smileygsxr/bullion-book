@@ -400,6 +400,17 @@
             .site-nav a.nav-link-plain { display: none; }
             section { padding: 44px 0; }
         }
+
+        /* Phone header: keep brand + Log In + Get Started on one tidy line
+           instead of the brand wrapping to two lines and the buttons crowding. */
+        @media (max-width: 480px) {
+            .wrap { padding: 0 12px; }
+            .site-header .wrap { gap: 8px; }
+            .brand { font-size: 0.9rem; white-space: nowrap; gap: 7px; }
+            .brand .logo-mark { width: 1.5em; height: 1.5em; }
+            .site-nav { gap: 6px; }
+            .site-nav .btn { padding: 8px 11px; font-size: 0.8rem; }
+        }
     </style>
 </head>
 <body>

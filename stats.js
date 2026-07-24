@@ -1173,6 +1173,13 @@ function getStatsBarTooltip() {
         tooltip.id = 'stats-bar-tooltip';
         tooltip.className = 'stats-bar-tooltip';
         document.body.appendChild(tooltip);
+
+        // On touch screens there's no reliable mouseout, so a tapped tooltip
+        // (e.g. a Weekly Review bar) would stay stuck floating over the page.
+        // Dismiss it on any scroll or the next touch so it can't linger.
+        const hide = () => { tooltip.style.display = 'none'; };
+        window.addEventListener('scroll', hide, { passive: true, capture: true });
+        window.addEventListener('touchstart', hide, { passive: true });
     }
     return tooltip;
 }

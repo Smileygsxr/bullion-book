@@ -172,6 +172,9 @@ function toggleTradeFilterPanel() {
     if (!panel) return;
 
     if (panel.style.display === 'none') {
+        // On phones the filter button lives inside the drawer sidebar; leaving
+        // the drawer (and its scrim) open would cover the panel. Close it first.
+        if (typeof closeSidebarDrawer === 'function') closeSidebarDrawer();
         pendingFilterTagIds = [...tradeLogFilters.tagIds];
         pendingFilterSymbols = [...tradeLogFilters.symbols];
         pendingFilterPlaybookIds = [...(tradeLogFilters.playbookIds || [])];

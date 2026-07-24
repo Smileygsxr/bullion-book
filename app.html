@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=111">
+    <link rel="stylesheet" href="styles.css?v=112">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -2103,19 +2103,21 @@
                         </div>
                     </div>
 
-                    <table class="modal-transactions-table">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Action</th>
-                                <th>Date/Time</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Fee</th>
-                            </tr>
-                        </thead>
-                        <tbody id="trade-modal-legs"></tbody>
-                    </table>
+                    <div class="modal-table-scroll">
+                        <table class="modal-transactions-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Action</th>
+                                    <th>Date/Time</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Fee</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trade-modal-legs"></tbody>
+                        </table>
+                    </div>
 
                     <button class="modal-add-row-btn" onclick="addTradeLeg()" title="Add action">
                         <i class="fa-solid fa-plus"></i>
@@ -2487,18 +2489,20 @@
                 </div>
 
                 <div class="modal-section-label">Transactions</div>
-                <table class="modal-transactions-table">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Note</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="account-modal-transactions"></tbody>
-                </table>
+                <div class="modal-table-scroll">
+                    <table class="modal-transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Note</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="account-modal-transactions"></tbody>
+                    </table>
+                </div>
 
                 <button class="modal-add-row-btn" onclick="addDraftTransaction()" title="Add transaction">
                     <i class="fa-solid fa-plus"></i>

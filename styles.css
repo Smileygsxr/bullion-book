@@ -6606,7 +6606,7 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        gaps/margins tighten so the first chart starts right below it.
        !important beats page-news's inline gap and the content area's inline
        margin-top. */
-    .news-mobile-filters-btn { align-self: stretch; }
+    .news-mobile-filters-btn { align-self: stretch; box-sizing: border-box; min-height: 42px; }
     .news-mobile-filters-btn .news-mobile-filters-chevron { margin-left: auto; }
     #page-news { gap: 10px !important; }
     #page-news .news-content-area { margin-top: 0 !important; }
@@ -6631,6 +6631,20 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .stats-row .chart-card { grid-column: 1 / -1; margin-right: 0; }
     .stats-row .metrics-group { display: contents; }
 
+    /* Net PnL is the 7th tile in a 2-col grid, so it landed alone on the last
+       row with a dead cell beside it. Span both columns like the chart card so
+       it fills the width instead. */
+    .stats-row .pnl-card {
+        grid-column: 1 / -1;
+        margin-left: 0;
+        flex-direction: row;
+        justify-content: center;
+        gap: 14px;
+        min-height: 56px;
+    }
+    .stats-row .pnl-card .pnl-card-icon { margin-bottom: 0; }
+    .stats-row .pnl-card .pnl-value { font-size: 1.5rem; }
+
     .design-fix {
         width: 100%;
         height: auto;
@@ -6650,6 +6664,44 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     /* Popovers/panels never wider than the screen */
     .custom-date-popover { max-width: calc(100vw - 20px); flex-wrap: wrap; }
     .chart-tools-panel { max-width: calc(100vw - 70px); }
+
+    /* Calendar toolbar shares the burger's row (margin-left:52px above), so it
+       has to fit in what's left. Tighten the month/year selects, shrink the
+       nav arrows, and drop the "Holidays" text to its icon so the whole row
+       stops overflowing off the right edge. */
+    .calendar-toolbar { min-height: 42px; }
+    .calendar-toolbar-center { gap: 5px; align-items: center; min-width: 0; }
+    .calendar-toolbar .calendar-nav-btn { width: 30px; height: 30px; flex-shrink: 0; }
+    .calendar-toolbar .calendar-select {
+        padding: 6px 6px;
+        font-size: 0.76rem;
+        min-width: 0;
+    }
+    #holiday-calendar-toggle { font-size: 0; padding: 6px 9px; }
+    #holiday-calendar-toggle i { font-size: 0.9rem; }
+
+    /* Data-entry tables inside modals (New Trade legs; Account transactions)
+       carry native date/number inputs whose intrinsic width overflowed the
+       narrow modal. Let each table scroll sideways within its own wrapper so
+       nothing bleeds off-screen, matching the trade-log pattern. */
+    .modal-table-scroll { overflow-x: auto; }
+    .modal-table-scroll .modal-transactions-table { min-width: 460px; }
+
+    /* Trade filter panel opened from inside the drawer used to render at
+       z-index 300 - underneath the drawer scrim (890) - so it was invisible.
+       The toggle now closes the drawer first (filters.js); this makes it a
+       full-width sheet clear of the burger and above any stray scrim. */
+    .trade-filter-panel {
+        top: 64px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-width: none;
+        z-index: 905;
+        max-height: calc(100dvh - 80px);
+        overflow-y: auto;
+    }
+    .trade-filter-grid { grid-template-columns: 1fr; gap: 12px; }
 }
 
 /* Sidebar-style picker buttons (Settings > Appearance) */
