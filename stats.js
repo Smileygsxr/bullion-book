@@ -1012,21 +1012,11 @@ function setHtml(id, html) {
 let statsEquityChartInstance = null;
 let statsEquityResizeBound = false;
 
-// One persistent observer on the (static) container keeps whichever chart
-// instance currently lives in it sized to fit - covers window resizes AND
-// layout changes that fire no resize event, like the saved fixed-sidebar
-// setting arriving from Firestore after first paint on a new machine.
-function bindStatsEquityResize(container) {
-    if (statsEquityResizeBound || typeof ResizeObserver === 'undefined') return;
-    statsEquityResizeBound = true;
-    new ResizeObserver(() => {
-        // clientWidth is 0 while the Stats page is hidden - skip those, the
-        // observer fires again with the real size when it's shown.
-        if (statsEquityChartInstance && container.clientWidth > 0) {
-            statsEquityChartInstance.resize(container.clientWidth, container.clientHeight);
-        }
-    }).observe(container);
-}
+// The chart now sizes itself (autoSize: true in renderStatsEquityChart), which
+// covers window resizes and post-paint layout changes via its own observer -
+// so this legacy manual observer is retired. Kept as a no-op to leave the call
+// site untouched; calling resize() by hand on an autoSize chart just warns.
+function bindStatsEquityResize() { /* superseded by autoSize */ }
 
 function renderStatsEquityChart(closed) {
     const container = document.getElementById('stats-equity-chart');
@@ -1053,6 +1043,13 @@ function renderStatsEquityChart(closed) {
     });
 
     statsEquityChartInstance = LightweightCharts.createChart(container, {
+        // autoSize makes the chart track its container via its own
+        // ResizeObserver, so it always fills the panel's real height. Without
+        // it, the chart was locking to whatever clientHeight happened to be at
+        // creation - on mobile that was often tiny (the Stats page is rendered
+        // 50ms after it's shown, before layout settles), leaving a thin sliver
+        // that the fixed CSS height couldn't rescue.
+        autoSize: true,
         width: container.clientWidth || 600,
         height: container.clientHeight || 240,
         layout: { background: { color: 'transparent' }, textColor: '#848e9c', attributionLogo: false },
