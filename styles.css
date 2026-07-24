@@ -6569,7 +6569,16 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        visible height; the scroll pages then add a safe-area-aware bottom pad
        so their final row always clears the gesture/nav strip. */
     body, .dashboard-main { height: 100dvh; }
-    .view-section { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
+
+    /* The scroll pages carry a 24px top pad that pushed every toolbar 24px
+       BELOW the fixed burger (top:12px), so nothing lined up with it. Drop it
+       to 0 on phones: each page's first toolbar then starts at the same 12px
+       as the burger and (with min-height:42px below) centres on its row.
+       Pages with no burger-row toolbar keep their own #page-x padding-top. */
+    .view-section {
+        padding-top: 0;
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    }
 
     /* The burger no longer owns a dead 56px strip: each page's first toolbar
        row is indented past the fixed 42px burger (at 12,12; page side padding
@@ -6582,9 +6591,11 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .community-header,
     .news-mobile-filters-btn { margin-left: 52px; }
 
+    .page-date-range-bar,
     .calendar-toolbar,
     .review-toolbar,
     .community-header { min-height: 42px; }
+    .page-date-range-bar { align-items: center; }
     .review-toolbar,
     .community-header { width: auto; }
 
@@ -6606,6 +6617,20 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        log), instead of clipping the last columns. */
     .stats-panel { overflow-x: auto; }
     .stats-table { min-width: 540px; }
+
+    /* Stats charts were rendering as thin slivers on a phone. Give the async
+       equity/bar charts real height, and let the DAY x HOUR heatmap scroll
+       sideways (24 hour columns can't fit ~320px without crushing every cell
+       to a few px). */
+    .stats-equity-chart { height: 280px; }
+    .stats-bar-chart { min-height: 150px; }
+    #stats-heatmap { overflow-x: auto; }
+    .stats-heatmap-grid { min-width: 600px; }
+
+    /* Pro Score's side column packs two half-panels per inner row (Wins +
+       Total Trades, MAE/MFE + Volatility); side-by-side they're unreadable on
+       a phone, so stack each pair full-width. */
+    .stats-stack-row { flex-direction: column; }
 
     /* Pages whose first block is full-width content (no slim toolbar to
        share the burger's row with) keep clearance below it instead. */
