@@ -6616,6 +6616,17 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
        genuinely need every column. The Stats *performance* tables below opt
        out and drop columns instead, so they fit with no in-box scrolling. */
     .stats-panel { overflow-x: auto; }
+
+    /* The overflow-x above has a nasty spec side effect: a flex item with
+       non-visible overflow loses its automatic content-based minimum height
+       (min-height:auto resolves to 0). #page-stats is a scrolling flex
+       column, so its DIRECT panel children (Equity Curve, Heatmap, Playbook
+       Performance) were flex-CRUSHED to slivers to "fit" the viewport
+       instead of overflowing into scroll - while panels nested inside
+       .stats-charts-row wrappers stayed protected and looked fine. Never
+       shrink this page's rows: scrolling is what the page is for. */
+    #page-stats > * { flex-shrink: 0; }
+
     .settings-tag-table { min-width: 540px; }
 
     /* Stats performance tables: instead of scrolling 6-8 columns sideways in a
