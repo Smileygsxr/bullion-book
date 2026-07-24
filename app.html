@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=114">
+    <link rel="stylesheet" href="styles.css?v=115">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -433,7 +433,7 @@
 
             <div class="stats-charts-row">
                 <div class="stats-panel stats-panel-half">
-                    <table class="stats-table">
+                    <table class="stats-table stats-perf-table stats-perf-tag">
                         <thead>
                             <tr>
                                 <th class="sortable" onclick="sortStatsTable('tag', 'name')">Tag <i class="fa-solid fa-sort" id="stats-tag-sort-icon-name"></i></th>
@@ -450,7 +450,7 @@
                     </table>
                 </div>
                 <div class="stats-panel stats-panel-half">
-                    <table class="stats-table">
+                    <table class="stats-table stats-perf-table stats-perf-symbol">
                         <thead>
                             <tr>
                                 <th class="sortable" onclick="sortStatsTable('symbol', 'symbol')">Symbol <i class="fa-solid fa-sort" id="stats-symbol-sort-icon-symbol"></i></th>
@@ -467,7 +467,7 @@
 
             <div class="stats-panel">
                 <div class="stats-panel-title">PLAYBOOK PERFORMANCE</div>
-                <table class="stats-table">
+                <table class="stats-table stats-perf-table stats-perf-playbook">
                     <thead>
                         <tr>
                             <th class="sortable" onclick="sortStatsTable('playbook', 'name')">Playbook <i class="fa-solid fa-sort" id="stats-playbook-sort-icon-name"></i></th>

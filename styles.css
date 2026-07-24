@@ -6612,20 +6612,31 @@ html.sidebar-drawer-mode .dashboard-main { padding-left: 66px; }
     .calendar-toolbar,
     .community-header { width: auto; }
 
-    /* Stats tag/symbol/playbook tables: 6-7 columns can't fit a phone -
-       scroll them sideways inside their panel (same pattern as the trade
-       log), instead of clipping the last columns. */
+    /* Settings tables (tag/instrument management) still scroll sideways - they
+       genuinely need every column. The Stats *performance* tables below opt
+       out and drop columns instead, so they fit with no in-box scrolling. */
     .stats-panel { overflow-x: auto; }
-    .stats-table { min-width: 540px; }
+    .settings-tag-table { min-width: 540px; }
+
+    /* Stats performance tables: instead of scrolling 6-8 columns sideways in a
+       cramped box, keep just the essentials that fit a phone - name, Trades,
+       Win Rate and P&L. The secondary columns (Category, PnL %, Avg R, PnL
+       Contribution %) are hidden here; they're still there on desktop. */
+    .stats-perf-table { min-width: 0; width: 100%; }
+    .stats-perf-tag td:nth-child(2), .stats-perf-tag th:nth-child(2),
+    .stats-perf-tag td:nth-child(6), .stats-perf-tag th:nth-child(6),
+    .stats-perf-tag td:nth-child(7), .stats-perf-tag th:nth-child(7),
+    .stats-perf-tag td:nth-child(8), .stats-perf-tag th:nth-child(8) { display: none; }
+    .stats-perf-symbol td:nth-child(5), .stats-perf-symbol th:nth-child(5) { display: none; }
+    .stats-perf-playbook td:nth-child(5), .stats-perf-playbook th:nth-child(5),
+    .stats-perf-playbook td:nth-child(6), .stats-perf-playbook th:nth-child(6) { display: none; }
 
     /* Stats charts were rendering as thin slivers on a phone. Give the async
-       equity/bar charts real height, and let the DAY x HOUR heatmap scroll
-       sideways (24 hour columns can't fit ~320px without crushing every cell
-       to a few px). */
+       equity/bar charts real height. The DAY x HOUR heatmap already spans only
+       the hours you actually trade (renderStatsHeatmap) and uses minmax cells,
+       so it fills the width without a forced sideways scroll. */
     .stats-equity-chart { height: 280px; }
     .stats-bar-chart { min-height: 150px; }
-    #stats-heatmap { overflow-x: auto; }
-    .stats-heatmap-grid { min-width: 600px; }
 
     /* Pro Score's side column packs two half-panels per inner row (Wins +
        Total Trades, MAE/MFE + Volatility); side-by-side they're unreadable on

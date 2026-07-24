@@ -1409,7 +1409,11 @@ function renderStatsHeatmap(closed) {
 
     const maxAbsPnl = Math.max(1, ...Array.from(cells.values()).map(c => Math.abs(c.pnl)));
 
-    let html = `<div class="stats-heatmap-grid" style="grid-template-columns: 46px repeat(${hours.length}, 1fr);">`;
+    // minmax(24px, 1fr): columns stretch to fill the panel when there's room
+    // (few active hours - the common case, so no sideways scroll), but never
+    // shrink below a tappable 24px; a genuinely wide span (e.g. a 24h crypto
+    // trader) then overflows and the panel scrolls rather than crushing cells.
+    let html = `<div class="stats-heatmap-grid" style="grid-template-columns: 46px repeat(${hours.length}, minmax(24px, 1fr));">`;
     html += '<div></div>' + hours.map(h => `<div class="stats-heatmap-hour-label">${formatHourLabel(h).replace(' ', '')}</div>`).join('');
 
     days.forEach(day => {
