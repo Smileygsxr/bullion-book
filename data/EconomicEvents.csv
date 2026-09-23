@@ -1128,7 +1128,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-18,9:30pm,CFTC EUR Non-Commercial Net Positions,EUR,-27.0,,-42.6,moderate
 2026-09-21,5:00pm,ECB President Lagarde Speech,EUR,,,,high
 2026-09-22,1:00pm,ECB President Lagarde Speech,EUR,,,,high
-2026-09-22,4:00pm,Consumer Confidence Index,EUR,,-14.6,-15.5,low
+2026-09-22,4:00pm,Consumer Confidence Index,EUR,-16.5,-14.6,-15.5,low
 2026-09-23,10:00am,S&P Global Manufacturing PMI,EUR,,53.0,52.7,moderate
 2026-09-23,10:00am,S&P Global Services PMI,EUR,,51.1,51.6,moderate
 2026-09-23,10:00am,S&P Global Composite PMI,EUR,,51.1,52.0,moderate
@@ -1146,7 +1146,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-29,11:00am,Industrial Confidence Indicator,EUR,,-5.7,-5.3,low
 2026-09-29,11:00am,Services Sentiment Indicator,EUR,,6.6,5.8,low
 2026-09-29,11:00am,Economic Sentiment Indicator,EUR,,98.4,98.4,moderate
-2026-09-29,11:00am,Consumer Confidence Index,EUR,,,,low
+2026-09-29,11:00am,Consumer Confidence Index,EUR,,-16.5,-16.5,low
 2026-09-29,11:00am,Consumer Price Expectations,EUR,,32.0,33.0,high
 2026-09-29,11:00am,Industry Selling Price Expectations,EUR,,14.2,16.4,low
 2026-09-30,9:00am,ECB Non-monetary Policy Meeting,EUR,,,,moderate
@@ -1429,6 +1429,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-03-05,5:35am,30-Year JGB Auction,JPY,3.398,,3.615,low
 2026-03-06,1:50am,International Reserves,JPY,1410.7,,1394.8,low
 2026-03-06,10:30pm,CFTC JPY Non-Commercial Net Positions,JPY,-16.6,,11.5,moderate
+2026-03-09,1:30am,Labor Cash Earnings y/y,JPY,3.0,,2.4,low
+2026-03-09,1:30am,Overtime Pay y/y,JPY,3.3,,0.9,low
+2026-03-09,1:30am,Real Wage y/y,JPY,1.4,,-0.1,low
 2026-03-09,1:50am,BoJ Bank Lending y/y,JPY,4.5,4.5,4.5,low
 2026-03-09,1:50am,Current Account n.s.a.,JPY,941.6,1254.1,728.8,moderate
 2026-03-09,1:50am,Goods Trade Balance,JPY,-600.4,1840.2,134.9,low
@@ -1531,6 +1534,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-04-07,7:00am,Leading Index,JPY,112.4,112.3,112.1,low
 2026-04-07,7:00am,Coincident Index m/m,JPY,-1.6,,3.4,low
 2026-04-07,7:00am,Leading Index m/m,JPY,0.3,,1.7,low
+2026-04-08,1:30am,Labor Cash Earnings y/y,JPY,3.3,,3.0,low
+2026-04-08,1:30am,Overtime Pay y/y,JPY,3.3,,3.3,low
+2026-04-08,1:30am,Real Wage y/y,JPY,1.9,,1.4,low
 2026-04-08,1:50am,Current Account n.s.a.,JPY,3932.7,-716.3,941.6,moderate
 2026-04-08,1:50am,Goods Trade Balance,JPY,267.6,1663.8,-600.4,low
 2026-04-08,1:50am,Adjusted Current Account,JPY,2709.0,3137.2,3145.0,moderate
@@ -1604,6 +1610,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-05-06,2:00am,Constitution Memorial Day,JPY,,,,none
 2026-05-07,1:50am,BoJ Monetary Base y/y,JPY,-11.3,-11.1,-11.6,low
 2026-05-07,1:50am,BoJ Monetary Policy Meeting Minutes,JPY,,,,moderate
+2026-05-08,1:30am,Labor Cash Earnings y/y,JPY,2.7,,3.3,low
+2026-05-08,1:30am,Overtime Pay y/y,JPY,1.9,,3.3,low
+2026-05-08,1:30am,Real Wage y/y,JPY,1.0,,1.9,low
 2026-05-08,2:30am,au Jibun Bank Services PMI,JPY,51.0,53.1,53.4,moderate
 2026-05-08,2:30am,au Jibun Bank Composite PMI,JPY,52.2,,53.0,low
 2026-05-08,9:30pm,CFTC JPY Non-Commercial Net Positions,JPY,-61.7,,-102.1,moderate
@@ -1688,6 +1697,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-06-04,1:50am,Foreign Investment in Japan Stocks,JPY,-491.2,,1080.4,low
 2026-06-05,1:30am,Household Spending y/y,JPY,-0.5,-0.2,-2.9,moderate
 2026-06-05,1:30am,Household Spending m/m,JPY,1.6,0.2,-1.3,moderate
+2026-06-05,1:30am,Labor Cash Earnings y/y,JPY,3.5,,2.7,low
+2026-06-05,1:30am,Overtime Pay y/y,JPY,4.2,,1.9,low
+2026-06-05,1:30am,Real Wage y/y,JPY,1.9,,1.0,low
 2026-06-05,1:50am,International Reserves,JPY,1305.9,,1383.0,low
 2026-06-05,7:00am,Coincident Index,JPY,117.9,117.9,116.4,low
 2026-06-05,7:00am,Leading Index,JPY,115.9,113.8,114.0,low
@@ -1783,6 +1795,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-07-06,9:30pm,CFTC JPY Non-Commercial Net Positions,JPY,-155.1,,-146.1,moderate
 2026-07-07,1:30am,Household Spending y/y,JPY,-0.4,-0.5,-0.5,moderate
 2026-07-07,1:30am,Household Spending m/m,JPY,3.7,0.2,1.6,moderate
+2026-07-07,1:30am,Labor Cash Earnings y/y,JPY,3.2,,3.5,low
+2026-07-07,1:30am,Overtime Pay y/y,JPY,2.9,,4.2,low
+2026-07-07,1:30am,Real Wage y/y,JPY,1.4,,1.9,low
 2026-07-07,1:50am,International Reserves,JPY,1287.5,,1305.9,low
 2026-07-07,5:35am,30-Year JGB Auction,JPY,3.993,,3.860,low
 2026-07-07,7:00am,Coincident Index,JPY,118.5,120.7,118.1,low
@@ -1855,9 +1870,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-08-03,2:30am,au Jibun Bank Manufacturing PMI,JPY,54.5,51.9,54.9,low
 2026-08-04,1:50am,BoJ Monetary Base y/y,JPY,-13.8,-13.7,-13.7,low
 2026-08-04,5:35am,10-Year JGB Auction,JPY,2.840,,2.729,moderate
-2026-08-05,1:30am,Labor Cash Earnings y/y,JPY,3.4,,2.4,low
-2026-08-05,1:30am,Overtime Pay y/y,JPY,2.8,,0.9,low
-2026-08-05,1:30am,Real Wage y/y,JPY,1.6,,-0.1,low
+2026-08-05,1:30am,Labor Cash Earnings y/y,JPY,3.4,,3.2,low
+2026-08-05,1:30am,Overtime Pay y/y,JPY,2.8,,2.9,low
+2026-08-05,1:30am,Real Wage y/y,JPY,1.6,,1.4,low
 2026-08-05,1:50am,BoJ Monetary Policy Meeting Minutes,JPY,,,,moderate
 2026-08-05,2:30am,au Jibun Bank Services PMI,JPY,51.2,52.6,52.2,moderate
 2026-08-05,2:30am,au Jibun Bank Composite PMI,JPY,52.7,,52.5,low
@@ -1921,10 +1936,10 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-08-26,1:50am,BoJ Corporate Services Price Index y/y,JPY,3.6,3.5,3.2,low
 2026-08-27,1:50am,Foreign Bond Investment,JPY,-1978.4,,1135.1,low
 2026-08-27,1:50am,Foreign Investment in Japan Stocks,JPY,-764.1,,621.2,low
-2026-08-28,1:30am,Tokyo CPI y/y,JPY,,2.0,2.0,low
-2026-08-28,1:30am,Tokyo CPI excl. Food and Energy y/y,JPY,,2.0,2.0,high
-2026-08-28,1:30am,Tokyo Core CPI y/y,JPY,,2.2,1.9,moderate
-2026-08-28,1:30am,Tokyo CPI s.a. m/m,JPY,,,0.4,low
+2026-08-28,1:30am,Tokyo CPI y/y,JPY,1.9,2.0,2.0,low
+2026-08-28,1:30am,Tokyo CPI excl. Food and Energy y/y,JPY,2.0,2.0,2.0,high
+2026-08-28,1:30am,Tokyo Core CPI y/y,JPY,1.8,2.2,1.9,moderate
+2026-08-28,1:30am,Tokyo CPI s.a. m/m,JPY,0.2,,0.4,low
 2026-08-28,1:30am,Unemployment Rate,JPY,2.4,2.5,2.5,low
 2026-08-28,1:30am,Jobs to Applicants Ratio,JPY,1.18,1.17,1.18,low
 2026-08-28,9:30pm,CFTC JPY Non-Commercial Net Positions,JPY,-63.3,,-52.9,moderate
@@ -2031,10 +2046,10 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-01,1:50am,Foreign Bond Investment,JPY,,,1082.9,low
 2026-10-01,1:50am,Foreign Investment in Japan Stocks,JPY,,,-1522.8,low
 2026-10-01,2:30am,au Jibun Bank Manufacturing PMI,JPY,,55.4,55.1,low
-2026-10-02,1:30am,Tokyo CPI y/y,JPY,,,,low
-2026-10-02,1:30am,Tokyo CPI excl. Food and Energy y/y,JPY,,,,high
-2026-10-02,1:30am,Tokyo Core CPI y/y,JPY,,,,moderate
-2026-10-02,1:30am,Tokyo CPI s.a. m/m,JPY,,,,low
+2026-10-02,1:30am,Tokyo CPI y/y,JPY,,1.9,1.9,low
+2026-10-02,1:30am,Tokyo CPI excl. Food and Energy y/y,JPY,,2.3,2.0,high
+2026-10-02,1:30am,Tokyo Core CPI y/y,JPY,,1.9,1.8,moderate
+2026-10-02,1:30am,Tokyo CPI s.a. m/m,JPY,,,0.2,low
 2026-10-02,1:30am,Unemployment Rate,JPY,,2.4,2.4,low
 2026-10-02,1:30am,Jobs to Applicants Ratio,JPY,,1.19,1.18,low
 2026-10-02,1:50am,BoJ Monetary Base y/y,JPY,,-14.8,-15.7,low
@@ -3297,12 +3312,16 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-01-30,12:00pm,Unemployment Rate,EUR,5.6,5.9,5.7,low
 2026-01-30,1:00pm,PPI m/m,EUR,-0.7,0.1,1.0,low
 2026-01-30,1:00pm,PPI y/y,EUR,-1.4,-1.7,-0.2,low
+2026-02-02,10:45am,S&P Global Manufacturing PMI,EUR,48.1,,47.9,moderate
 2026-02-02,6:00pm,New Car Registrations m/m,EUR,31.4,,-13.0,low
 2026-02-02,6:00pm,New Car Registrations y/y,EUR,6.2,,2.2,low
+2026-02-04,10:45am,S&P Global Services PMI,EUR,52.9,,51.5,moderate
+2026-02-04,10:45am,S&P Global Composite PMI,EUR,51.4,,50.3,low
 2026-02-04,12:00pm,CPI m/m,EUR,0.4,0.2,0.2,low
 2026-02-04,12:00pm,CPI y/y,EUR,1.0,1.0,1.2,low
 2026-02-04,12:00pm,HICP m/m,EUR,-1.0,-0.2,0.2,low
 2026-02-04,12:00pm,HICP y/y,EUR,1.0,1.2,1.2,low
+2026-02-05,10:30am,S&P Global Construction PMI,EUR,47.7,,47.9,low
 2026-02-05,11:00am,Retail Sales m/m,EUR,-0.8,-0.3,0.5,low
 2026-02-05,11:00am,Retail Sales y/y,EUR,0.9,0.4,1.3,low
 2026-02-11,11:00am,Industrial Production m/m,EUR,-0.4,0.3,1.5,low
@@ -3326,19 +3345,19 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-02-27,11:00am,Industrial Sales m/m,EUR,0.5,-1.6,-0.1,low
 2026-02-27,11:00am,Industrial Sales  y/y,EUR,3.6,2.4,0.0,low
 2026-02-27,12:00pm,Trade Balance Non-EU,EUR,2.124,,8.385,low
-2026-03-02,10:45am,S&P Global Manufacturing PMI,EUR,50.6,,47.9,moderate
+2026-03-02,10:45am,S&P Global Manufacturing PMI,EUR,50.6,,48.1,moderate
 2026-03-02,6:00pm,New Car Registrations m/m,EUR,10.8,,31.4,low
 2026-03-02,7:00pm,New Car Registrations y/y,EUR,14.0,,6.2,low
 2026-03-03,12:00pm,CPI m/m,EUR,0.8,0.4,0.4,low
 2026-03-03,12:00pm,CPI y/y,EUR,1.6,0.9,1.0,low
 2026-03-03,12:00pm,HICP m/m,EUR,0.6,-0.8,-1.0,low
 2026-03-03,12:00pm,HICP y/y,EUR,1.6,0.9,1.0,low
-2026-03-04,10:45am,S&P Global Services PMI,EUR,52.3,,51.5,moderate
-2026-03-04,10:45am,S&P Global Composite PMI,EUR,52.1,,50.3,low
+2026-03-04,10:45am,S&P Global Services PMI,EUR,52.3,,52.9,moderate
+2026-03-04,10:45am,S&P Global Composite PMI,EUR,52.1,,51.4,low
 2026-03-04,11:00am,Unemployment Rate,EUR,5.1,5.8,5.6,low
 2026-03-04,12:00pm,GDP q/q,EUR,0.3,0.3,0.3,low
 2026-03-04,12:00pm,GDP y/y,EUR,0.8,0.8,0.8,low
-2026-03-05,10:30am,S&P Global Construction PMI,EUR,50.4,,47.9,low
+2026-03-05,10:30am,S&P Global Construction PMI,EUR,50.4,,47.7,low
 2026-03-05,11:00am,Retail Sales m/m,EUR,0.6,0.2,-0.8,low
 2026-03-05,11:00am,Retail Sales y/y,EUR,2.3,-0.5,0.9,low
 2026-03-10,11:00am,PPI m/m,EUR,1.5,0.0,-0.7,low
@@ -3384,7 +3403,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-04-07,9:45am,S&P Global Services PMI,EUR,48.8,53.0,52.3,moderate
 2026-04-07,9:45am,S&P Global Composite PMI,EUR,49.2,,52.1,low
 2026-04-08,9:30am,S&P Global Construction PMI,EUR,46.8,,50.4,low
-2026-04-09,11:53am,12-Month BOT Auction,EUR,2.135,,2.372,low
+2026-04-09,11:53am,12-Month BOT Auction,EUR,2.604,,2.372,low
 2026-04-10,10:00am,Industrial Production m/m,EUR,0.1,0.0,-0.6,low
 2026-04-10,10:00am,Industrial Production y/y,EUR,0.5,0.8,-0.6,low
 2026-04-10,12:18pm,3-Year BTP Auction,EUR,2.91,,2.75,low
@@ -3401,8 +3420,8 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-04-24,11:51am,2-Year CTZ Auction,EUR,2.800,,2.890,low
 2026-04-28,10:00am,Industrial Sales m/m,EUR,0.6,-0.1,-0.3,low
 2026-04-28,10:00am,Industrial Sales  y/y,EUR,0.5,2.6,-1.0,low
-2026-04-28,11:00am,PPI m/m,EUR,0.8,0.0,-0.4,low
-2026-04-28,11:00am,PPI y/y,EUR,1.6,-3.8,-2.7,low
+2026-04-28,11:00am,PPI m/m,EUR,4.4,0.0,-0.4,low
+2026-04-28,11:00am,PPI y/y,EUR,4.2,-3.8,-2.7,low
 2026-04-28,11:42am,6-Month BOT Auction,EUR,2.161,,2.482,low
 2026-04-29,10:00am,Business Confidence,EUR,87.9,89.4,88.8,low
 2026-04-29,10:00am,Consumer Confidence,EUR,90.8,94.2,92.6,low
@@ -3426,7 +3445,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-05-07,9:30am,S&P Global Construction PMI,EUR,44.8,,46.8,low
 2026-05-12,10:00am,Industrial Production m/m,EUR,0.7,0.0,0.1,low
 2026-05-12,10:00am,Industrial Production y/y,EUR,1.5,0.2,0.5,low
-2026-05-12,11:57am,12-Month BOT Auction,EUR,2.699,,2.135,low
+2026-05-12,11:57am,12-Month BOT Auction,EUR,2.699,,2.604,low
 2026-05-13,12:06pm,3-Year BTP Auction,EUR,2.98,,2.91,low
 2026-05-13,12:06pm,7-Year BTP Auction,EUR,3.55,,3.51,low
 2026-05-15,10:00am,CPI m/m,EUR,1.1,1.2,1.2,low
@@ -3444,8 +3463,8 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-05-28,10:00am,Business Confidence,EUR,87.9,88.6,87.9,low
 2026-05-28,10:00am,Consumer Confidence,EUR,93.4,92.3,90.8,low
 2026-05-28,11:00am,Trade Balance Non-EU,EUR,3.846,,5.643,low
-2026-05-28,12:00pm,PPI m/m,EUR,0.3,0.0,0.8,low
-2026-05-28,12:00pm,PPI y/y,EUR,6.8,0.0,1.6,low
+2026-05-28,12:00pm,PPI m/m,EUR,0.3,0.0,4.4,low
+2026-05-28,12:00pm,PPI y/y,EUR,6.8,0.0,4.2,low
 2026-05-28,12:20pm,5-Year BTP Auction,EUR,3.16,,3.32,low
 2026-05-28,12:20pm,10-Year BTP Auction,EUR,3.77,,4.09,low
 2026-05-29,10:00am,Unemployment Rate,EUR,5.1,5.4,5.2,low
@@ -4239,7 +4258,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-20,10:30am,Bbk President Nagel Speech,EUR,,,,moderate
 2026-09-21,12:00pm,Bbk Monthly Report,EUR,,,,low
 2026-09-22,10:30am,Bbk Executive Board Member Balz Speech,EUR,,,,moderate
-2026-09-22,11:30am,5-Year Note Auction,EUR,,,3.09,low
+2026-09-22,11:41am,5-Year Note Auction,EUR,3.28,,3.09,low
 2026-09-23,9:30am,S&P Global Manufacturing PMI,EUR,,54.5,54.3,moderate
 2026-09-23,9:30am,S&P Global Services PMI,EUR,,50.6,49.7,moderate
 2026-09-23,9:30am,S&P Global Composite PMI,EUR,,51.1,51.8,low
@@ -4283,7 +4302,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-13,8:00am,CPI y/y,EUR,,,,moderate
 2026-10-13,8:00am,HICP m/m,EUR,,,,low
 2026-10-13,8:00am,HICP y/y,EUR,,,,low
-2026-10-13,11:30am,5-Year Note Auction,EUR,,,,low
+2026-10-13,11:30am,5-Year Note Auction,EUR,,,3.28,low
 2026-10-13,2:30pm,Current Account n.s.a.,EUR,,14.8,21.2,low
 2026-10-14,8:00am,Wholesale Price Index m/m,EUR,,2.6,0.9,low
 2026-10-14,8:00am,Wholesale Price Index y/y,EUR,,8.4,6.8,low
@@ -7594,11 +7613,11 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-21,2:30pm,Chicago Fed National Activity Index,USD,-0.04,0.01,-0.08,low
 2026-09-21,5:30pm,3-Month Bill Auction,USD,4.015,,3.970,low
 2026-09-21,5:30pm,6-Month Bill Auction,USD,4.155,,4.060,low
-2026-09-22,4:00pm,Richmond Fed Manufacturing Index,USD,,,,low
-2026-09-22,4:00pm,Richmond Fed Manufacturing Shipments,USD,,,11,low
-2026-09-22,4:00pm,Richmond Fed Services Revenues,USD,,-13,-8,low
+2026-09-22,4:00pm,Richmond Fed Manufacturing Index,USD,-2,,,low
+2026-09-22,4:00pm,Richmond Fed Manufacturing Shipments,USD,-5,,11,low
+2026-09-22,4:00pm,Richmond Fed Services Revenues,USD,0,-13,-8,low
 2026-09-22,4:20pm,Fed Governor Jefferson Speech,USD,,,,moderate
-2026-09-22,7:00pm,2-Year Note Auction,USD,,,,moderate
+2026-09-22,7:00pm,2-Year Note Auction,USD,4.787,,,moderate
 2026-09-23,4:05pm,Fed Vice Chair for Supervision Barr Speech,USD,,,,moderate
 2026-09-23,4:30pm,EIA Crude Oil Stocks Change,USD,,0.895,-0.640,high
 2026-09-23,4:30pm,EIA Cushing Crude Oil Stocks Change,USD,,-0.018,-0.342,moderate
@@ -7916,7 +7935,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-26,4:30pm,Dallas Fed Manufacturing Index,USD,,,,low
 2026-10-26,5:30pm,3-Month Bill Auction,USD,,,,low
 2026-10-26,5:30pm,6-Month Bill Auction,USD,,,,low
-2026-10-26,7:00pm,2-Year Note Auction,USD,,,,moderate
+2026-10-26,7:00pm,2-Year Note Auction,USD,,,4.787,moderate
 2026-10-27,2:30pm,Durable Goods Orders m/m,USD,,,,high
 2026-10-27,2:30pm,Core Durable Goods Orders m/m,USD,,,,moderate
 2026-10-27,2:30pm,Durable Goods Orders excl. Defense m/m,USD,,,,low
@@ -7931,9 +7950,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-27,4:00pm,New Home Sales,USD,,,,high
 2026-10-27,4:00pm,New Home Sales m/m,USD,,,,moderate
 2026-10-27,4:00pm,CB Consumer Confidence Index,USD,,,,high
-2026-10-27,4:00pm,Richmond Fed Manufacturing Index,USD,,,,low
-2026-10-27,4:00pm,Richmond Fed Manufacturing Shipments,USD,,,,low
-2026-10-27,4:00pm,Richmond Fed Services Revenues,USD,,,,low
+2026-10-27,4:00pm,Richmond Fed Manufacturing Index,USD,,-1,-2,low
+2026-10-27,4:00pm,Richmond Fed Manufacturing Shipments,USD,,,-5,low
+2026-10-27,4:00pm,Richmond Fed Services Revenues,USD,,-3,0,low
 2026-10-27,4:30pm,Dallas Fed Services Revenues,USD,,,,low
 2026-10-27,4:30pm,Dallas Fed Services Business Activity,USD,,,,low
 2026-10-27,5:30pm,52-Week Bill Auction,USD,,,,low
@@ -9094,9 +9113,9 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-17,1:00pm,BoE MPC Vote Hike,GBP,3,,3,moderate
 2026-09-17,1:00pm,BoE MPC Vote Unchanged,GBP,6,,6,moderate
 2026-09-18,9:30pm,CFTC GBP Non-Commercial Net Positions,GBP,-58.7,,-58.8,moderate
-2026-09-22,8:00am,Public Sector Net Borrowing,GBP,,4.224,15.989,low
-2026-09-22,8:00am,Public Sector Net Cash Requirement,GBP,,-15.673,15.227,low
-2026-09-22,11:30am,5-Year Treasury Gilt Auction,GBP,,,4.786,low
+2026-09-22,8:00am,Public Sector Net Borrowing,GBP,18.268,4.224,15.989,low
+2026-09-22,8:00am,Public Sector Net Cash Requirement,GBP,10.005,-15.673,15.227,low
+2026-09-22,11:30am,5-Year Treasury Gilt Auction,GBP,4.843,,4.786,low
 2026-09-23,10:30am,S&P Global/CIPS Manufacturing PMI,GBP,,52.1,51.7,moderate
 2026-09-23,10:30am,S&P Global/CIPS Services PMI,GBP,,53.2,52.5,moderate
 2026-09-23,10:30am,S&P Global/CIPS Composite PMI,GBP,,,52.5,moderate
@@ -9113,11 +9132,6 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-29,10:30am,BoE Mortgage Lending m/m,GBP,,4.857,4.292,low
 2026-09-29,10:30am,BoE Net Lending to Individuals m/m,GBP,,5.993,6.298,low
 2026-09-29,11:30am,10-Year Treasury Gilt Auction,GBP,,,5.155,low
-2026-09-30,8:00am,Business Investment q/q,GBP,,1.7,1.7,moderate
-2026-09-30,8:00am,Business Investment y/y,GBP,,0.8,0.8,low
-2026-09-30,8:00am,Current Account,GBP,,-22.160,-22.134,moderate
-2026-09-30,8:00am,GDP q/q,GBP,,0.4,0.4,high
-2026-09-30,8:00am,GDP y/y,GBP,,1.2,1.2,high
 2026-10-01,10:30am,S&P Global/CIPS Manufacturing PMI,GBP,,,,moderate
 2026-10-01,2:00pm,BoE MPC Member Mann Speech,GBP,,,,moderate
 2026-10-02,9:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
@@ -9129,17 +9143,46 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-08,10:30am,BoE Credit Conditions Survey,GBP,,,,moderate
 2026-10-08,10:30am,BoE Bank Liabilities Survey,GBP,,,,moderate
 2026-10-09,9:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-10-14,11:30am,5-Year Treasury Gilt Auction,GBP,,,,low
+2026-10-14,11:30am,5-Year Treasury Gilt Auction,GBP,,,4.843,low
+2026-10-15,8:00am,Construction Output m/m,GBP,,-0.3,-0.1,low
+2026-10-15,8:00am,Construction Output y/y,GBP,,-1.4,-2.3,low
+2026-10-15,8:00am,Industrial Production m/m,GBP,,-0.1,-0.2,moderate
+2026-10-15,8:00am,Industrial Production y/y,GBP,,0.0,-0.2,low
+2026-10-15,8:00am,Manufacturing Production m/m,GBP,,-0.2,-0.5,moderate
+2026-10-15,8:00am,Manufacturing Production y/y,GBP,,0.0,0.5,low
+2026-10-15,8:00am,Trade Balance,GBP,,-22.037,-23.007,moderate
+2026-10-15,8:00am,Trade Balance Non-EU,GBP,,-4.324,-10.448,moderate
+2026-10-15,8:00am,Index of Services,GBP,,0.2,0.6,low
+2026-10-15,8:00am,GDP m/m,GBP,,0.0,0.3,high
+2026-10-15,8:00am,GDP 3m/3m,GBP,,,0.4,moderate
 2026-10-15,1:00pm,NIESR GDP Estimate,GBP,,0.5,0.5,low
 2026-10-16,9:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-10-20,8:00am,Average Weekly Earnings - Regular Pay y/y,GBP,,3.5,3.4,low
-2026-10-20,8:00am,Average Weekly Earnings - Total Pay y/y,GBP,,4.5,4.3,moderate
-2026-10-20,8:00am,Unemployment Rate,GBP,,4.8,4.9,moderate
-2026-10-20,8:00am,Claimant Count Change,GBP,,15.8,6.7,moderate
-2026-10-20,8:00am,Employment Change 3-months,GBP,,82,147,moderate
 2026-10-20,11:30am,10-Year Treasury Gilt Auction,GBP,,,,low
-2026-10-21,10:30am,HPI y/y,GBP,,2.2,1.4,low
+2026-10-21,8:00am,PPI Input m/m,GBP,,-0.8,0.3,moderate
+2026-10-21,8:00am,PPI Input y/y,GBP,,2.6,6.1,low
+2026-10-21,8:00am,PPI Output m/m,GBP,,0.0,0.7,low
+2026-10-21,8:00am,PPI Output y/y,GBP,,3.6,3.7,low
+2026-10-21,8:00am,Core PPI Output m/m,GBP,,0.1,0.3,low
+2026-10-21,8:00am,Core PPI Output y/y,GBP,,3.2,2.7,low
+2026-10-21,8:00am,CPI m/m,GBP,,0.1,0.5,moderate
+2026-10-21,8:00am,CPI y/y,GBP,,2.7,3.1,high
+2026-10-21,8:00am,Core CPI y/y,GBP,,2.4,2.6,low
+2026-10-21,8:00am,Core RPI m/m,GBP,,0.0,0.6,low
+2026-10-21,8:00am,Core RPI y/y,GBP,,2.8,3.3,low
+2026-10-21,8:00am,RPI m/m,GBP,,0.2,0.6,low
+2026-10-21,8:00am,RPI y/y,GBP,,2.9,3.4,low
+2026-10-21,8:00am,Public Sector Net Borrowing,GBP,,24.701,18.268,low
+2026-10-21,8:00am,Public Sector Net Cash Requirement,GBP,,0.725,10.005,low
+2026-10-21,8:00am,CPIH y/y,GBP,,3.1,3.3,moderate
+2026-10-21,8:00am,CPIH m/m,GBP,,0.4,0.5,moderate
+2026-10-21,8:00am,Core CPI m/m,GBP,,0.2,0.3,low
+2026-10-21,8:00am,CPI,GBP,,,143.6,low
+2026-10-21,8:00am,CPIH,GBP,,,143.4,low
 2026-10-23,1:01am,GfK Consumer Confidence,GBP,,,,low
+2026-10-23,8:00am,Retail Sales m/m,GBP,,0.9,1.0,moderate
+2026-10-23,8:00am,Retail Sales y/y,GBP,,1.5,4.2,moderate
+2026-10-23,8:00am,Core Retail Sales m/m,GBP,,1.1,1.1,moderate
+2026-10-23,8:00am,Core Retail Sales y/y,GBP,,2.2,5.4,moderate
 2026-10-23,9:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
 2026-10-27,12:30pm,5-Year Treasury Gilt Auction,GBP,,,,low
 2026-10-28,9:00am,Nationwide HPI m/m,GBP,,,,moderate
@@ -9160,30 +9203,39 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-11-05,2:00pm,BoE MPC Vote Hike,GBP,,,3,moderate
 2026-11-05,2:00pm,BoE MPC Vote Unchanged,GBP,,,6,moderate
 2026-11-06,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-11-12,9:00am,Construction Output m/m,GBP,,-0.3,-0.1,low
-2026-11-12,9:00am,Construction Output y/y,GBP,,-1.4,-2.3,low
-2026-11-12,9:00am,Industrial Production m/m,GBP,,-0.1,-0.2,moderate
-2026-11-12,9:00am,Industrial Production y/y,GBP,,0.0,-0.2,low
-2026-11-12,9:00am,Manufacturing Production m/m,GBP,,-0.2,-0.5,moderate
-2026-11-12,9:00am,Manufacturing Production y/y,GBP,,0.0,0.5,low
-2026-11-12,9:00am,Trade Balance,GBP,,-22.037,-23.007,moderate
-2026-11-12,9:00am,Trade Balance Non-EU,GBP,,-4.324,-10.448,moderate
-2026-11-12,9:00am,Business Investment q/q,GBP,,,,moderate
-2026-11-12,9:00am,Business Investment y/y,GBP,,,,low
-2026-11-12,9:00am,GDP q/q,GBP,,,,high
-2026-11-12,9:00am,GDP y/y,GBP,,,,high
-2026-11-12,9:00am,GDP m/m,GBP,,0.0,0.3,high
-2026-11-12,9:00am,GDP 3m/3m,GBP,,,0.4,moderate
+2026-11-12,9:00am,Index of Services,GBP,,,,low
 2026-11-12,2:00pm,NIESR GDP Estimate,GBP,,,,low
 2026-11-16,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-11-17,9:00am,Average Weekly Earnings - Regular Pay y/y,GBP,,,,low
-2026-11-17,9:00am,Average Weekly Earnings - Total Pay y/y,GBP,,,,moderate
-2026-11-17,9:00am,Unemployment Rate,GBP,,,,moderate
-2026-11-17,9:00am,Claimant Count Change,GBP,,,,moderate
-2026-11-17,9:00am,Employment Change 3-months,GBP,,,,moderate
 2026-11-17,11:30am,Labour Productivity q/q,GBP,,,1.1,moderate
+2026-11-17,11:30am,Labour Productivity q/q,GBP,,,,moderate
 2026-11-17,11:30am,Labour Productivity y/y,GBP,,,0.5,moderate
+2026-11-17,11:30am,Labour Productivity y/y,GBP,,,,moderate
+2026-11-18,9:00am,PPI Input m/m,GBP,,,,moderate
+2026-11-18,9:00am,PPI Input y/y,GBP,,,,low
+2026-11-18,9:00am,PPI Output m/m,GBP,,,,low
+2026-11-18,9:00am,PPI Output y/y,GBP,,,,low
+2026-11-18,9:00am,Core PPI Output m/m,GBP,,,,low
+2026-11-18,9:00am,Core PPI Output y/y,GBP,,,,low
+2026-11-18,9:00am,CPI m/m,GBP,,,,moderate
+2026-11-18,9:00am,CPI y/y,GBP,,,,high
+2026-11-18,9:00am,Core CPI y/y,GBP,,,,low
+2026-11-18,9:00am,Core RPI m/m,GBP,,,,low
+2026-11-18,9:00am,Core RPI y/y,GBP,,,,low
+2026-11-18,9:00am,RPI m/m,GBP,,,,low
+2026-11-18,9:00am,RPI y/y,GBP,,,,low
+2026-11-18,9:00am,CPIH y/y,GBP,,,,moderate
+2026-11-18,9:00am,CPIH m/m,GBP,,,,moderate
+2026-11-18,9:00am,Core CPI m/m,GBP,,,,low
+2026-11-18,9:00am,CPI,GBP,,,,low
+2026-11-18,9:00am,CPIH,GBP,,,,low
+2026-11-18,11:30am,HPI y/y,GBP,,2.2,1.4,low
 2026-11-20,2:01am,GfK Consumer Confidence,GBP,,,,low
+2026-11-20,9:00am,Retail Sales m/m,GBP,,,,moderate
+2026-11-20,9:00am,Retail Sales y/y,GBP,,,,moderate
+2026-11-20,9:00am,Core Retail Sales m/m,GBP,,,,moderate
+2026-11-20,9:00am,Core Retail Sales y/y,GBP,,,,moderate
+2026-11-20,9:00am,Public Sector Net Borrowing,GBP,,,,low
+2026-11-20,9:00am,Public Sector Net Cash Requirement,GBP,,,,low
 2026-11-20,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
 2026-11-26,12:30pm,BoE Financial Stability Report,GBP,,,,moderate
 2026-11-26,12:30pm,BoE FPC Meeting Minutes,GBP,,,,moderate
@@ -9196,49 +9248,27 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-12-04,11:00am,New Car Registrations m/m,GBP,,,,low
 2026-12-04,11:00am,New Car Registrations y/y,GBP,,,,low
 2026-12-04,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-12-11,9:00am,Construction Output m/m,GBP,,,,low
-2026-12-11,9:00am,Construction Output y/y,GBP,,,,low
-2026-12-11,9:00am,Industrial Production m/m,GBP,,,,moderate
-2026-12-11,9:00am,Industrial Production y/y,GBP,,,,low
-2026-12-11,9:00am,Manufacturing Production m/m,GBP,,,,moderate
-2026-12-11,9:00am,Manufacturing Production y/y,GBP,,,,low
-2026-12-11,9:00am,Trade Balance,GBP,,,,moderate
-2026-12-11,9:00am,Trade Balance Non-EU,GBP,,,,moderate
-2026-12-11,9:00am,Index of Services,GBP,,0.2,0.6,low
-2026-12-11,9:00am,GDP m/m,GBP,,,,high
-2026-12-11,9:00am,GDP 3m/3m,GBP,,,,moderate
 2026-12-11,2:00pm,NIESR GDP Estimate,GBP,,,,low
 2026-12-11,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
-2026-12-15,9:00am,Average Weekly Earnings - Regular Pay y/y,GBP,,,,low
-2026-12-15,9:00am,Average Weekly Earnings - Total Pay y/y,GBP,,,,moderate
-2026-12-15,9:00am,Unemployment Rate,GBP,,,,moderate
-2026-12-15,9:00am,Claimant Count Change,GBP,,,,moderate
-2026-12-15,9:00am,Employment Change 3-months,GBP,,,,moderate
-2026-12-16,9:00am,PPI Input m/m,GBP,,-0.8,0.3,moderate
-2026-12-16,9:00am,PPI Input y/y,GBP,,2.6,6.1,low
-2026-12-16,9:00am,PPI Output m/m,GBP,,0.0,0.7,low
-2026-12-16,9:00am,PPI Output y/y,GBP,,3.6,3.7,low
-2026-12-16,9:00am,Core PPI Output m/m,GBP,,0.1,0.3,low
-2026-12-16,9:00am,Core PPI Output y/y,GBP,,3.2,2.7,low
-2026-12-16,9:00am,CPI m/m,GBP,,0.1,0.5,moderate
-2026-12-16,9:00am,CPI y/y,GBP,,2.7,3.1,high
-2026-12-16,9:00am,Core CPI y/y,GBP,,2.4,2.6,low
-2026-12-16,9:00am,Core RPI m/m,GBP,,0.0,0.6,low
-2026-12-16,9:00am,Core RPI y/y,GBP,,2.8,3.3,low
-2026-12-16,9:00am,RPI m/m,GBP,,0.2,0.6,low
-2026-12-16,9:00am,RPI y/y,GBP,,2.9,3.4,low
-2026-12-16,9:00am,CPIH y/y,GBP,,3.1,3.3,moderate
-2026-12-16,9:00am,CPIH m/m,GBP,,0.4,0.5,moderate
-2026-12-16,9:00am,Core CPI m/m,GBP,,0.2,0.3,low
-2026-12-16,9:00am,CPI,GBP,,,143.6,low
-2026-12-16,9:00am,CPIH,GBP,,,143.4,low
+2026-12-16,11:30am,HPI y/y,GBP,,,,low
 2026-12-17,2:00pm,BoE MPC Meeting Minutes,GBP,,,,moderate
 2026-12-17,2:00pm,BoE Interest Rate Decision,GBP,,,,high
 2026-12-17,2:00pm,BoE MPC Vote Cut,GBP,,,,moderate
 2026-12-17,2:00pm,BoE MPC Vote Hike,GBP,,,,moderate
 2026-12-17,2:00pm,BoE MPC Vote Unchanged,GBP,,,,moderate
 2026-12-18,2:01am,GfK Consumer Confidence,GBP,,,,low
+2026-12-18,9:00am,Retail Sales m/m,GBP,,,,moderate
+2026-12-18,9:00am,Retail Sales y/y,GBP,,,,moderate
+2026-12-18,9:00am,Core Retail Sales m/m,GBP,,,,moderate
+2026-12-18,9:00am,Core Retail Sales y/y,GBP,,,,moderate
 2026-12-18,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
+2026-12-22,9:00am,Public Sector Net Borrowing,GBP,,,,low
+2026-12-22,9:00am,Public Sector Net Cash Requirement,GBP,,,,low
+2026-12-22,9:00am,Business Investment q/q,GBP,,1.7,1.7,moderate
+2026-12-22,9:00am,Business Investment y/y,GBP,,0.8,0.8,low
+2026-12-22,9:00am,Current Account,GBP,,-22.160,-22.134,moderate
+2026-12-22,9:00am,GDP q/q,GBP,,0.4,0.4,high
+2026-12-22,9:00am,GDP y/y,GBP,,1.2,1.2,high
 2026-12-25,2:00am,Christmas Day,GBP,,,,none
 2026-12-28,2:00am,Boxing Day,GBP,,,,none
 2026-12-28,10:30pm,CFTC GBP Non-Commercial Net Positions,GBP,,,,moderate
@@ -9742,7 +9772,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-09-15,9:00am,HICP m/m,EUR,0.7,0.6,0.6,low
 2026-09-15,9:00am,HICP y/y,EUR,4.6,4.5,4.5,moderate
 2026-09-17,11:06am,10-Year Obligacion Auction,EUR,3.796,,3.542,low
-2026-09-22,12:00am,Trade Balance,EUR,,-5.598,-7.687,low
+2026-09-22,12:00am,Trade Balance,EUR,-5.224,-5.598,-7.687,low
 2026-09-24,9:00am,PPI y/y,EUR,,6.1,9.2,low
 2026-09-25,9:00am,GDP q/q,EUR,,0.7,0.7,moderate
 2026-09-25,9:00am,GDP y/y,EUR,,2.7,2.7,low
@@ -9773,7 +9803,7 @@ date,time,name,currency,actual,forecast,previous,importance
 2026-10-15,10:40am,3-Year Bonos Auction,EUR,,,,low
 2026-10-15,10:40am,5-Year Bonos Auction,EUR,,,,low
 2026-10-15,10:40am,10-Year Obligacion Auction,EUR,,,,low
-2026-10-20,12:00am,Trade Balance,EUR,,,,low
+2026-10-20,12:00am,Trade Balance,EUR,,-5.840,-5.224,low
 2026-10-26,10:00am,PPI y/y,EUR,,,,low
 2026-10-27,10:00am,Unemployment Rate,EUR,,9.78,9.87,low
 2026-10-29,10:00am,Retail Sales y/y,EUR,,,,low
