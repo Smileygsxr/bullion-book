@@ -525,6 +525,11 @@ function showPage(pageId, clickedElement) {
         const tooltip = document.getElementById(id);
         if (tooltip) tooltip.style.display = 'none';
     });
+    // Leaving the Dashboard cancels trade multi-select so its fixed bulk-action
+    // bar doesn't keep floating over other pages.
+    if (pageId !== 'page-dashboard' && typeof tradeSelectMode !== 'undefined' && tradeSelectMode) {
+        exitTradeSelectMode();
+    }
     const views = document.querySelectorAll('.view-section');
     views.forEach(view => { view.style.display = 'none'; });
     const targetView = document.getElementById(pageId);

@@ -107,13 +107,22 @@ void OnStart()
         rows[r].profit     += HistoryDealGetDouble(ticket, DEAL_PROFIT);
 
         // Protective levels: DEAL_SL/DEAL_TP hold whatever SL/TP the position
-        // had AT THE TIME of each deal. A stop set only AFTER entry (the
-        // normal manual flow: open first, then set/drag stops) is 0 on the
-        // entry deal and only shows up on later deals - the EXIT deal carries
-        // the final levels, which is also what MT5's own History tab
-        // displays. So capture from EVERY deal of the position, letting later
-        // non-zero values overwrite earlier ones, with the deal's order
-        // record kept as a last-resort fallback for pending-order entries.
+        // had AT THE TIME of each deal. For R-Multiple we want the FIRST
+        // protective levels the position ever carried - your initial PLANNED
+        // risk - not the final ones. With the normal manual flow (open flat,
+        // then set SL/TP, then maybe trail/move the stop to breakeven), the
+        // entry deal is 0 and the first non-zero SL/TP shows up on the earliest
+        // deal that executed while a stop was live (a partial close, or the
+        // exit). So capture the FIRST non-zero value per position and keep it,
+        // ignoring any later moved/trailed levels (SL and TP tracked
+        // independently, since they can first appear on different deals), with
+        // the deal's order record as a last-resort fallback for pending-order
+        // entries (whose SL/TP is set at placement = the first level anyway).
+        //
+        // Limitation: if you move a stop on a trade with NO partial close
+        // between setting it and moving it, the position has only two deals
+        // (entry=0, exit=moved) and MT5's history never stored the original
+        // level - there's nothing to recover, so the moved value is all we get.
         double deal_sl = HistoryDealGetDouble(ticket, DEAL_SL);
         double deal_tp = HistoryDealGetDouble(ticket, DEAL_TP);
         if(deal_sl <= 0 && deal_tp <= 0)
@@ -125,8 +134,8 @@ void OnStart()
                 deal_tp = HistoryOrderGetDouble(src_order, ORDER_TP);
             }
         }
-        if(deal_sl > 0) rows[r].sl = deal_sl;
-        if(deal_tp > 0) rows[r].tp = deal_tp;
+        if(deal_sl > 0 && rows[r].sl <= 0) rows[r].sl = deal_sl;
+        if(deal_tp > 0 && rows[r].tp <= 0) rows[r].tp = deal_tp;
 
         // A reversal deal (DEAL_ENTRY_INOUT) closes the old position and opens a
         // new one in a single deal - rare outside netting accounts. It's treated

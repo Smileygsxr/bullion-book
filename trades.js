@@ -1068,7 +1068,7 @@ function renderTradeViewChart(row, trade) {
                 btn.disabled = !available[btn.dataset.interval];
             });
 
-            const defaultInterval = has5 ? '5' : (has1 ? '1' : (has15 ? '15' : null));
+            const defaultInterval = has1 ? '1' : (has5 ? '5' : (has15 ? '15' : null));
             if (!defaultInterval) {
                 container.innerHTML = '<div class="trade-view-chart-empty">No chart data available for this day.</div>';
                 return;
@@ -1194,6 +1194,134 @@ function editTradeFromView() {
     openTradeModal(tradeId);
 }
 
+// ---- Multi-select: bulk-apply a tag/playbook to several trades at once ----
+// A lightweight "select mode" on the dashboard table. Entering it reveals a
+// checkbox per row and a bottom action bar; picking a tag and/or playbook there
+// applies it to every checked trade in one go. Tags are ADDED to each trade's
+// existing tags (non-destructive); playbook is a single value so it replaces.
+let tradeSelectMode = false;
+let selectedTradeIds = new Set();
+
+function dashboardTableContainer() {
+    return document.querySelector('#page-dashboard .table-container');
+}
+
+function toggleTradeSelectMode() {
+    if (tradeSelectMode) { exitTradeSelectMode(); return; }
+    tradeSelectMode = true;
+    selectedTradeIds.clear();
+    populateBulkSelects();
+    const container = dashboardTableContainer();
+    if (container) container.classList.add('selecting');
+    const btn = document.getElementById('trade-select-toggle');
+    if (btn) { btn.classList.add('active'); btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Done'; }
+    renderTradeLog();
+    updateBulkBar();
+}
+
+function exitTradeSelectMode() {
+    tradeSelectMode = false;
+    selectedTradeIds.clear();
+    const container = dashboardTableContainer();
+    if (container) container.classList.remove('selecting');
+    const btn = document.getElementById('trade-select-toggle');
+    if (btn) { btn.classList.remove('active'); btn.innerHTML = '<i class="fa-solid fa-list-check"></i> Select'; }
+    const selectAll = document.getElementById('trade-select-all');
+    if (selectAll) selectAll.checked = false;
+    renderTradeLog();
+    updateBulkBar();
+}
+
+// Row click in select mode toggles its checkbox instead of opening the trade.
+function handleTradeRowClick(event, id) {
+    if (tradeSelectMode) {
+        toggleTradeSelection(id, !selectedTradeIds.has(id));
+        return;
+    }
+    openTradeViewModal(event, id);
+}
+
+function toggleTradeSelection(id, checked) {
+    if (checked) selectedTradeIds.add(id); else selectedTradeIds.delete(id);
+    const rowEl = document.querySelector(`#trade-log-body .table-row[data-trade-id="${id}"]`);
+    if (rowEl) {
+        rowEl.classList.toggle('selected', checked);
+        const cb = rowEl.querySelector('.trade-select-checkbox');
+        if (cb) cb.checked = checked;
+    }
+    syncSelectAllCheckbox();
+    updateBulkBar();
+}
+
+// Header "select all" - every trade row currently visible in the table body
+// (i.e. after the active filters), never note rows (they have no data-trade-id).
+function toggleSelectAllTrades(checked) {
+    selectedTradeIds.clear();
+    if (checked) {
+        document.querySelectorAll('#trade-log-body .table-row[data-trade-id]').forEach(r => {
+            if (r.dataset.tradeId) selectedTradeIds.add(r.dataset.tradeId);
+        });
+    }
+    renderTradeLog();
+    updateBulkBar();
+}
+
+function syncSelectAllCheckbox() {
+    const selectAll = document.getElementById('trade-select-all');
+    if (!selectAll) return;
+    const rows = document.querySelectorAll('#trade-log-body .table-row[data-trade-id]');
+    selectAll.checked = rows.length > 0 && selectedTradeIds.size >= rows.length;
+}
+
+function populateBulkSelects() {
+    const tagSel = document.getElementById('bulk-tag-select');
+    const pbSel = document.getElementById('bulk-playbook-select');
+    if (tagSel) {
+        const tagDefs = (getActiveAccount().tagDefs) || [];
+        tagSel.innerHTML = '<option value="">Add tag…</option>' +
+            tagDefs.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    }
+    if (pbSel) {
+        const pbs = (typeof playbooks !== 'undefined' && playbooks) || [];
+        pbSel.innerHTML = '<option value="">Set playbook…</option>' +
+            pbs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+    }
+}
+
+function updateBulkBar() {
+    const bar = document.getElementById('bulk-action-bar');
+    if (!bar) return;
+    bar.style.display = tradeSelectMode ? 'flex' : 'none';
+    const countEl = document.getElementById('bulk-selected-count');
+    if (countEl) countEl.textContent = selectedTradeIds.size;
+    const applyBtn = document.getElementById('bulk-apply-btn');
+    if (applyBtn) applyBtn.disabled = selectedTradeIds.size === 0;
+}
+
+function applyBulkTagPlaybook() {
+    if (selectedTradeIds.size === 0) return;
+    const tagId = document.getElementById('bulk-tag-select').value;
+    const playbookId = document.getElementById('bulk-playbook-select').value;
+    if (!tagId && !playbookId) return;
+
+    const account = getActiveAccount();
+    let changed = 0;
+    (account.trades || []).forEach(t => {
+        if (!selectedTradeIds.has(t.id)) return;
+        if (tagId) {
+            // Migrate any legacy single tagId, then ADD the chosen tag if missing.
+            if (!t.tagIds) t.tagIds = t.tagId ? [t.tagId] : [];
+            if (!t.tagIds.includes(tagId)) t.tagIds.push(tagId);
+            delete t.tagId;
+        }
+        if (playbookId) t.playbookId = playbookId;
+        changed++;
+    });
+
+    if (changed > 0) saveAccountsState();
+    exitTradeSelectMode(); // clears selection, leaves select mode, re-renders
+}
+
 // ---- Dashboard trade log table ----
 function buildTradeRowHtml(row) {
     const statusClass = `status-${row.status.toLowerCase()}`;
@@ -1213,8 +1341,25 @@ function buildTradeRowHtml(row) {
             </div>
         </div>` : '';
 
+    // Playbook indicator - a second icon shown next to the tag icon whenever a
+    // playbook is assigned, with the playbook name on hover (same tooltip
+    // styling as tags, gold book icon to tell the two apart at a glance).
+    const playbookDefs = (typeof playbooks !== 'undefined' && playbooks) || [];
+    const rowPlaybook = row.playbookId ? playbookDefs.find(p => p.id === row.playbookId) : null;
+    const playbookIndicator = rowPlaybook ? `
+        <div class="trade-tag-indicator trade-playbook-indicator">
+            <i class="fa-solid fa-book trade-tag-icon trade-playbook-icon"></i>
+            <div class="trade-tag-tooltip">
+                <span class="tag-chip-static">${escapeHtml(rowPlaybook.name)}</span>
+            </div>
+        </div>` : '';
+
+    const isSelected = typeof selectedTradeIds !== 'undefined' && selectedTradeIds.has(row.id);
     return `
-    <div class="table-row" onclick="openTradeViewModal(event,'${row.id}')">
+    <div class="table-row${isSelected ? ' selected' : ''}" data-trade-id="${row.id}" onclick="handleTradeRowClick(event,'${row.id}')">
+        <label class="trade-select-box" onclick="event.stopPropagation()">
+            <input type="checkbox" class="trade-select-checkbox"${isSelected ? ' checked' : ''} onchange="toggleTradeSelection('${row.id}', this.checked)">
+        </label>
         <div class="table-cell">${formatTradeDate(row.date)}</div>
         <div class="table-cell">${formatTradeTime(row.date)}</div>
         <div class="table-cell">${escapeHtml(row.symbol)}</div>
@@ -1234,6 +1379,7 @@ function buildTradeRowHtml(row) {
         <div class="trade-row-menu-wrap">
             ${row.forceWash ? '<i class="fa-solid fa-scale-balanced trade-wash-badge" title="Marked as Wash"></i>' : ''}
             ${tagIndicator}
+            ${playbookIndicator}
             <button class="trade-row-menu-btn" onclick="toggleTradeRowMenu(event,'${row.id}')"><i class="fa-solid fa-ellipsis"></i></button>
         </div>
     </div>`;

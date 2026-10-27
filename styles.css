@@ -881,6 +881,7 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 }
 
 .table-header-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -955,6 +956,103 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     text-align: center;
 }
 
+/* ---- Multi-select mode: bulk tag/playbook on the dashboard trade log ---- */
+.trade-log-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.trade-select-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.trade-select-toggle-btn:hover { background: rgba(255, 255, 255, 0.04); }
+.trade-select-toggle-btn.active {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+/* Checkbox sits in the (position:relative) row/header without consuming flex
+   width, so columns stay aligned; a matching padding-left in select mode is
+   what actually makes room for it. Hidden until the table is .selecting. */
+.trade-select-box {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    cursor: pointer;
+    z-index: 5;
+}
+.table-container.selecting .trade-select-box { display: inline-flex; }
+.table-container.selecting .table-row,
+.table-container.selecting .table-header-row { padding-left: 30px; }
+
+.trade-select-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+}
+
+.table-row.selected { background-color: rgba(var(--accent-blue-rgb), 0.12); }
+
+/* Floating bulk-action bar, pinned above the OS nav bar on phones */
+.bulk-action-bar {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    max-width: calc(100vw - 24px);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+}
+.bulk-count { color: var(--text-light); font-size: 0.85rem; white-space: nowrap; }
+.bulk-count strong { color: var(--accent-blue); }
+.bulk-select {
+    background: var(--bg-dark);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    max-width: 160px;
+}
+.bulk-action-bar .btn-action { padding: 6px 14px; font-size: 0.82rem; }
+.bulk-action-bar .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+    .bulk-action-bar {
+        left: 12px;
+        right: 12px;
+        transform: none;
+        max-width: none;
+    }
+    .bulk-select { flex: 1 1 40%; max-width: none; }
+}
+
 /* Per-row "..." actions menu (Mark as Wash / Delete Trade) */
 .trade-row-menu-wrap {
     position: absolute;
@@ -981,6 +1079,12 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 .trade-tag-icon {
     color: var(--text-muted);
     font-size: 0.75rem;
+}
+
+/* Playbook row indicator - gold book icon so it reads as distinct from the
+   muted grey tag icon sitting next to it. */
+.trade-playbook-icon {
+    color: var(--accent-gold);
 }
 
 .trade-tag-tooltip {

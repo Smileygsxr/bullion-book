@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=116">
+    <link rel="stylesheet" href="styles.css?v=117">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -309,7 +309,13 @@
 
             <!-- Bottom Detailed Trade Log Ledger Grid -->
             <section class="table-container">
+                <div class="trade-log-toolbar">
+                    <button id="trade-select-toggle" class="trade-select-toggle-btn" onclick="toggleTradeSelectMode()"><i class="fa-solid fa-list-check"></i> Select</button>
+                </div>
                 <div class="table-header-row">
+                    <label class="trade-select-box trade-select-all-box" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="trade-select-all" class="trade-select-checkbox" onchange="toggleSelectAllTrades(this.checked)" aria-label="Select all trades">
+                    </label>
                     <div class="col-head sortable" onclick="sortTradeLog('date')">Date <i class="fa-solid fa-sort" id="sort-icon-date"></i></div>
                     <div class="col-head">Time</div>
                     <div class="col-head sortable" onclick="sortTradeLog('symbol')">Symbol <i class="fa-solid fa-sort" id="sort-icon-symbol"></i></div>
@@ -329,6 +335,16 @@
                 </div>
                 <div class="table-body" id="trade-log-body"></div>
             </section>
+
+            <!-- Bulk action bar: appears in multi-select mode (trades.js) to
+                 apply a tag/playbook to all checked trades at once. -->
+            <div id="bulk-action-bar" class="bulk-action-bar" style="display: none;">
+                <span class="bulk-count"><strong id="bulk-selected-count">0</strong> selected</span>
+                <select id="bulk-tag-select" class="bulk-select" aria-label="Add tag to selected trades"><option value="">Add tag…</option></select>
+                <select id="bulk-playbook-select" class="bulk-select" aria-label="Set playbook on selected trades"><option value="">Set playbook…</option></select>
+                <button id="bulk-apply-btn" class="btn-action btn-blue" onclick="applyBulkTagPlaybook()" disabled>Apply</button>
+                <button class="btn-action btn-danger" onclick="exitTradeSelectMode()">Cancel</button>
+            </div>
         </div>
 
         <!-- ========================================== -->
@@ -2377,8 +2393,8 @@
             <div class="trade-view-chart-toolbar">
                 <div class="modal-section-label">Chart</div>
                 <div class="interval-toggle-set">
-                    <button type="button" class="interval-toggle-btn" data-interval="1" onclick="switchTradeViewChartInterval('1', this)">1m</button>
-                    <button type="button" class="interval-toggle-btn active" data-interval="5" onclick="switchTradeViewChartInterval('5', this)">5m</button>
+                    <button type="button" class="interval-toggle-btn active" data-interval="1" onclick="switchTradeViewChartInterval('1', this)">1m</button>
+                    <button type="button" class="interval-toggle-btn" data-interval="5" onclick="switchTradeViewChartInterval('5', this)">5m</button>
                     <button type="button" class="interval-toggle-btn" data-interval="15" onclick="switchTradeViewChartInterval('15', this)">15m</button>
                 </div>
             </div>
