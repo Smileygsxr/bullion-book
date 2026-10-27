@@ -181,6 +181,15 @@ function clearEventFilters() {
     applyEventFilterAndReload();
 }
 
+// "Reset" button next to the event-type search: clears the search text, shows
+// every event tab again, and deselects any active event-type filters.
+function resetEventSearch() {
+    const input = document.getElementById('event-tab-search');
+    if (input) input.value = '';
+    if (typeof filterEventTabs === 'function') filterEventTabs('');
+    clearEventFilters();
+}
+
 // Currency filter chips (multi-select) - which currencies' news rows show
 // above each chart. Built fresh from whatever currencies are actually present
 // in the loaded calendar data (the MT5 export now covers every currency, not
@@ -238,8 +247,15 @@ function toggleCurrencyFilter(code, clickedButton) {
         if (typeof saveAppSettings === 'function') saveAppSettings();
     }
     syncCurrencyFilterButtonState();
-    refreshEventRowVisibility();
-    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+    // With an event-name filter active, which charts show depends on the
+    // currency too (#2), so re-run the chart-level filter; otherwise just a
+    // row-level refresh is enough (and avoids rebuilding every chart).
+    if (selectedEventFilters.size > 0 && typeof applyEventFilterAndReload === 'function') {
+        applyEventFilterAndReload();
+    } else {
+        refreshEventRowVisibility();
+        cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+    }
 }
 
 // Highlights the toolbar's "Currency" button itself whenever one or more
@@ -274,18 +290,42 @@ function clearCurrencyFilter() {
         if (typeof saveAppSettings === 'function') saveAppSettings();
     }
     syncCurrencyFilterButtonState();
-    refreshEventRowVisibility();
-    cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+    if (selectedEventFilters.size > 0 && typeof applyEventFilterAndReload === 'function') {
+        applyEventFilterAndReload();
+    } else {
+        refreshEventRowVisibility();
+        cpiChartInstances.forEach((_, dateString) => applyNewsTimeMarkers(dateString));
+    }
     document.getElementById('chart-currency-popover').style.display = 'none';
 }
 
 // Shared by both the High/Medium/Low importance chips and the Currency chips -
 // a row must pass BOTH filter dimensions (an empty selection on either one
 // means that dimension isn't narrowing anything).
+// Extra news-row filters beyond importance/currency: "only rows that have a
+// forecast", and a time-of-day window. null/false = inactive.
+let newsForecastOnly = false;
+let newsTimeFrom = null; // minutes since midnight, inclusive
+let newsTimeTo = null;   // minutes since midnight, inclusive
+
+// Single source of truth for whether a news event row shows - used both when
+// rendering (renderEventsForDate) and by refreshEventRowVisibility.
+function newsEventPasses(importance, currency, hasForecast, timeMin) {
+    if (selectedImportanceFilters.size > 0 && !selectedImportanceFilters.has(importance || 'none')) return false;
+    if (selectedCurrencyFilters.size > 0 && !selectedCurrencyFilters.has(currency || '')) return false;
+    if (newsForecastOnly && !hasForecast) return false;
+    if (newsTimeFrom !== null || newsTimeTo !== null) {
+        if (timeMin === null || timeMin >= Number.MAX_SAFE_INTEGER) return false; // no valid time
+        if (newsTimeFrom !== null && timeMin < newsTimeFrom) return false;
+        if (newsTimeTo !== null && timeMin > newsTimeTo) return false;
+    }
+    return true;
+}
+
 function eventRowPassesFilters(row) {
-    const importanceOk = selectedImportanceFilters.size === 0 || selectedImportanceFilters.has(row.dataset.importance);
-    const currencyOk = selectedCurrencyFilters.size === 0 || selectedCurrencyFilters.has(row.dataset.currency);
-    return importanceOk && currencyOk;
+    const raw = row.dataset.timeMin;
+    const timeMin = (raw === undefined || raw === '') ? null : parseInt(raw, 10);
+    return newsEventPasses(row.dataset.importance, row.dataset.currency, row.dataset.hasForecast === '1', timeMin);
 }
 
 function refreshEventRowVisibility() {
@@ -365,6 +405,66 @@ function clearChartDateFilter() {
 // default state: date range, weekday, event-name tabs, importance tiers,
 // News Time Markers, Trade Levels, and "Selected only". Starred charts
 // themselves (selectedChartKeys) are marks, not a filter, so they're left alone.
+// ---- "Forecast only" toggle: hide news rows that have no forecast value ----
+function toggleForecastOnlyFilter(btn) {
+    newsForecastOnly = !newsForecastOnly;
+    if (btn) btn.classList.toggle('active', newsForecastOnly);
+    refreshEventRowVisibility();
+}
+
+// ---- Time-of-day filter: only show news whose time is within [from, to].
+// A single time (only one field, or from == to) narrows to that exact minute
+// (e.g. 14:30), hiding every other news row above the charts. ----
+function minutesToTimeInput(min) {
+    return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+}
+function timeInputToMinutes(val) {
+    if (!val) return null;
+    const [h, m] = val.split(':').map(Number);
+    return (isNaN(h) || isNaN(m)) ? null : h * 60 + m;
+}
+
+function toggleChartTimePopover(event) {
+    const popover = document.getElementById('chart-time-popover');
+    if (!popover) return;
+    if (popover.style.display === 'block') { popover.style.display = 'none'; return; }
+    document.getElementById('news-time-from').value = newsTimeFrom !== null ? minutesToTimeInput(newsTimeFrom) : '';
+    document.getElementById('news-time-to').value = newsTimeTo !== null ? minutesToTimeInput(newsTimeTo) : '';
+    const rect = event.currentTarget.getBoundingClientRect();
+    popover.style.display = 'block';
+    popover.style.top = `${rect.bottom + 6}px`;
+    popover.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - popover.offsetWidth - 8))}px`;
+}
+
+function applyNewsTimeFilter() {
+    newsTimeFrom = timeInputToMinutes(document.getElementById('news-time-from').value);
+    newsTimeTo = timeInputToMinutes(document.getElementById('news-time-to').value);
+    if (newsTimeFrom !== null && newsTimeTo === null) newsTimeTo = newsTimeFrom;
+    if (newsTimeTo !== null && newsTimeFrom === null) newsTimeFrom = newsTimeTo;
+    if (newsTimeFrom !== null && newsTimeTo !== null && newsTimeFrom > newsTimeTo) {
+        const tmp = newsTimeFrom; newsTimeFrom = newsTimeTo; newsTimeTo = tmp;
+    }
+    const btn = document.getElementById('chart-time-filter-btn');
+    if (btn) btn.classList.toggle('active', newsTimeFrom !== null || newsTimeTo !== null);
+    const pop = document.getElementById('chart-time-popover');
+    if (pop) pop.style.display = 'none';
+    refreshEventRowVisibility();
+}
+
+function clearNewsTimeFilter() {
+    newsTimeFrom = null;
+    newsTimeTo = null;
+    const fromEl = document.getElementById('news-time-from');
+    const toEl = document.getElementById('news-time-to');
+    if (fromEl) fromEl.value = '';
+    if (toEl) toEl.value = '';
+    const btn = document.getElementById('chart-time-filter-btn');
+    if (btn) btn.classList.remove('active');
+    const pop = document.getElementById('chart-time-popover');
+    if (pop) pop.style.display = 'none';
+    refreshEventRowVisibility();
+}
+
 function resetChartToolbarFilters() {
     chartDateFrom = null;
     chartDateTo = null;
@@ -387,6 +487,11 @@ function resetChartToolbarFilters() {
     refreshNewsVisibility();
 
     clearCurrencyFilter();
+
+    newsForecastOnly = false;
+    const forecastOnlyBtn = document.getElementById('news-forecast-only-btn');
+    if (forecastOnlyBtn) forecastOnlyBtn.classList.remove('active');
+    clearNewsTimeFilter();
 
     newsTimeLinesEnabled = false;
     document.getElementById('news-time-lines-toggle').classList.remove('active');
@@ -476,7 +581,11 @@ function applyEventFilterAndReload() {
         ? files
         : files.filter(({ date }) => {
             const events = allChartEventsByDate[date] || [];
-            return events.some(({ name }) => selectedEventFilters.has(name));
+            // Currency-aware: a chart matches the event-name filter only if it
+            // has that event FOR a selected currency, so e.g. "PPI" + USD shows
+            // only charts with USD PPI, not every currency's PPI.
+            return events.some(ev => selectedEventFilters.has(ev.name)
+                && (selectedCurrencyFilters.size === 0 || selectedCurrencyFilters.has(ev.currency)));
         });
 
     if (showSelectedChartsOnly) {
@@ -1401,10 +1510,11 @@ function renderEventsForDate(block, date, eventsByDate) {
 
     eventsList.innerHTML = events.map(({ time, name, currency, actual, forecast, previous, importance }) => {
         const actualColorClass = getActualColorClass(name, actual, forecast);
-        const hidden = (selectedImportanceFilters.size > 0 && !selectedImportanceFilters.has(importance || 'none'))
-            || (selectedCurrencyFilters.size > 0 && !selectedCurrencyFilters.has(currency || ''));
+        const hasForecast = !!(forecast && String(forecast).trim() !== '');
+        const timeMin = parseEventTimeToMinutes(time);
+        const hidden = !newsEventPasses(importance, currency, hasForecast, timeMin);
         return `
-        <div class="cpi-mini-event" data-importance="${importance || 'none'}" data-currency="${currency || ''}" style="${hidden ? 'display:none;' : ''}">
+        <div class="cpi-mini-event" data-importance="${importance || 'none'}" data-currency="${currency || ''}" data-has-forecast="${hasForecast ? '1' : '0'}" data-time-min="${timeMin >= Number.MAX_SAFE_INTEGER ? '' : timeMin}" style="${hidden ? 'display:none;' : ''}">
             <span class="cpi-mini-event-name">${name}</span>
             <span class="cpi-mini-event-currency">${currency || ''}</span>
             <span class="cpi-mini-event-importance-dot importance-${importance || 'none'}" title="${(importance || 'none')} impact"></span>

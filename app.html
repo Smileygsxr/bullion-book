@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=122">
+    <link rel="stylesheet" href="styles.css?v=124">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -669,6 +669,7 @@
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                     <input type="text" id="event-tab-search" placeholder="Search event types..." oninput="filterEventTabs(this.value)">
                                 </div>
+                                <button type="button" class="news-tab event-search-reset" onclick="resetEventSearch()" title="Clear the search and reset event-type filters"><i class="fa-solid fa-rotate-left"></i> Reset</button>
                             </div>
                             <!-- Which symbol's charts to display - populated by renderChartSymbolTabs() -->
                             <div id="chart-symbol-tabs" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;"></div>
@@ -718,6 +719,12 @@
                         </button>
                         <button class="news-tab" id="chart-date-filter-btn" onclick="toggleChartDatePopover(event)" title="Narrow charts by date range or weekday">
                             <i class="fa-solid fa-calendar-days"></i> Filter Dates
+                        </button>
+                        <button class="news-tab" id="chart-time-filter-btn" onclick="toggleChartTimePopover(event)" title="Show only news within a time range (e.g. only 14:30)">
+                            <i class="fa-solid fa-clock"></i> Time
+                        </button>
+                        <button class="news-tab" id="news-forecast-only-btn" onclick="toggleForecastOnlyFilter(this)" title="Show only news events that have a forecast value">
+                            <i class="fa-solid fa-chart-line"></i> Forecast only
                         </button>
                         <button class="news-tab" id="chart-selected-filter-btn" onclick="toggleShowSelectedChartsOnly()" title="Show only the charts you've selected">
                             <i class="fa-solid fa-check-double"></i> Selected
@@ -810,12 +817,12 @@
                         <span><i class="fa-solid fa-tag"></i> Tag Management</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
-                    <button class="settings-subnav-item" id="settings-tab-contracts" onclick="switchSettingsPanel('contracts')">
-                        <span><i class="fa-solid fa-scale-balanced"></i> Instrument Settings</span>
-                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
-                    </button>
                     <button class="settings-subnav-item" id="settings-tab-playbooks" onclick="switchSettingsPanel('playbooks')">
                         <span><i class="fa-solid fa-book-open"></i> Playbooks</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
+                    <button class="settings-subnav-item" id="settings-tab-contracts" onclick="switchSettingsPanel('contracts')">
+                        <span><i class="fa-solid fa-scale-balanced"></i> Instrument Settings</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
                     <button class="settings-subnav-item" id="settings-tab-import" onclick="switchSettingsPanel('import')">
@@ -2260,6 +2267,24 @@
         </div>
         <div style="display: flex; gap: 8px; margin-top: 14px;">
             <button class="custom-date-popover-btn btn-neutral" onclick="clearCurrencyFilter()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Chart news time-of-day popover (News page - only show news within a
+         time window; one time, or both equal, means that exact minute) -->
+    <div id="chart-time-popover" class="custom-date-popover" style="display: none;">
+        <div class="modal-field">
+            <label class="modal-label">Show news between</label>
+            <div class="news-time-filter-row">
+                <input type="time" id="news-time-from" class="modal-input">
+                <span class="news-time-sep">to</span>
+                <input type="time" id="news-time-to" class="modal-input">
+            </div>
+            <p class="news-time-hint">Tip: set one time (or both the same) to show only that exact time, e.g. 14:30.</p>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+            <button class="custom-date-popover-btn btn-blue" onclick="applyNewsTimeFilter()">Apply</button>
+            <button class="custom-date-popover-btn btn-neutral" onclick="clearNewsTimeFilter()">Clear</button>
         </div>
     </div>
 

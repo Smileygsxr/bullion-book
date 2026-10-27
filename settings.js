@@ -480,7 +480,10 @@ function generatePublicLink() {
 
     const json = JSON.stringify(payload);
     const encoded = btoa(unescape(encodeURIComponent(json)));
-    const basePath = location.pathname.replace(/index\.html$/, '');
+    // Replace the current file name (app.html, index.html, or none) with the
+    // shared-view page in the same directory - the old /index\.html$/ replace
+    // did nothing on app.html and produced ".../app.htmljournal.html".
+    const basePath = location.pathname.replace(/[^/]*$/, '');
     const url = `${location.origin}${basePath}journal.html#data=${encoded}`;
 
     document.getElementById('settings-public-link-result').innerHTML = `

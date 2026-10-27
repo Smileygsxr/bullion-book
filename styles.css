@@ -4336,6 +4336,27 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     width: 220px;
 }
 
+.event-search-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* News time-of-day filter popover */
+.news-time-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.news-time-filter-row .modal-input { flex: 1; min-width: 0; }
+.news-time-sep { color: var(--text-muted); font-size: 0.8rem; }
+.news-time-hint {
+    margin: 8px 0 0;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 .event-tab-search-wrap i {
     position: absolute;
     left: 12px;

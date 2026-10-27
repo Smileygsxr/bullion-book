@@ -32,7 +32,7 @@ input string   OutputFileName = "EconomicEvents.csv";
 // Only these 8 major currencies are exported - narrowing here (rather than
 // after fetching) skips the calendar request entirely for every other
 // country, which also makes the export noticeably faster.
-string MajorCurrencies[] = {"USD", "JPY", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD"};
+string MajorCurrencies[] = {"USD", "JPY", "EUR", "GBP", "CHF", "AUD", "CAD", "NZD", "CNY"};
 
 bool IsMajorCurrency(const string currency)
 {
