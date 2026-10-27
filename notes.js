@@ -104,6 +104,7 @@ function saveNoteModal() {
 
     saveAccountsState();
     renderTradeLog();
+    if (typeof renderCalendarGrid === 'function') renderCalendarGrid();
     closeNoteModal();
 }
 
@@ -153,6 +154,7 @@ function confirmDeleteNote() {
 
     saveAccountsState();
     renderTradeLog();
+    if (typeof renderCalendarGrid === 'function') renderCalendarGrid();
     closeDeleteNoteModal();
 }
 

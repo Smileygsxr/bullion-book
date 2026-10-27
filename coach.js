@@ -9,9 +9,31 @@
 const COACH_MIN_TRADES = 10;
 
 // ---- Metric computation ----
+// Whether the coach analyses the whole account ('all') or just the trades in
+// the active date range ('period', using the shared date-range bar).
+let coachPeriodMode = 'all';
+
+function setCoachPeriodMode(mode) {
+    coachPeriodMode = mode;
+    const allBtn = document.getElementById('coach-mode-all');
+    const periodBtn = document.getElementById('coach-mode-period');
+    if (allBtn) allBtn.classList.toggle('active', mode === 'all');
+    if (periodBtn) periodBtn.classList.toggle('active', mode === 'period');
+    const bar = document.getElementById('coach-date-range-bar');
+    if (bar) bar.style.display = mode === 'period' ? '' : 'none';
+    renderCoachPage();
+}
+
 function computeCoachMetrics() {
     const account = getActiveAccount();
-    const allRows = ((account && account.trades) || []).map(computeTradeSummary);
+    let allRows = ((account && account.trades) || []).map(computeTradeSummary);
+    // In "Selected period" mode, narrow to the shared date-range filter so the
+    // whole read (findings, fitness, goals) reflects just that window.
+    if (coachPeriodMode === 'period' && typeof tradeLogFilters !== 'undefined') {
+        const from = tradeLogFilters.dateFrom, to = tradeLogFilters.dateTo;
+        if (from) allRows = allRows.filter(r => new Date(r.date) >= from);
+        if (to) allRows = allRows.filter(r => new Date(r.date) <= to);
+    }
     const closed = allRows
         .filter(r => r.returnAmount !== null)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -88,7 +110,9 @@ function computeCoachMetrics() {
     m.bestHour = bestHour; m.bestHourPnl = bestHourPnl;
 
     // Tagging discipline + best/worst tag (3+ trades)
-    m.taggedPct = (closed.filter(r => r.tagIds && r.tagIds.length > 0).length / closed.length) * 100;
+    // "Categorized" = has a tag OR a playbook assigned. Either one gives a
+    // feedback loop, so a playbook-only trade is not penalised as untagged.
+    m.taggedPct = (closed.filter(r => (r.tagIds && r.tagIds.length > 0) || r.playbookId).length / closed.length) * 100;
     const tagDefs = (account.tagDefs) || [];
     const tagNameById = new Map(tagDefs.map(t => [t.id, t.name]));
     const tagBuckets = new Map();
@@ -173,9 +197,9 @@ function computeCoachFindings(m) {
     if (m.bestTag && m.bestTagPnl > 0) push({ id: 'besttag', type: 'strength', severity: 1, icon: 'fa-tag', title: `"${m.bestTag}" is your best setup`, detail: `${formatTotal(m.bestTagPnl)} from trades tagged "${m.bestTag}". This is your bread and butter - trade more of THIS and less of everything else.` });
     if (m.worstTag && m.worstTagPnl < 0) push({ id: 'worsttag', type: 'weakness', severity: 2, icon: 'fa-tag', title: `"${m.worstTag}" trades keep losing`, detail: `${formatTotal(m.worstTagPnl)} lost on trades tagged "${m.worstTag}". Either fix the entry criteria for this setup or retire it.` });
 
-    // Tagging discipline
-    if (m.taggedPct < 30) push({ id: 'tagging', type: 'weakness', severity: 1, icon: 'fa-pen', title: `Only ${pct(m.taggedPct)} of trades are tagged`, detail: 'Untagged trades give you no feedback loop - you can\'t see which setups work if trades aren\'t labeled. Tag every trade, even just "A-setup" vs "impulse".' });
-    else if (m.taggedPct >= 80) push({ id: 'tagging', type: 'strength', severity: 1, icon: 'fa-pen', title: 'Excellent journaling discipline', detail: `${pct(m.taggedPct)} of trades are tagged - your data is rich enough to actually learn from.` });
+    // Tagging discipline (a tag OR a playbook both count as categorized)
+    if (m.taggedPct < 30) push({ id: 'tagging', type: 'weakness', severity: 1, icon: 'fa-pen', title: `Only ${pct(m.taggedPct)} of trades are tagged or have a playbook`, detail: 'Trades with no tag and no playbook give you no feedback loop - you can\'t see which setups work if they aren\'t categorized. Add a tag or a playbook to every trade, even just "A-setup" vs "impulse".' });
+    else if (m.taggedPct >= 80) push({ id: 'tagging', type: 'strength', severity: 1, icon: 'fa-pen', title: 'Excellent journaling discipline', detail: `${pct(m.taggedPct)} of trades are tagged or assigned a playbook - your data is rich enough to actually learn from.` });
 
     // Drawdown
     if (m.drawdownRatio <= 0.3 && m.grossProfit > 0) push({ id: 'drawdown', type: 'strength', severity: 2, icon: 'fa-chart-line', title: 'Shallow drawdowns', detail: `Your worst equity dip (${formatTotal(m.maxDrawdown)}) is small next to your gross profits - losing streaks don't spiral.` });
@@ -307,7 +331,7 @@ function renderCoachPage() {
                 <div class="coach-fitness-word">${fitnessWord}</div>
             </div>
             <div class="coach-hero-text">
-                <h2><i class="fa-solid fa-dumbbell"></i> Coach's read on your last ${m.total} trades</h2>
+                <h2><i class="fa-solid fa-dumbbell"></i> Coach's read on ${m.total} trade${m.total === 1 ? '' : 's'}${coachPeriodMode === 'period' ? ' in the selected period' : ''}</h2>
                 <p>Fitness blends performance (win rate, profit factor, drawdowns - 65%) with discipline (stops, tagging, guardrails - 35%).
                 ${strengths.length} strength${strengths.length === 1 ? '' : 's'}, ${weaknesses.length} thing${weaknesses.length === 1 ? '' : 's'} to work on.
                 ${focus ? 'Your training focus is below.' : 'No major leaks found - keep doing what you\'re doing.'}</p>
@@ -329,7 +353,9 @@ function renderCoachPage() {
             </div>
         </div>
 
-        ${renderCoachGoalSection(m, focus)}`;
+        ${renderCoachGoalSection(m, focus)}
+
+        <p class="coach-disclaimer"><i class="fa-solid fa-circle-info"></i> Coach insights are generated automatically from your own logged trades, for journaling and educational purposes only. They are not financial advice or a recommendation to take, hold or exit any trade. Markets carry risk - your decisions remain your own.</p>`;
 }
 
 // ---- Goal section: active goal w/ progress, or suggestion from focus ----

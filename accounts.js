@@ -310,6 +310,7 @@ function renderTransactionRows() {
                 </select>
             </td>
             <td><input type="date" class="modal-input" value="${t.date || ''}" onchange="updateDraftTransaction('${t.id}','date',this.value)"></td>
+            <td><input type="time" class="modal-input" value="${t.time || ''}" title="Optional - used to order a same-day top-up against that day's trades for the Times Blown stat" onchange="updateDraftTransaction('${t.id}','time',this.value)"></td>
             <td><input type="number" step="0.01" class="modal-input" value="${t.amount || 0}" onchange="updateDraftTransaction('${t.id}','amount',this.value)"></td>
             <td><input type="text" class="modal-input" value="${escapeHtml(t.note || '')}" onchange="updateDraftTransaction('${t.id}','note',this.value)"></td>
             <td><button class="txn-remove-btn" onclick="removeDraftTransaction('${t.id}')" title="Remove"><i class="fa-solid fa-circle-xmark"></i></button></td>
@@ -328,7 +329,7 @@ function updateDraftTransaction(id, field, value) {
 
 function addDraftTransaction() {
     draftAccount.transactions.push({
-        id: genId(), type: 'deposit', date: new Date().toISOString().slice(0, 10), amount: 0, note: ''
+        id: genId(), type: 'deposit', date: new Date().toISOString().slice(0, 10), time: '', amount: 0, note: ''
     });
     renderTransactionRows();
 }

@@ -446,7 +446,9 @@ function renderMaeMfeStats(closed) {
 
     Promise.all(eligible.map(row => {
         const trade = trades.find(t => t.id === row.id);
-        return trade ? computeMaeMfeForTrade(row, trade) : Promise.resolve(null);
+        if (!trade) return Promise.resolve(null);
+        return computeMaeMfeForTrade(row, trade).then(mm =>
+            mm ? { mae: mm.mae, mfe: mm.mfe, realized: row.returnAmount, isWin: row.status === 'WIN' } : null);
     })).then(results => {
         const valid = results.filter(Boolean);
         if (valid.length === 0) {
@@ -460,6 +462,38 @@ function renderMaeMfeStats(closed) {
         // while in trades - above 1 means your entries see more favorable
         // excursion than adverse.
         const edgeRatio = avgMae !== 0 ? Math.abs(avgMfe / avgMae) : null;
+
+        // "Stay longer?" read: of a winner's best unrealized move (MFE), how
+        // much did you actually bank? Low capture = money left on the table.
+        const winners = valid.filter(v => v.isWin && v.realized > 0);
+        const avgWinnerMfe = winners.length > 0 ? average(winners.map(v => v.mfe)) : 0;
+        const avgWinnerRealized = winners.length > 0 ? average(winners.map(v => v.realized)) : 0;
+        const capturePct = avgWinnerMfe > 0 ? (avgWinnerRealized / avgWinnerMfe) * 100 : null;
+
+        let stayLongerHtml = '';
+        if (capturePct !== null && winners.length >= 3) {
+            let verdict, verdictClass, detail;
+            if (capturePct < 55) {
+                verdict = 'Yes';
+                verdictClass = 'stay-longer-yes';
+                detail = `Winners bank only ${capturePct.toFixed(0)}% of their best move on average (peak ${formatTotal(avgWinnerMfe)} vs booked ${formatTotal(avgWinnerRealized)}). A trailing stop or wider target could let them run further.`;
+            } else if (capturePct <= 85) {
+                verdict = 'Roughly right';
+                verdictClass = 'stay-longer-mid';
+                detail = `Winners capture ${capturePct.toFixed(0)}% of their best move — solid, with a little left on the table.`;
+            } else {
+                verdict = 'No';
+                verdictClass = 'stay-longer-no';
+                detail = `Winners capture ${capturePct.toFixed(0)}% of their best move — you are already catching nearly all of the favorable swing.`;
+            }
+            stayLongerHtml = `
+            <div class="stay-longer ${verdictClass}">
+                <div class="stay-longer-head"><i class="fa-solid fa-hourglass-half"></i> Stay longer in trades? <strong>${verdict}</strong></div>
+                <div class="stay-longer-detail">${detail}</div>
+            </div>`;
+        }
+
+        const maeMfeSummary = `<p class="mae-mfe-summary">Typical trade took <span class="value-negative sensitive-value">${formatTotal(avgMae)}</span> of heat against <span class="value-positive sensitive-value">${formatTotal(avgMfe)}</span> of peak profit${edgeRatio !== null ? ` — a <strong>${edgeRatio.toFixed(2)}x</strong> favorable-to-adverse edge` : ''}.</p>`;
 
         const symbolCount = new Set(eligible.map(r => r.symbol)).size;
         el.innerHTML = `
@@ -481,6 +515,8 @@ function renderMaeMfeStats(closed) {
                 <span class="mae-mfe-ratio-val ${edgeRatio >= 1 ? 'value-positive' : 'value-negative'}">${edgeRatio.toFixed(2)}x</span>
                 <span class="mae-mfe-ratio-label">MFE : MAE edge ratio</span>
             </div>` : ''}
+            ${maeMfeSummary}
+            ${stayLongerHtml}
             <p class="mae-mfe-note">Based on ${valid.length} of ${eligible.length} trade${eligible.length === 1 ? '' : 's'} in view across ${symbolCount} symbol${symbolCount === 1 ? '' : 's'} with available chart data (same-day trades only).</p>`;
     });
 }
@@ -801,12 +837,16 @@ function longestStreak(sortedRows, status) {
     return longest;
 }
 
-// ---- Times Blown: how many times the account was wiped out - a losing trade
-// dropping the running balance (deposits/withdrawals + closed-trade P&L in
-// date order) to $0 or below. Unlike the other cards this always walks the
-// WHOLE account, ignoring the filter panel - a filtered subset of trades
-// can't represent the real balance. A deposit lifting the balance back above
-// $0 re-arms the counter, so repeated blow-ups each count.
+// ---- Times Blown: how many times the account was wiped out - the running
+// balance (deposits/withdrawals + closed-trade P&L, in strict time order)
+// dropping to $0 or below because of a losing trade. Deposits and withdrawals
+// carry an optional time (Account modal) so a same-day top-up is ordered
+// correctly against that day's trades; a missing time counts as 00:00 (start
+// of day). Always walks the WHOLE account, ignoring the filter panel - a
+// filtered subset can't represent the real balance. After a blow-up the
+// counter only re-arms when a DEPOSIT tops the balance back above $0 ("topped
+// up again"), so a balance oscillating around $0 from trades alone, or a
+// withdrawal of your own funds, never inflates the count.
 function countAccountBlowups() {
     const account = getActiveAccount();
     if (!account) return 0;
@@ -814,10 +854,11 @@ function countAccountBlowups() {
     const events = [];
     (account.transactions || []).forEach(t => {
         const amount = parseFloat(t.amount) || 0;
+        const ts = new Date(`${t.date || '1970-01-01'}T${t.time || '00:00'}`).getTime();
         events.push({
-            day: t.date || '',
-            time: 0, // date-only, so same-day deposits/withdrawals apply before that day's trades
+            ts: isNaN(ts) ? 0 : ts,
             amount: t.type === 'withdraw' ? -amount : amount,
+            isDeposit: t.type !== 'withdraw',
             isTrade: false
         });
     });
@@ -825,22 +866,32 @@ function countAccountBlowups() {
         const row = computeTradeSummary(trade);
         if (row.returnAmount === null) return;
         events.push({
-            day: row.date.slice(0, 10),
-            time: new Date(row.date).getTime(),
+            ts: new Date(row.date).getTime(),
             amount: row.returnAmount,
+            isDeposit: false,
             isTrade: true
         });
     });
-    events.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.time - b.time));
+    // Strict chronological order. On an exact tie, apply funding before trades
+    // so a same-instant top-up re-arms before that instant's trade is judged.
+    events.sort((a, b) => a.ts - b.ts || (a.isTrade === b.isTrade ? 0 : a.isTrade ? 1 : -1));
 
     let balance = 0;
     let blowups = 0;
+    let armed = false;     // true once the account holds a funded (>$0) balance
+    let everArmed = false; // first funding can come from any positive balance
     events.forEach(e => {
         const before = balance;
         balance += e.amount;
-        // Only a trade wiping out a funded balance counts - withdrawing your
-        // own money down to $0 isn't "blowing" the account.
-        if (e.isTrade && before > 0 && balance <= 0) blowups += 1;
+        if (armed && balance <= 0) {
+            // A funded balance hit zero/negative: a blow-up only if a trade
+            // caused it (not a withdrawal), then disarm until a deposit re-funds.
+            if (e.isTrade && before > 0) blowups += 1;
+            armed = false;
+        } else if (!armed && balance > 0 && (e.isDeposit || !everArmed)) {
+            armed = true;
+            everArmed = true;
+        }
     });
     return blowups;
 }
@@ -923,7 +974,7 @@ const STATS_METRIC_DESCRIPTIONS = {
     'Avg Size': 'Average quantity (lots/shares) per trade.',
     'Total Fees': 'Total commissions/fees paid across all closed trades - already subtracted from your P&L.',
     'Avg R-Multiple': 'Average return in units of risk (R), based on each trade\'s distance from entry to its Stop-Loss. Only counts trades that had a Stop-Loss set.',
-    'Times Blown': 'How many times a losing trade wiped your account - the running balance (deposits, withdrawals and trade P&L in date order) dropping to $0 or below. Depositing back above $0 re-arms the counter. Always measured on the whole account, ignoring filters.'
+    'Times Blown': 'How many times a losing trade wiped your account - the running balance (deposits, withdrawals and trade P&L, in time order) dropping to $0 or below. Give a deposit/withdrawal an optional time in Account settings to order a same-day top-up against that day\'s trades. Only a deposit re-arms the counter after a blow-up (a withdrawal of your own funds, or trades alone hovering near $0, never count). Always measured on the whole account, ignoring filters.'
 };
 
 // Icon + accent tone per metric, keyed by label (same key style as
@@ -1434,6 +1485,26 @@ function renderStatsHeatmap(closed) {
     });
 
     html += '</div>';
+
+    // Summary strip: best and worst slot by realized P&L, plus the busiest one.
+    let bestKey = null, worstKey = null, busiestKey = null;
+    cells.forEach((c, key) => {
+        if (bestKey === null || c.pnl > cells.get(bestKey).pnl) bestKey = key;
+        if (worstKey === null || c.pnl < cells.get(worstKey).pnl) worstKey = key;
+        if (busiestKey === null || c.count > cells.get(busiestKey).count) busiestKey = key;
+    });
+    const heatSlotLabel = key => {
+        const [d, h] = key.split('_').map(Number);
+        return `${WEEKDAY_LABELS[d].slice(0, 3)} ${formatHourLabel(h).replace(' ', '')}`;
+    };
+    const bestCell = cells.get(bestKey), worstCell = cells.get(worstKey), busiestCell = cells.get(busiestKey);
+    let heatSummary = '<div class="stats-heatmap-summary">';
+    if (bestCell && bestCell.pnl > 0) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Best</span> <strong>${heatSlotLabel(bestKey)}</strong> <span class="value-positive sensitive-value">${formatTotal(bestCell.pnl)}</span></span>`;
+    if (worstCell && worstCell.pnl < 0) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Worst</span> <strong>${heatSlotLabel(worstKey)}</strong> <span class="value-negative sensitive-value">${formatTotal(worstCell.pnl)}</span></span>`;
+    if (busiestCell) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Busiest</span> <strong>${heatSlotLabel(busiestKey)}</strong> ${busiestCell.count} trade${busiestCell.count === 1 ? '' : 's'}</span>`;
+    heatSummary += '</div>';
+    html += heatSummary;
+
     container.innerHTML = html;
     bindHeatmapTooltip(container);
 }

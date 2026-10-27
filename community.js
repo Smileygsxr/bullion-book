@@ -7,9 +7,10 @@
 // balances - only symbols, percentages, R-multiples, win rates and grades.
 // Sharing is always an explicit user action (a "Share" button), never automatic.
 
-let communityTab = 'wall';
-let leaderboardMetric = 'totalR';
+let communityTab = 'board';
+let leaderboardMetric = 'winRate';
 let leaderboardWeekOffset = 0; // 0 = this week, -1 = last week
+let myLeaderboardShare = null; // the current user's rank/stats, for the share popover
 let communityWallCache = null;
 
 // ---- Small shared helpers ----
@@ -208,6 +209,12 @@ function buildShareCardHtml(doc) {
                     ${d.returnPct != null ? `<span class="${d.returnPct >= 0 ? 'value-positive' : 'value-negative'}">${d.returnPct >= 0 ? '+' : ''}${d.returnPct}%</span> &middot; ` : ''}
                     ${d.hold ? `${escapeHtml(d.hold)} &middot; ` : ''}${escapeHtml(d.day || '')}
                 </div>
+                ${(d.playbook || (d.tags && d.tags.length) || d.confidence != null) ? `
+                <div class="cw-trade-tags">
+                    ${d.playbook ? `<span class="cw-trade-tag playbook"><i class="fa-solid fa-book"></i> ${escapeHtml(d.playbook)}</span>` : ''}
+                    ${(d.tags || []).map(t => `<span class="cw-trade-tag"><i class="fa-solid fa-tag"></i> ${escapeHtml(t)}</span>`).join('')}
+                    ${d.confidence != null ? `<span class="cw-trade-tag confidence"><i class="fa-solid fa-gauge-high"></i> ${d.confidence}/10</span>` : ''}
+                </div>` : ''}
             </div>`;
     }
 
@@ -273,6 +280,13 @@ function shareTradeToCommunity() {
         return;
     }
 
+    // Non-dollar context for the card: setup (playbook), tags and confidence.
+    const playbooks = (account.playbooks) || [];
+    const sharePlaybook = row.playbookId ? playbooks.find(p => p.id === row.playbookId) : null;
+    const tagDefs = (account.tagDefs) || [];
+    const tagsById = new Map(tagDefs.map(t => [t.id, t.name]));
+    const shareTags = (row.tagIds || []).map(id => tagsById.get(id)).filter(Boolean).slice(0, 4);
+
     const user = auth.currentUser;
     const payload = {
         type: 'trade',
@@ -287,6 +301,9 @@ function shareTradeToCommunity() {
         returnPct: row.returnPct !== null ? Math.round(row.returnPct * 100) / 100 : null,
         hold: formatHoldDuration(row.holdSeconds),
         day: row.date.slice(0, 10),
+        playbook: sharePlaybook ? sharePlaybook.name : null,
+        tags: shareTags,
+        confidence: typeof row.confidence === 'number' ? row.confidence : null,
         reactions: { fire: 0, rocket: 0, clap: 0 }
     };
 
@@ -330,6 +347,7 @@ function computeMyWeekSnapshot(weekOffset) {
         grade: grade.letter,
         gradeScore: grade.score,
         winRate: Math.round((wins.length / week.length) * 100),
+        wins: wins.length,
         profitFactor: pf,
         trades: week.length,
         greenDays: `${Array.from(byDay.values()).filter(v => v > 0).length}/${byDay.size}`,
@@ -393,6 +411,7 @@ function publishWeekToLeaderboard() {
         photoURL: user.photoURL && /^https?:\/\//.test(user.photoURL) ? user.photoURL : null,
         weekKey: snap.weekKey,
         winRate: snap.winRate,
+        wins: snap.wins,
         profitFactor: snap.profitFactor,
         totalR: snap.totalR,
         rCount: snap.rCount,
@@ -426,6 +445,73 @@ function leaderboardMetricDisplay(entry) {
     return `${v >= 0 ? '+' : ''}${v}R`;
 }
 
+// Rank score: win rate combined with trade count via the Wilson lower bound,
+// so a high win rate on a handful of trades can't outrank a strong record over
+// many. More trades at the same win rate -> higher score (tighter confidence).
+function leaderboardRankScore(entry) {
+    const n = entry.trades || 0;
+    if (n <= 0) return -Infinity;
+    const wins = typeof entry.wins === 'number' ? entry.wins : Math.round((entry.winRate || 0) / 100 * n);
+    const z = 1.96, phat = wins / n;
+    return (phat + z * z / (2 * n) - z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n);
+}
+
+// ---- Share my leaderboard stats (WhatsApp / X / LinkedIn / Facebook / email / native) ----
+const LEADERBOARD_SHARE_URL = 'https://bullion-book.com';
+
+function leaderboardShareText() {
+    const s = myLeaderboardShare;
+    if (!s) return null;
+    return `I'm ranked #${s.rank} of ${s.total} on the Bullion Book weekly trading leaderboard ${s.weekLabel} - ${s.winRate}% win rate over ${s.trades} trade${s.trades === 1 ? '' : 's'}! 📈`;
+}
+
+function openLeaderboardShare() {
+    const text = leaderboardShareText();
+    if (!text) { communityToast('Publish your week first to share your rank.', true); return; }
+    const full = `${text} ${LEADERBOARD_SHARE_URL}`;
+    const encText = encodeURIComponent(text);
+    const encFull = encodeURIComponent(full);
+    const encUrl = encodeURIComponent(LEADERBOARD_SHARE_URL);
+    const setHref = (id, href) => { const el = document.getElementById(id); if (el) el.href = href; };
+    setHref('lb-share-whatsapp', `https://wa.me/?text=${encFull}`);
+    setHref('lb-share-x', `https://twitter.com/intent/tweet?text=${encText}&url=${encUrl}`);
+    setHref('lb-share-linkedin', `https://www.linkedin.com/sharing/share-offsite/?url=${encUrl}`);
+    setHref('lb-share-facebook', `https://www.facebook.com/sharer/sharer.php?u=${encUrl}&quote=${encText}`);
+    setHref('lb-share-email', `mailto:?subject=${encodeURIComponent('My Bullion Book leaderboard rank')}&body=${encFull}`);
+    const preview = document.getElementById('lb-share-preview');
+    if (preview) preview.textContent = full;
+    const pop = document.getElementById('lb-share-popover');
+    if (pop) pop.style.display = 'block';
+}
+
+function closeLeaderboardShare() {
+    const pop = document.getElementById('lb-share-popover');
+    if (pop) pop.style.display = 'none';
+}
+
+function copyLeaderboardShare() {
+    const text = leaderboardShareText();
+    if (!text) return;
+    const full = `${text} ${LEADERBOARD_SHARE_URL}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(full)
+            .then(() => communityToast('Copied! Paste it anywhere.'))
+            .catch(() => communityToast('Could not copy to clipboard.', true));
+    } else {
+        communityToast('Clipboard not available on this browser.', true);
+    }
+}
+
+function leaderboardNativeShare() {
+    const text = leaderboardShareText();
+    if (!text) return;
+    if (navigator.share) {
+        navigator.share({ title: 'Bullion Book leaderboard', text, url: LEADERBOARD_SHARE_URL }).catch(() => {});
+    } else {
+        communityToast('No native share on this browser - use the buttons or Copy.', true);
+    }
+}
+
 function loadLeaderboard() {
     const container = document.getElementById('community-board');
     if (!container || !db) return;
@@ -442,11 +528,21 @@ function loadLeaderboard() {
         .then(snapshot => {
             const uid = auth.currentUser ? auth.currentUser.uid : null;
             const entries = snapshot.docs.map(doc => doc.data())
-                .filter(e => typeof leaderboardMetricValue(e) === 'number')
-                .sort((a, b) => leaderboardMetricValue(b) - leaderboardMetricValue(a));
+                .filter(e => typeof e.winRate === 'number' && (e.trades || 0) > 0)
+                .sort((a, b) => leaderboardRankScore(b) - leaderboardRankScore(a));
 
             const iAmOnBoard = entries.some(e => e.uid === uid);
             const mySnap = computeMyWeekSnapshot(leaderboardWeekOffset);
+
+            // Stash the user's rank + stats for the "Share my stats" popover.
+            const myIdx = uid ? entries.findIndex(e => e.uid === uid) : -1;
+            myLeaderboardShare = myIdx >= 0 ? {
+                rank: myIdx + 1,
+                total: entries.length,
+                winRate: entries[myIdx].winRate,
+                trades: entries[myIdx].trades,
+                weekLabel: leaderboardWeekOffset === 0 ? 'this week' : 'last week'
+            } : null;
 
             const ctaHtml = `
                 <div class="lb-cta${iAmOnBoard ? ' on-board' : ''}">
@@ -454,11 +550,12 @@ function loadLeaderboard() {
                         ${iAmOnBoard
                             ? '<strong>You\'re on the board.</strong> Numbers looking stale? Re-publish to refresh them.'
                             : mySnap
-                                ? `<strong>Join the board?</strong> Your ${leaderboardWeekOffset === 0 ? 'week so far' : 'week'}: ${mySnap.winRate}% win rate &middot; ${mySnap.trades} trades &middot; ${mySnap.totalR >= 0 ? '+' : ''}${mySnap.totalR}R. Only these stats are published - never dollar amounts.`
+                                ? `<strong>Join the board?</strong> Your ${leaderboardWeekOffset === 0 ? 'week so far' : 'week'}: ${mySnap.winRate}% win rate &middot; ${mySnap.trades} trades. Only these stats are published - never dollar amounts.`
                                 : 'No closed trades in this week yet - the board is opt-in and only shows percentages and R, never dollars.'}
                     </div>
                     <div class="lb-cta-actions">
                         ${mySnap ? `<button type="button" class="news-tab lb-publish-btn" onclick="publishWeekToLeaderboard()"><i class="fa-solid fa-flag-checkered"></i> ${iAmOnBoard ? 'Update my entry' : 'Publish my week'}</button>` : ''}
+                        ${iAmOnBoard ? '<button type="button" class="news-tab lb-share-btn" onclick="openLeaderboardShare()"><i class="fa-solid fa-share-nodes"></i> Share my stats</button>' : ''}
                         ${iAmOnBoard ? '<button type="button" class="news-tab lb-remove-btn" onclick="removeMyLeaderboardEntry()"><i class="fa-solid fa-user-slash"></i> Leave board</button>' : ''}
                     </div>
                 </div>`;

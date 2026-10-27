@@ -2134,6 +2134,42 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     color: var(--text-muted);
 }
 
+/* Plain-English MAE/MFE summary + the "stay longer?" verdict */
+.mae-mfe-summary {
+    margin: 12px 0 0;
+    font-size: 0.78rem;
+    color: var(--text-light);
+    line-height: 1.5;
+}
+
+.stay-longer {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border-left: 3px solid var(--text-muted);
+    background: rgba(255, 255, 255, 0.03);
+}
+.stay-longer-head {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.stay-longer-head strong { margin-left: 2px; }
+.stay-longer-detail {
+    margin-top: 4px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+.stay-longer.stay-longer-yes { border-left-color: var(--accent-gold); }
+.stay-longer.stay-longer-yes .stay-longer-head strong { color: var(--accent-gold); }
+.stay-longer.stay-longer-mid { border-left-color: var(--accent-blue); }
+.stay-longer.stay-longer-mid .stay-longer-head strong { color: var(--accent-blue); }
+.stay-longer.stay-longer-no { border-left-color: rgba(var(--win-rgb), 1); }
+.stay-longer.stay-longer-no .stay-longer-head strong { color: rgba(var(--win-rgb), 1); }
+
 /* Pro Score radar chart + gradient scale */
 .pro-score-title-row {
     display: flex;
@@ -2856,6 +2892,7 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 }
 
 .calendar-day {
+    position: relative;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -2866,6 +2903,76 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 
 .calendar-day.outside-month {
     opacity: 0.45;
+}
+
+/* Today's cell - a clear accent ring + tinted number */
+.calendar-day.today {
+    border-color: var(--accent-blue);
+    box-shadow: inset 0 0 0 1px var(--accent-blue);
+}
+.calendar-day.today .calendar-day-number {
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
+/* Per-day note marker (top-right bookmark) */
+.calendar-day-note {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.12s, color 0.12s;
+}
+.calendar-day:hover .calendar-day-note { opacity: 0.55; }
+.calendar-day-note.has-note {
+    color: var(--accent-gold);
+    opacity: 1;
+}
+.calendar-day-note:hover { opacity: 1; color: var(--accent-gold); }
+
+/* Monthly summary card at the top of the calendar side column */
+.calendar-monthly-summary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+}
+.calendar-monthly-summary-title {
+    color: var(--text-light);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 8px;
+}
+.calendar-month-pnl {
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+}
+.calendar-month-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    padding: 2px 0;
+}
+.calendar-month-row span:last-child { color: var(--text-light); }
+.calendar-month-empty {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Clickable weekly-summary cards (jump to that week in the Weekly Review) */
+.calendar-week-card.clickable { cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+.calendar-week-card.clickable:hover {
+    border-color: var(--accent-blue);
+    background: rgba(var(--accent-blue-rgb), 0.06);
 }
 
 .calendar-day-number {
@@ -4986,6 +5093,24 @@ body.privacy-mode .equity-crosshair-label.price {
     align-items: stretch;
 }
 
+/* Best / worst / busiest slot strip under the heatmap grid */
+.stats-heatmap-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 12px;
+    font-size: 0.76rem;
+    color: var(--text-light);
+}
+.stats-heatmap-sum-item { white-space: nowrap; }
+.stats-heatmap-sum-item .sum-k {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    margin-right: 2px;
+}
+
 .stats-heatmap-hour-label,
 .stats-heatmap-day-label {
     color: var(--text-muted);
@@ -5944,6 +6069,28 @@ body.privacy-mode .equity-crosshair-label.price {
 
 .cw-trade-meta { color: var(--text-muted); font-size: 0.74rem; }
 
+/* Setup/tags/confidence chips on a shared single-trade card */
+.cw-trade-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+.cw-trade-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 100px;
+    padding: 2px 8px;
+}
+.cw-trade-tag i { font-size: 0.62rem; color: var(--text-muted); }
+.cw-trade-tag.playbook i { color: var(--accent-gold); }
+.cw-trade-tag.confidence i { color: var(--accent-blue); }
+
 /* Week-type card body */
 .cw-week-body { display: flex; gap: 14px; align-items: center; }
 
@@ -6039,6 +6186,95 @@ body.privacy-mode .equity-crosshair-label.price {
 }
 
 .lb-toolbar-group { display: flex; gap: 8px; }
+
+.lb-rank-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+}
+.lb-rank-note i { color: var(--accent-gold); }
+
+.lb-share-btn.news-tab { color: var(--accent-blue); }
+
+/* Share-my-stats popover (leaderboard) */
+.lb-share-popover {
+    position: relative;
+    margin-top: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    max-width: 440px;
+}
+.lb-share-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.lb-share-title { color: var(--text-light); font-weight: 600; font-size: 0.9rem; }
+.lb-share-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.lb-share-close:hover { color: var(--text-light); }
+.lb-share-preview {
+    margin: 0 0 12px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+.lb-share-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.lb-share-opt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.12s, border-color 0.12s;
+}
+.lb-share-opt:hover { background: rgba(255, 255, 255, 0.09); border-color: var(--text-muted); }
+.lb-share-opt.whatsapp i { color: #25d366; }
+.lb-share-opt.x i { color: var(--text-light); }
+.lb-share-opt.linkedin i { color: #0a66c2; }
+.lb-share-opt.facebook i { color: #1877f2; }
+.lb-share-opt.email i { color: var(--accent-gold); }
+.lb-share-copy {
+    margin-top: 10px;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-light);
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+}
+.lb-share-copy:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+@media (max-width: 480px) {
+    .lb-share-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 .lb-cta {
     display: flex;
@@ -7499,6 +7735,47 @@ html[data-theme="blossom"] {
 
 /* ==== Coach page ==== */
 #coach-content { display: flex; flex-direction: column; gap: 16px; }
+
+/* Coach period toggle (Whole account / Selected period) + its date-range bar */
+.coach-period-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.coach-period-switch {
+    display: inline-flex;
+    align-self: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+.coach-period-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.coach-period-btn:hover { color: var(--text-light); }
+.coach-period-btn.active {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+.coach-disclaimer {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+.coach-disclaimer i { color: var(--text-muted); margin-right: 4px; }
 
 .coach-hero {
     display: flex;

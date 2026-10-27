@@ -472,6 +472,12 @@ function renderCalendarGrid() {
         byDate.get(key).push(r);
     });
 
+    // Day notes (account.dayNotes) keyed by date, for the per-day note marker.
+    const noteCounts = new Map();
+    const dayNotes = typeof getDayNotesArray === 'function' ? getDayNotesArray(getActiveAccount()) : [];
+    dayNotes.forEach(n => { if (n && n.date) noteCounts.set(n.date, (noteCounts.get(n.date) || 0) + 1); });
+    const todayKey = dateKey(new Date());
+
     const firstOfMonth = new Date(calendarYear, calendarMonth, 1);
     const gridStart = new Date(calendarYear, calendarMonth, 1 - firstOfMonth.getDay());
 
@@ -484,7 +490,8 @@ function renderCalendarGrid() {
 
     grid.innerHTML = cells.map(cellDate => {
         const inMonth = cellDate.getMonth() === calendarMonth;
-        const dayTrades = byDate.get(dateKey(cellDate)) || [];
+        const key = dateKey(cellDate);
+        const dayTrades = byDate.get(key) || [];
 
         let body = '';
         if (dayTrades.length > 0) {
@@ -492,18 +499,55 @@ function renderCalendarGrid() {
             const pnlClass = pnl < 0 ? 'value-negative' : 'value-positive';
             body = `
                 <div class="calendar-day-pnl ${pnlClass}">${formatTotal(pnl)}</div>
-                <div class="calendar-day-count" onclick="event.stopPropagation(); openDayTradesModal('${dateKey(cellDate)}')">${dayTrades.length} Trade${dayTrades.length === 1 ? '' : 's'}</div>`;
+                <div class="calendar-day-count" onclick="event.stopPropagation(); openDayTradesModal('${key}')">${dayTrades.length} Trade${dayTrades.length === 1 ? '' : 's'}</div>`;
         }
 
         const holidayHtml = showHolidayCalendar ? renderHolidayChipsForDate(cellDate) : '';
 
+        // Per-day note marker: gold bookmark when the day has notes, a faint one
+        // (shown on hover) to add the first note for that day.
+        const noteCount = noteCounts.get(key) || 0;
+        const noteTitle = noteCount > 0
+            ? `${noteCount} note${noteCount === 1 ? '' : 's'} - click to view`
+            : 'Add a note for this day';
+        const noteIcon = `<i class="fa-solid fa-bookmark calendar-day-note${noteCount > 0 ? ' has-note' : ''}" onclick="event.stopPropagation(); openDayNote('${key}')" title="${noteTitle}"></i>`;
+
         return `
-            <div class="calendar-day${inMonth ? '' : ' outside-month'}">
+            <div class="calendar-day${inMonth ? '' : ' outside-month'}${key === todayKey ? ' today' : ''}">
                 <div class="calendar-day-number">${cellDate.getDate()}</div>
+                ${noteIcon}
                 ${body}
                 ${holidayHtml}
             </div>`;
     }).join('');
+
+    // ---- Monthly summary (this calendar month only) ----
+    const monthSummaryEl = document.getElementById('calendar-monthly-summary');
+    if (monthSummaryEl) {
+        const monthTrades = [];
+        cells.forEach(c => { if (c.getMonth() === calendarMonth) monthTrades.push(...(byDate.get(dateKey(c)) || [])); });
+        if (monthTrades.length === 0) {
+            monthSummaryEl.innerHTML = '<div class="calendar-monthly-summary-title">Monthly Summary</div><div class="calendar-month-empty">No trades this month.</div>';
+        } else {
+            const mPnl = monthTrades.reduce((sum, r) => sum + r.returnAmount, 0);
+            const mWins = monthTrades.filter(r => r.status === 'WIN').length;
+            const mLosses = monthTrades.filter(r => r.status === 'LOSS').length;
+            const decided = mWins + mLosses;
+            const mWinRate = decided > 0 ? (mWins / decided) * 100 : 0;
+            const dayPnls = new Map();
+            monthTrades.forEach(r => { const k = dateKey(new Date(r.date)); dayPnls.set(k, (dayPnls.get(k) || 0) + r.returnAmount); });
+            const greenDays = Array.from(dayPnls.values()).filter(v => v > 0).length;
+            const redDays = Array.from(dayPnls.values()).filter(v => v < 0).length;
+            const pnlClass = mPnl < 0 ? 'value-negative' : 'value-positive';
+            monthSummaryEl.innerHTML = `
+                <div class="calendar-monthly-summary-title">Monthly Summary</div>
+                <div class="calendar-month-pnl ${pnlClass} sensitive-value">${formatTotal(mPnl)}</div>
+                <div class="calendar-month-row"><span>Trades</span><span>${monthTrades.length}</span></div>
+                <div class="calendar-month-row"><span>Win rate</span><span>${mWinRate.toFixed(0)}%</span></div>
+                <div class="calendar-month-row"><span>W / L</span><span><span class="value-positive">${mWins}</span> / <span class="value-negative">${mLosses}</span></span></div>
+                <div class="calendar-month-row"><span>Green / red days</span><span><span class="value-positive">${greenDays}</span> / <span class="value-negative">${redDays}</span></span></div>`;
+        }
+    }
 
     summaryBody.innerHTML = '';
     for (let week = 0; week < 6; week++) {
@@ -537,7 +581,7 @@ function renderCalendarGrid() {
             : `${weekStart.getDate()} ${startMonth} - ${weekEnd.getDate()} ${endMonth}`;
 
         summaryBody.innerHTML += `
-            <div class="calendar-week-card">
+            <div class="calendar-week-card clickable" onclick="goToReviewWeekForDate('${dateKey(cells[week * 7 + 1])}')" title="Open this week in the Weekly Review">
                 <div class="calendar-week-label">${weekLabel}</div>
                 <div class="calendar-week-pnl ${pnlClass}">${formatTotal(pnl)}</div>
                 <div class="calendar-week-pct ${pnlClass}">${pct.toFixed(2)}%</div>
@@ -547,6 +591,32 @@ function renderCalendarGrid() {
                 </div>
             </div>`;
     }
+}
+
+// Opens the day's most recent note, or a fresh note pre-dated to that day when
+// none exist yet (the per-day bookmark icon on each calendar cell).
+function openDayNote(key) {
+    if (typeof getDayNotesArray !== 'function' || typeof openNoteModal !== 'function') return;
+    const notes = getDayNotesArray(getActiveAccount()).filter(n => n.date === key);
+    if (notes.length > 0) {
+        const note = notes.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+        openNoteModal(note.id);
+    } else {
+        openNoteModal(null, key);
+    }
+}
+
+// Jumps to the Weekly Review week (Mon-Sun) that contains the given date - used
+// by the clickable weekly-summary cards. Review weeks are Monday-based, so a
+// calendar week card passes its Monday here.
+function goToReviewWeekForDate(dateStr) {
+    if (typeof reviewMondayKeyOf !== 'function' || typeof getReviewWeekDates !== 'function') return;
+    const [ty, tm, td] = reviewMondayKeyOf(dateStr).split('-').map(Number);
+    const [cy, cm, cd] = getReviewWeekDates(0)[0].split('-').map(Number);
+    const offset = Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(cy, cm - 1, cd)) / (7 * 24 * 60 * 60 * 1000));
+    const reviewNav = document.querySelector('.nav-link[onclick*="page-review"]');
+    showPage('page-review', reviewNav);
+    if (typeof selectReviewWeek === 'function') selectReviewWeek(offset);
 }
 
 // ---- Day Trades modal: lists every trade entered on a given date, click one to view it ----

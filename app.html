@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=117">
+    <link rel="stylesheet" href="styles.css?v=121">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -449,6 +449,7 @@
 
             <div class="stats-charts-row">
                 <div class="stats-panel stats-panel-half">
+                    <div class="stats-panel-title">TAG PERFORMANCE</div>
                     <table class="stats-table stats-perf-table stats-perf-tag">
                         <thead>
                             <tr>
@@ -466,6 +467,7 @@
                     </table>
                 </div>
                 <div class="stats-panel stats-panel-half">
+                    <div class="stats-panel-title">SYMBOL PERFORMANCE</div>
                     <table class="stats-table stats-perf-table stats-perf-symbol">
                         <thead>
                             <tr>
@@ -516,6 +518,25 @@
         <!-- COACH PAGE VIEW (Hidden by Default) -->
         <!-- ========================================== -->
         <div id="page-coach" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
+            <div class="coach-period-toolbar">
+                <div class="coach-period-switch">
+                    <button type="button" id="coach-mode-all" class="coach-period-btn active" onclick="setCoachPeriodMode('all')">Whole account</button>
+                    <button type="button" id="coach-mode-period" class="coach-period-btn" onclick="setCoachPeriodMode('period')">Selected period</button>
+                </div>
+                <div class="page-date-range-bar coach-date-range-bar" id="coach-date-range-bar" style="display: none;">
+                    <button class="date-range-btn" data-range-key="today" onclick="applyDateRangePreset('today')">Today</button>
+                    <button class="date-range-btn" data-range-key="yesterday" onclick="applyDateRangePreset('yesterday')">Yesterday</button>
+                    <button class="date-range-btn" data-range-key="thisWeek" onclick="applyDateRangePreset('thisWeek')">This week</button>
+                    <button class="date-range-btn" data-range-key="lastWeek" onclick="applyDateRangePreset('lastWeek')">Last week</button>
+                    <button class="date-range-btn" data-range-key="thisMonth" onclick="applyDateRangePreset('thisMonth')">This month</button>
+                    <button class="date-range-btn" data-range-key="lastMonth" onclick="applyDateRangePreset('lastMonth')">Last month</button>
+                    <button class="date-range-btn" data-range-key="last3Months" onclick="applyDateRangePreset('last3Months')">Last 3 months</button>
+                    <button class="date-range-btn" data-range-key="thisYear" onclick="applyDateRangePreset('thisYear')">This year</button>
+                    <button class="date-range-btn" data-range-key="lastYear" onclick="applyDateRangePreset('lastYear')">Last year</button>
+                    <button class="date-range-btn" data-range-key="custom" onclick="toggleCustomDateRangePopover(event)">Custom</button>
+                    <button class="date-range-btn date-range-reset" data-range-key="" onclick="resetDateRangeFilter()">Reset</button>
+                </div>
+            </div>
             <div id="coach-content"></div>
         </div>
 
@@ -525,29 +546,43 @@
         <div id="page-community" class="view-section" style="display: none; flex-direction: column; gap: 16px; width: 100%;">
             <div class="community-header">
                 <div class="community-tabs">
-                    <button type="button" class="community-tab-btn active" data-tab="wall" onclick="switchCommunityTab('wall')"><i class="fa-solid fa-table-cells-large"></i> Trade Wall</button>
-                    <button type="button" class="community-tab-btn" data-tab="board" onclick="switchCommunityTab('board')"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
+                    <button type="button" class="community-tab-btn active" data-tab="board" onclick="switchCommunityTab('board')"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
+                    <button type="button" class="community-tab-btn" data-tab="wall" onclick="switchCommunityTab('wall')"><i class="fa-solid fa-table-cells-large"></i> Trade Wall</button>
                 </div>
                 <span class="community-privacy-note"><i class="fa-solid fa-shield-halved"></i> Percentages &amp; R only - dollar amounts are never shared</span>
             </div>
 
-            <div id="community-wall-wrap">
-                <div id="community-wall"></div>
-            </div>
-
-            <div id="community-board-wrap" style="display: none;">
+            <div id="community-board-wrap">
                 <div class="lb-toolbar">
                     <div class="lb-toolbar-group">
                         <button type="button" class="news-tab lb-week-btn active" data-week="0" onclick="setLeaderboardWeek(0)">This Week</button>
                         <button type="button" class="news-tab lb-week-btn" data-week="-1" onclick="setLeaderboardWeek(-1)">Last Week</button>
                     </div>
-                    <div class="lb-toolbar-group">
-                        <button type="button" class="news-tab lb-metric-btn active" data-metric="totalR" onclick="setLeaderboardMetric('totalR')">Total R</button>
-                        <button type="button" class="news-tab lb-metric-btn" data-metric="winRate" onclick="setLeaderboardMetric('winRate')">Win Rate</button>
-                        <button type="button" class="news-tab lb-metric-btn" data-metric="profitFactor" onclick="setLeaderboardMetric('profitFactor')">Profit Factor</button>
-                    </div>
+                    <span class="lb-rank-note"><i class="fa-solid fa-ranking-star"></i> Ranked by win rate, weighted by number of trades</span>
                 </div>
                 <div id="community-board"></div>
+
+                <!-- Share-my-stats popover (opened from the leaderboard CTA) -->
+                <div id="lb-share-popover" class="lb-share-popover" style="display: none;">
+                    <div class="lb-share-head">
+                        <span class="lb-share-title">Share my leaderboard stats</span>
+                        <button type="button" class="lb-share-close" onclick="closeLeaderboardShare()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <p class="lb-share-preview" id="lb-share-preview"></p>
+                    <div class="lb-share-grid">
+                        <a class="lb-share-opt whatsapp" id="lb-share-whatsapp" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+                        <a class="lb-share-opt x" id="lb-share-x" target="_blank" rel="noopener"><i class="fa-brands fa-x-twitter"></i> X</a>
+                        <a class="lb-share-opt linkedin" id="lb-share-linkedin" target="_blank" rel="noopener"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</a>
+                        <a class="lb-share-opt facebook" id="lb-share-facebook" target="_blank" rel="noopener"><i class="fa-brands fa-facebook-f"></i> Facebook</a>
+                        <a class="lb-share-opt email" id="lb-share-email"><i class="fa-solid fa-envelope"></i> Email</a>
+                        <button type="button" class="lb-share-opt more" onclick="leaderboardNativeShare()"><i class="fa-solid fa-share-nodes"></i> More…</button>
+                    </div>
+                    <button type="button" class="lb-share-copy" onclick="copyLeaderboardShare()"><i class="fa-solid fa-copy"></i> Copy text</button>
+                </div>
+            </div>
+
+            <div id="community-wall-wrap" style="display: none;">
+                <div id="community-wall"></div>
             </div>
         </div>
 
@@ -597,6 +632,7 @@
                 </div>
 
                 <div class="calendar-weekly-summary">
+                    <div class="calendar-monthly-summary" id="calendar-monthly-summary"></div>
                     <div class="calendar-weekly-summary-title">Weekly Summary</div>
                     <div class="calendar-weekly-summary-body" id="calendar-weekly-summary-body"></div>
                 </div>
@@ -2511,6 +2547,7 @@
                             <tr>
                                 <th>Type</th>
                                 <th>Date</th>
+                                <th>Time</th>
                                 <th>Amount</th>
                                 <th>Note</th>
                                 <th></th>
@@ -2551,8 +2588,8 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
     <script src="chart-tools.js?v=9"></script>
-    <script src="community.js?v=2"></script>
-    <script src="coach.js?v=4"></script>
+    <script src="community.js?v=3"></script>
+    <script src="coach.js?v=5"></script>
     <script src="tutorial.js?v=1"></script>
     <script src="app.js?v=54"></script>
 

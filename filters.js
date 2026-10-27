@@ -409,6 +409,12 @@ function applyTradeFilters() {
 function refreshFilteredViews() {
     if (typeof renderTradeLog === 'function') renderTradeLog();
     if (typeof renderStatsPage === 'function') renderStatsPage();
+    // Keep the Coach in sync when it's analysing the selected period.
+    const coachPage = document.getElementById('page-coach');
+    if (typeof renderCoachPage === 'function' && coachPage && coachPage.style.display !== 'none'
+        && typeof coachPeriodMode !== 'undefined' && coachPeriodMode === 'period') {
+        renderCoachPage();
+    }
 }
 
 function updateFilterToggleButtonState() {

@@ -1282,7 +1282,7 @@ function populateBulkSelects() {
             tagDefs.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
     }
     if (pbSel) {
-        const pbs = (typeof playbooks !== 'undefined' && playbooks) || [];
+        const pbs = (getActiveAccount().playbooks) || [];
         pbSel.innerHTML = '<option value="">Set playbook…</option>' +
             pbs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
     }
@@ -1344,7 +1344,7 @@ function buildTradeRowHtml(row) {
     // Playbook indicator - a second icon shown next to the tag icon whenever a
     // playbook is assigned, with the playbook name on hover (same tooltip
     // styling as tags, gold book icon to tell the two apart at a glance).
-    const playbookDefs = (typeof playbooks !== 'undefined' && playbooks) || [];
+    const playbookDefs = (getActiveAccount().playbooks) || [];
     const rowPlaybook = row.playbookId ? playbookDefs.find(p => p.id === row.playbookId) : null;
     const playbookIndicator = rowPlaybook ? `
         <div class="trade-tag-indicator trade-playbook-indicator">
