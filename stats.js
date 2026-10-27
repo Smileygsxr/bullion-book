@@ -1486,24 +1486,38 @@ function renderStatsHeatmap(closed) {
 
     html += '</div>';
 
-    // Summary strip: best and worst slot by realized P&L, plus the busiest one.
-    let bestKey = null, worstKey = null, busiestKey = null;
+    // Insights strip - the same .day-insights cards the Day-of-Week chart uses:
+    // best / toughest slot by realized P&L, busiest, and best win rate.
+    let bestKey = null, worstKey = null, busiestKey = null, bestRateKey = null;
     cells.forEach((c, key) => {
         if (bestKey === null || c.pnl > cells.get(bestKey).pnl) bestKey = key;
         if (worstKey === null || c.pnl < cells.get(worstKey).pnl) worstKey = key;
         if (busiestKey === null || c.count > cells.get(busiestKey).count) busiestKey = key;
+        // Best win rate needs a meaningful sample (3+ trades in that slot).
+        if (c.count >= 3 && (bestRateKey === null || (c.wins / c.count) > (cells.get(bestRateKey).wins / cells.get(bestRateKey).count))) bestRateKey = key;
     });
     const heatSlotLabel = key => {
         const [d, h] = key.split('_').map(Number);
         return `${WEEKDAY_LABELS[d].slice(0, 3)} ${formatHourLabel(h).replace(' ', '')}`;
     };
     const bestCell = cells.get(bestKey), worstCell = cells.get(worstKey), busiestCell = cells.get(busiestKey);
-    let heatSummary = '<div class="stats-heatmap-summary">';
-    if (bestCell && bestCell.pnl > 0) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Best</span> <strong>${heatSlotLabel(bestKey)}</strong> <span class="value-positive sensitive-value">${formatTotal(bestCell.pnl)}</span></span>`;
-    if (worstCell && worstCell.pnl < 0) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Worst</span> <strong>${heatSlotLabel(worstKey)}</strong> <span class="value-negative sensitive-value">${formatTotal(worstCell.pnl)}</span></span>`;
-    if (busiestCell) heatSummary += `<span class="stats-heatmap-sum-item"><span class="sum-k">Busiest</span> <strong>${heatSlotLabel(busiestKey)}</strong> ${busiestCell.count} trade${busiestCell.count === 1 ? '' : 's'}</span>`;
-    heatSummary += '</div>';
-    html += heatSummary;
+    const bestRateCell = bestRateKey ? cells.get(bestRateKey) : null;
+
+    const heatInsights = [];
+    if (bestCell && bestCell.pnl > 0) heatInsights.push({ icon: 'fa-trophy', label: 'Best slot', day: heatSlotLabel(bestKey), value: `<span class="value-positive sensitive-value">${formatTotal(bestCell.pnl)}</span>` });
+    if (worstKey !== bestKey && worstCell && worstCell.pnl < 0) heatInsights.push({ icon: 'fa-cloud-rain', label: 'Toughest slot', day: heatSlotLabel(worstKey), value: `<span class="value-negative sensitive-value">${formatTotal(worstCell.pnl)}</span>` });
+    if (busiestCell) heatInsights.push({ icon: 'fa-bolt', label: 'Most active', day: heatSlotLabel(busiestKey), value: `${busiestCell.count} trade${busiestCell.count === 1 ? '' : 's'}` });
+    if (bestRateCell) heatInsights.push({ icon: 'fa-bullseye', label: 'Best win rate', day: heatSlotLabel(bestRateKey), value: `${Math.round(bestRateCell.wins / bestRateCell.count * 100)}% of ${bestRateCell.count}` });
+
+    html += `<div class="day-insights">${heatInsights.map(ins => `
+        <div class="day-insight">
+            <i class="fa-solid ${ins.icon}"></i>
+            <div class="day-insight-text">
+                <span class="day-insight-label">${ins.label}</span>
+                <span class="day-insight-day">${ins.day}</span>
+            </div>
+            <span class="day-insight-value">${ins.value}</span>
+        </div>`).join('')}</div>`;
 
     container.innerHTML = html;
     bindHeatmapTooltip(container);

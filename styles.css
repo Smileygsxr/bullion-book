@@ -2933,39 +2933,51 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
 }
 .calendar-day-note:hover { opacity: 1; color: var(--accent-gold); }
 
-/* Monthly summary card at the top of the calendar side column */
+/* Monthly summary - full-width strip below the calendar grid */
 .calendar-monthly-summary {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+.calendar-month-title {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+.calendar-month-tiles {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+.calendar-month-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 10px 12px;
-    margin-bottom: 14px;
 }
-.calendar-monthly-summary-title {
-    color: var(--text-light);
-    font-size: 0.82rem;
+.cmt-label {
+    color: var(--text-muted);
+    font-size: 0.64rem;
     font-weight: 600;
-    text-align: center;
-    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
-.calendar-month-pnl {
-    font-size: 1.1rem;
+.cmt-value {
+    color: var(--text-light);
+    font-size: 1.05rem;
     font-weight: 700;
-    text-align: center;
-    margin-bottom: 8px;
 }
-.calendar-month-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-    padding: 2px 0;
-}
-.calendar-month-row span:last-child { color: var(--text-light); }
 .calendar-month-empty {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
-    text-align: center;
+}
+@media (max-width: 640px) {
+    .calendar-month-tiles { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Clickable weekly-summary cards (jump to that week in the Weekly Review) */
@@ -5091,24 +5103,6 @@ body.privacy-mode .equity-crosshair-label.price {
     display: grid;
     gap: 4px;
     align-items: stretch;
-}
-
-/* Best / worst / busiest slot strip under the heatmap grid */
-.stats-heatmap-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
-    margin-top: 12px;
-    font-size: 0.76rem;
-    color: var(--text-light);
-}
-.stats-heatmap-sum-item { white-space: nowrap; }
-.stats-heatmap-sum-item .sum-k {
-    color: var(--text-muted);
-    text-transform: uppercase;
-    font-size: 0.66rem;
-    letter-spacing: 0.04em;
-    margin-right: 2px;
 }
 
 .stats-heatmap-hour-label,

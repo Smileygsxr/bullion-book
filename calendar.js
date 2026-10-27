@@ -527,7 +527,7 @@ function renderCalendarGrid() {
         const monthTrades = [];
         cells.forEach(c => { if (c.getMonth() === calendarMonth) monthTrades.push(...(byDate.get(dateKey(c)) || [])); });
         if (monthTrades.length === 0) {
-            monthSummaryEl.innerHTML = '<div class="calendar-monthly-summary-title">Monthly Summary</div><div class="calendar-month-empty">No trades this month.</div>';
+            monthSummaryEl.innerHTML = '<div class="calendar-month-title">Monthly Summary</div><div class="calendar-month-empty">No trades this month.</div>';
         } else {
             const mPnl = monthTrades.reduce((sum, r) => sum + r.returnAmount, 0);
             const mWins = monthTrades.filter(r => r.status === 'WIN').length;
@@ -540,12 +540,29 @@ function renderCalendarGrid() {
             const redDays = Array.from(dayPnls.values()).filter(v => v < 0).length;
             const pnlClass = mPnl < 0 ? 'value-negative' : 'value-positive';
             monthSummaryEl.innerHTML = `
-                <div class="calendar-monthly-summary-title">Monthly Summary</div>
-                <div class="calendar-month-pnl ${pnlClass} sensitive-value">${formatTotal(mPnl)}</div>
-                <div class="calendar-month-row"><span>Trades</span><span>${monthTrades.length}</span></div>
-                <div class="calendar-month-row"><span>Win rate</span><span>${mWinRate.toFixed(0)}%</span></div>
-                <div class="calendar-month-row"><span>W / L</span><span><span class="value-positive">${mWins}</span> / <span class="value-negative">${mLosses}</span></span></div>
-                <div class="calendar-month-row"><span>Green / red days</span><span><span class="value-positive">${greenDays}</span> / <span class="value-negative">${redDays}</span></span></div>`;
+                <div class="calendar-month-title">Monthly Summary</div>
+                <div class="calendar-month-tiles">
+                    <div class="calendar-month-tile">
+                        <span class="cmt-label">Net P&L</span>
+                        <span class="cmt-value ${pnlClass} sensitive-value">${formatTotal(mPnl)}</span>
+                    </div>
+                    <div class="calendar-month-tile">
+                        <span class="cmt-label">Trades</span>
+                        <span class="cmt-value">${monthTrades.length}</span>
+                    </div>
+                    <div class="calendar-month-tile">
+                        <span class="cmt-label">Win rate</span>
+                        <span class="cmt-value">${mWinRate.toFixed(0)}%</span>
+                    </div>
+                    <div class="calendar-month-tile">
+                        <span class="cmt-label">W / L</span>
+                        <span class="cmt-value"><span class="value-positive">${mWins}</span> / <span class="value-negative">${mLosses}</span></span>
+                    </div>
+                    <div class="calendar-month-tile">
+                        <span class="cmt-label">Green / red days</span>
+                        <span class="cmt-value"><span class="value-positive">${greenDays}</span> / <span class="value-negative">${redDays}</span></span>
+                    </div>
+                </div>`;
         }
     }
 
