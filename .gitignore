@@ -1,5 +1,8 @@
 __pycache__/
 *.pyc
 
+# Local Python virtualenv (MT5 fetcher deps - see scripts/mt5_fetch_button.bat)
+.venv/
+
 # Generated at deploy time by scripts/write-version.js
 version.json

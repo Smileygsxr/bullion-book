@@ -7,7 +7,11 @@ directly into /data, only for days that aren't already there - safe to
 re-run any time, like clicking a "sync" button.
 
 Setup (one-time):
-    pip install MetaTrader5
+    The MetaTrader5 package goes in a local .venv (the system Python here is
+    uv-managed and refuses "pip install" under PEP 668):
+        uv venv --python 3.14 .venv
+        uv pip install --python .venv MetaTrader5
+    The .bat launcher does this automatically on first run.
 
 Requires MT5 to be open and logged into your broker on THIS PC every time
 you run this - it attaches to the running terminal, so it can't run
@@ -16,8 +20,8 @@ is long gone - its workflow pointed at an already-deleted script and was
 removed entirely.)
 
 Usage:
-    python scripts/mt5_fetch_button.py
-    (or double-click scripts/mt5_fetch_button.bat)
+    Double-click scripts/mt5_fetch_button.bat
+    (or run it directly: .venv\Scripts\python.exe scripts/mt5_fetch_button.py)
 """
 import os
 from collections import defaultdict
