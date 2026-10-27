@@ -180,6 +180,9 @@ function retimezoneCsvImportedTrades(newOffset) {
             if (trade.source !== 'csv-import') return;
             trade.legs.forEach(leg => { leg.datetime = shiftDatetimeByHours(leg.datetime, delta); });
         });
+        if (typeof labelNextTradeChange === 'function') {
+            labelNextTradeChange(`Shifted imported trade times by ${delta > 0 ? '+' : ''}${delta}h`);
+        }
     }
 
     saveAccountsState();
@@ -415,6 +418,10 @@ function importTradesFromCsvText(csvText, filename) {
     account.trades.push(...importedTrades);
     account.csvImportMeta = { filename, importedAt: new Date().toISOString(), tradeCount: importedTrades.length };
 
+    // The whole import is ONE entry in the trade change history
+    if (typeof labelNextTradeChange === 'function') {
+        labelNextTradeChange(`Imported ${importedTrades.length} trade${importedTrades.length === 1 ? '' : 's'} from ${filename}`);
+    }
     saveAccountsState();
     updateSidebarBalanceDisplay();
     if (typeof renderTradeLog === 'function') renderTradeLog();
@@ -444,6 +451,9 @@ function removeCsvImportedTrades() {
     const removed = before - account.trades.length;
     delete account.csvImportMeta;
 
+    if (typeof labelNextTradeChange === 'function') {
+        labelNextTradeChange(`Removed ${removed} imported trade${removed === 1 ? '' : 's'}`);
+    }
     saveAccountsState();
     updateSidebarBalanceDisplay();
     if (typeof renderTradeLog === 'function') renderTradeLog();
@@ -476,6 +486,7 @@ function undoLastCsvImport() {
 
     account.csvImportUndo = { trades: currentBatch, meta: currentMeta, savedAt: new Date().toISOString() };
 
+    if (typeof labelNextTradeChange === 'function') labelNextTradeChange('Undid last CSV import');
     saveAccountsState();
     updateSidebarBalanceDisplay();
     if (typeof renderTradeLog === 'function') renderTradeLog();
@@ -504,6 +515,8 @@ function showCsvImportStatus(message, isError) {
 
 function renderCsvImportMeta() {
     syncCsvTimezoneSelect();
+    // Trade Change History lives on this panel too (accounts.js)
+    if (typeof renderTradeHistoryPanel === 'function') renderTradeHistoryPanel();
 
     const el = document.getElementById('csv-import-last-info');
     if (!el) return;

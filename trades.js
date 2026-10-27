@@ -832,6 +832,31 @@ function probeFileExists(path) {
     return fetch(path, { method: 'HEAD' }).then(r => r.ok).catch(() => false);
 }
 
+// Previous trading day's bars (at the interval the Trade View is showing), so
+// chart indicators are already warm at the trade day's open. Uses the News
+// page's discovered file list when it's loaded; otherwise probes back day by
+// day (weekends/holidays have no file) for up to a week.
+function loadTradeViewWarmupBars(filePrefix, dateString) {
+    const interval = tradeViewChartState && tradeViewChartState.currentInterval;
+    if (!interval || typeof fetchChartBars !== 'function') return Promise.resolve([]);
+    if (typeof findPrevDayChartFile === 'function' && typeof allDiscoveredFiles !== 'undefined' && allDiscoveredFiles.length > 0) {
+        const file = findPrevDayChartFile(filePrefix, dateString, interval);
+        return file ? fetchChartBars(file) : Promise.resolve([]);
+    }
+    const [y, m, d] = dateString.split('-').map(Number);
+    const candidates = [];
+    for (let back = 1; back <= 7; back++) {
+        const key = new Date(Date.UTC(y, m - 1, d - back)).toISOString().slice(0, 10);
+        candidates.push(buildDailyChartFilenames(key, filePrefix)[interval]);
+    }
+    const tryNext = i => {
+        if (i >= candidates.length) return Promise.resolve([]);
+        return probeFileExists(`./data/${candidates[i]}`)
+            .then(ok => (ok ? fetchChartBars(candidates[i]) : tryNext(i + 1)));
+    };
+    return tryNext(0);
+}
+
 function destroyTradeViewChart() {
     if (tradeViewChartState && tradeViewChartState.chartTools) {
         tradeViewChartState.chartTools.dispose();
@@ -1041,7 +1066,10 @@ function renderTradeViewChart(row, trade) {
     // Same chartKey scheme as the News page's charts (symbol|day), so
     // drawings made on either chart show up on both.
     const chartTools = typeof attachChartTools === 'function'
-        ? attachChartTools({ chart, series, container, chartKey: `${row.symbol}|${dateString}` })
+        ? attachChartTools({
+            chart, series, container, chartKey: `${row.symbol}|${dateString}`,
+            warmupLoader: () => loadTradeViewWarmupBars(symbolMatch.filePrefix, dateString)
+        })
         : null;
 
     tradeViewChartState = {
@@ -1318,8 +1346,92 @@ function applyBulkTagPlaybook() {
         changed++;
     });
 
-    if (changed > 0) saveAccountsState();
+    if (changed > 0) {
+        if (typeof labelNextTradeChange === 'function') {
+            const what = [tagId ? 'tag' : '', playbookId ? 'playbook' : ''].filter(Boolean).join(' + ');
+            labelNextTradeChange(`Bulk ${what} on ${changed} trade${changed === 1 ? '' : 's'}`);
+        }
+        saveAccountsState();
+    }
     exitTradeSelectMode(); // clears selection, leaves select mode, re-renders
+}
+
+// ---- Settings > Tags: bulk tag/playbook by custom date range ----
+// Selects every trade whose date (the same date the Dashboard/Calendar show)
+// falls in an inclusive From-To range. Same rules as the dashboard
+// multi-select: the tag is ADDED, the playbook replaces. One save, so one
+// entry in the trade change history.
+function populateBulkDateSelects() {
+    const account = getActiveAccount();
+    if (!account) return;
+    const tagSel = document.getElementById('bulk-date-tag');
+    const pbSel = document.getElementById('bulk-date-playbook');
+    if (tagSel) {
+        const keep = tagSel.value;
+        tagSel.innerHTML = '<option value="">(no tag)</option>' +
+            (account.tagDefs || []).map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+        tagSel.value = keep;
+    }
+    if (pbSel) {
+        const keep = pbSel.value;
+        pbSel.innerHTML = '<option value="">(keep current playbook)</option>' +
+            (account.playbooks || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        pbSel.value = keep;
+    }
+    updateBulkDateMatchCount();
+}
+
+function bulkDateRange() {
+    const fromEl = document.getElementById('bulk-date-from');
+    const toEl = document.getElementById('bulk-date-to');
+    if (!fromEl || !toEl || !fromEl.value || !toEl.value) return null;
+    return fromEl.value <= toEl.value ? [fromEl.value, toEl.value] : [toEl.value, fromEl.value];
+}
+
+function tradesInBulkDateRange() {
+    const range = bulkDateRange();
+    if (!range) return null;
+    return (getActiveAccount().trades || []).filter(t => {
+        const day = computeTradeSummary(t).date.slice(0, 10);
+        return day >= range[0] && day <= range[1];
+    });
+}
+
+function updateBulkDateMatchCount() {
+    const el = document.getElementById('bulk-date-match-count');
+    if (!el) return;
+    const trades = tradesInBulkDateRange();
+    el.textContent = trades === null
+        ? 'Choose a From and To date to see how many trades it covers.'
+        : `${trades.length} trade${trades.length === 1 ? '' : 's'} in this range.`;
+}
+
+function applyBulkTagByDate() {
+    const statusId = 'bulk-date-status';
+    const trades = tradesInBulkDateRange();
+    const tagId = document.getElementById('bulk-date-tag').value;
+    const playbookId = document.getElementById('bulk-date-playbook').value;
+    if (trades === null) { showSettingsStatus(statusId, 'Pick both a From and a To date.', 'error'); return; }
+    if (!tagId && !playbookId) { showSettingsStatus(statusId, 'Choose a tag and/or a playbook to apply.', 'error'); return; }
+    if (trades.length === 0) { showSettingsStatus(statusId, 'No trades in that date range.', 'error'); return; }
+
+    trades.forEach(t => {
+        if (tagId) {
+            if (!t.tagIds) t.tagIds = t.tagId ? [t.tagId] : [];
+            if (!t.tagIds.includes(tagId)) t.tagIds.push(tagId);
+            delete t.tagId;
+        }
+        if (playbookId) t.playbookId = playbookId;
+    });
+
+    const range = bulkDateRange();
+    if (typeof labelNextTradeChange === 'function') {
+        const what = [tagId ? 'tag' : '', playbookId ? 'playbook' : ''].filter(Boolean).join(' + ');
+        labelNextTradeChange(`Bulk ${what} on ${trades.length} trade${trades.length === 1 ? '' : 's'} (${range[0]} to ${range[1]})`);
+    }
+    saveAccountsState();
+    renderTradeLog();
+    showSettingsStatus(statusId, `Applied to ${trades.length} trade${trades.length === 1 ? '' : 's'}.`, 'success');
 }
 
 // ---- Dashboard trade log table ----

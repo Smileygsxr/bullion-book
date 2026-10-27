@@ -39,6 +39,9 @@ function saveChartToolsStore() {
     chartToolsSaveTimer = setTimeout(() => {
         // Drop empty records so the doc doesn't accumulate dead keys forever
         Object.keys(chartToolsStore).forEach(key => {
+            // The global indicator list is an array, not a chart record - and
+            // an empty one must persist too (so old per-chart ones don't return).
+            if (key === CHART_GLOBAL_IND_KEY) return;
             const rec = chartToolsStore[key];
             if ((!rec.drawings || rec.drawings.length === 0) && (!rec.indicators || rec.indicators.length === 0)) {
                 delete chartToolsStore[key];
@@ -69,14 +72,57 @@ function getChartToolsRecord(chartKey, createIfMissing) {
 }
 
 // ---- Indicator definitions & math ----
-const CHART_INDICATORS = {
-    ema20: { label: 'EMA 20', color: '#f0b45c' },
-    ema50: { label: 'EMA 50', color: '#26b8cf' },
-    sma200: { label: 'SMA 200', color: '#9d6bff' },
-    bb: { label: 'Bollinger Bands (20, 2)', color: '#7f97a1' },
-    vwap: { label: 'VWAP', color: '#ff8a3d' },
-    rsi: { label: 'RSI (14)', color: '#9d6bff' }
+// Indicator types. Every indicator on the charts is an INSTANCE of one of
+// these with its own editable settings, e.g. { uid, type: 'ema', period: 21,
+// color: '#f0b45c', hidden: false }. `warmup`: also computed over the previous
+// trading day's bars so it's already warm at the open (VWAP resets every
+// session, so it deliberately isn't).
+const CHART_INDICATOR_TYPES = {
+    ema: { name: 'EMA', defaults: { period: 20 }, color: '#f0b45c', warmup: true },
+    sma: { name: 'SMA', defaults: { period: 200 }, color: '#9d6bff', warmup: true },
+    bb: { name: 'Bollinger Bands', defaults: { period: 20, mult: 2 }, color: '#7f97a1', warmup: true },
+    vwap: { name: 'VWAP', defaults: {}, color: '#ff8a3d', warmup: false },
+    rsi: { name: 'RSI', defaults: { period: 14 }, color: '#9d6bff', warmup: true }
 };
+
+// One-click presets in the Indicators menu. Each click adds a NEW instance, so
+// a type can be on the charts several times (e.g. EMA 9 + EMA 21). The ids are
+// also the old per-chart indicator ids, which the migration below maps from.
+const CHART_INDICATOR_PRESETS = {
+    ema20: { type: 'ema', period: 20, color: '#f0b45c' },
+    ema50: { type: 'ema', period: 50, color: '#26b8cf' },
+    sma200: { type: 'sma', period: 200, color: '#9d6bff' },
+    bb: { type: 'bb', period: 20, mult: 2, color: '#7f97a1' },
+    vwap: { type: 'vwap', color: '#ff8a3d' },
+    rsi: { type: 'rsi', period: 14, color: '#9d6bff' }
+};
+
+// Indicators are GLOBAL: one list shared by every chart (News page and Trade
+// View alike), kept in the drawings store under this reserved key - it can
+// never collide with a real "SYMBOL|YYYY-MM-DD" chart key.
+const CHART_GLOBAL_IND_KEY = 'global|indicators';
+
+function getGlobalIndicators() {
+    const stored = chartToolsStore[CHART_GLOBAL_IND_KEY];
+    if (Array.isArray(stored)) return stored;
+    // First run of the global system: carry over every indicator that used to
+    // be added per chart (union across all charts) so nothing disappears.
+    // Kept in memory; persisted together with the next save.
+    const seen = new Set();
+    const list = [];
+    Object.keys(chartToolsStore).forEach(key => {
+        const rec = chartToolsStore[key];
+        if (!rec || !Array.isArray(rec.indicators)) return;
+        rec.indicators.forEach(id => {
+            if (seen.has(id) || !CHART_INDICATOR_PRESETS[id]) return;
+            seen.add(id);
+            list.push(Object.assign({ uid: chartToolsId() }, CHART_INDICATOR_PRESETS[id]));
+        });
+        rec.indicators = []; // now lives in the global list
+    });
+    chartToolsStore[CHART_GLOBAL_IND_KEY] = list;
+    return list;
+}
 
 function chartToolsSMA(data, period) {
     const out = [];
@@ -191,8 +237,16 @@ function attachChartTools(opts) {
         data: [],
         activeTool: null,
         pending: null,          // first click of a two-point drawing
-        indicatorSeries: {},    // indicatorId -> [ISeriesApi...]
+        indicatorSeries: {},    // indicator uid -> [ISeriesApi...]
         priceLines: {},         // drawingId -> IPriceLine (hlines)
+        // Previous trading day's bars, so indicators are warm at the open.
+        // warmupLoader (optional, from the page) returns a Promise of them.
+        warmupLoader: opts.warmupLoader || null,
+        warmup: [],
+        warmupGen: 0,
+        warmupLoaded: false,
+        warmupPending: false,
+        editingIndUid: null,    // indicator whose settings editor is open
         disposed: false
     };
 
@@ -231,6 +285,30 @@ function attachChartTools(opts) {
     // Editing: drag handles/bodies of placed drawings (mousedown starts on
     // the SVG shapes, move/up tracked window-wide so fast drags don't slip)
     tools.svg.addEventListener('mousedown', e => beginChartDrawingDrag(tools, e));
+
+    // Long/Short positions reveal their price + R:R details on hover - track
+    // which position (if any) the pointer is over. Only position changes
+    // trigger a re-render.
+    const hoveredPositionId = target => {
+        const el = target && target.closest ? target.closest('[data-drawing-id]') : null;
+        if (!el) return null;
+        const id = el.getAttribute('data-drawing-id');
+        const d = getChartToolsRecord(tools.chartKey, false).drawings.find(x => x.id === id);
+        return d && (d.type === 'longpos' || d.type === 'shortpos') ? id : null;
+    };
+    tools.svg.addEventListener('mouseover', e => {
+        const id = hoveredPositionId(e.target);
+        if (id && id !== tools.hoverDrawingId) {
+            tools.hoverDrawingId = id;
+            renderChartDrawings(tools);
+        }
+    });
+    tools.svg.addEventListener('mouseout', e => {
+        if (!tools.hoverDrawingId) return;
+        if (hoveredPositionId(e.relatedTarget) === tools.hoverDrawingId) return;
+        tools.hoverDrawingId = null;
+        renderChartDrawings(tools);
+    });
     tools.windowMoveHandler = e => moveChartDrawingDrag(tools, e);
     tools.windowUpHandler = () => endChartDrawingDrag(tools);
     window.addEventListener('mousemove', tools.windowMoveHandler);
@@ -290,7 +368,14 @@ function attachChartTools(opts) {
 
     tools.setData = newData => {
         tools.data = newData || [];
+        // New bars (first load or a 1m/5m/15m switch): the warm-up has to be
+        // re-fetched for this interval, and anything still in flight is stale.
+        tools.warmup = [];
+        tools.warmupGen += 1;
+        tools.warmupLoaded = false;
+        tools.warmupPending = false;
         chartToolsRestore(tools);
+        ensureChartWarmup(tools);
     };
 
     tools.dispose = () => {
@@ -470,11 +555,8 @@ function chartToolsRestore(tools) {
     if (tools.disposed || tools.data.length === 0) return;
     const rec = getChartToolsRecord(tools.chartKey, false);
 
-    // Indicators: sync active set with the saved list
-    Object.keys(tools.indicatorSeries).forEach(id => {
-        if (!rec.indicators.includes(id)) removeChartIndicator(tools, id, false);
-    });
-    rec.indicators.forEach(id => applyChartIndicator(tools, id));
+    // Indicators: the global list (shared by every chart), synced onto this one
+    applyAllChartIndicators(tools);
 
     // Horizontal lines live as native price lines; recreate from scratch
     Object.keys(tools.priceLines).forEach(id => {
@@ -523,12 +605,42 @@ function buildPositionDrawing(tools, type, t, price) {
     };
 }
 
+// The vertical tools rail's expanded/minimized state is shared by EVERY chart
+// and remembered on this device: expand it once and every chart (now and
+// after a reload) shows the full rail; minimize it and they all tuck away.
+const CHART_TOOLBAR_STATE_KEY = 'bb_chart_toolbar_expanded';
+
+function chartToolbarRememberedExpanded() {
+    try { return localStorage.getItem(CHART_TOOLBAR_STATE_KEY) === '1'; } catch (e) { return false; }
+}
+
+function setChartToolbarCollapsed(tools, collapsed) {
+    const bar = tools.toolbar;
+    if (!bar) return;
+    bar.classList.toggle('collapsed', collapsed);
+    const btn = bar.querySelector('.chart-tools-collapse');
+    if (btn) {
+        btn.querySelector('i').className = `fa-solid ${collapsed ? 'fa-chevron-down' : 'fa-chevron-up'}`;
+        btn.title = collapsed ? 'Expand toolbar' : 'Minimize toolbar';
+    }
+    if (collapsed) {
+        if (tools.indMenu) tools.indMenu.style.display = 'none';
+        if (tools.treePanel) tools.treePanel.style.display = 'none';
+        setChartToolsActive(tools, null);
+    }
+}
+
+function setAllChartToolbarsCollapsed(collapsed) {
+    try { localStorage.setItem(CHART_TOOLBAR_STATE_KEY, collapsed ? '0' : '1'); } catch (e) { /* ignore */ }
+    liveChartTools.forEach(t => setChartToolbarCollapsed(t, collapsed));
+}
+
 function buildChartToolsToolbar(tools) {
     const bar = document.createElement('div');
-    // Starts minimized on every chart (down to just the grip + chevron) -
-    // drawing tools are opt-in, so there's no reason to eat vertical space
-    // on charts nobody's drawing on yet. One click expands it.
-    bar.className = 'chart-tools-bar collapsed';
+    // Minimized (just grip + chevron) until the user first expands it - the
+    // drawing tools are opt-in - then the remembered state applies everywhere.
+    const startCollapsed = !chartToolbarRememberedExpanded();
+    bar.className = `chart-tools-bar${startCollapsed ? ' collapsed' : ''}`;
 
     // Grip handle: drag to move the whole toolbar anywhere inside the chart,
     // so it never has to sit on top of the candles you care about.
@@ -576,18 +688,11 @@ function buildChartToolsToolbar(tools) {
     const collapseBtn = document.createElement('button');
     collapseBtn.type = 'button';
     collapseBtn.className = 'chart-tools-btn chart-tools-collapse';
-    collapseBtn.title = 'Expand toolbar';
-    collapseBtn.innerHTML = '<i class="fa-solid fa-chevron-down"></i>';
+    collapseBtn.title = startCollapsed ? 'Expand toolbar' : 'Minimize toolbar';
+    collapseBtn.innerHTML = `<i class="fa-solid ${startCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'}"></i>`;
     collapseBtn.addEventListener('click', e => {
         e.stopPropagation();
-        const collapsed = bar.classList.toggle('collapsed');
-        collapseBtn.querySelector('i').className = `fa-solid ${collapsed ? 'fa-chevron-down' : 'fa-chevron-up'}`;
-        collapseBtn.title = collapsed ? 'Expand toolbar' : 'Minimize toolbar';
-        if (collapsed) {
-            tools.indMenu.style.display = 'none';
-            tools.treePanel.style.display = 'none';
-            setChartToolsActive(tools, null);
-        }
+        setAllChartToolbarsCollapsed(!bar.classList.contains('collapsed'));
     });
     bar.appendChild(collapseBtn);
 
@@ -961,7 +1066,10 @@ function renderChartDrawingShape(tools, svg, d, opts) {
             }));
         });
 
-        if (!ghost) {
+        // Price pills + Risk/Reward card only while the position is hovered or
+        // selected (tap to select on touch screens) - otherwise just the clean
+        // green/red zones, so they don't clutter the candles.
+        if (!ghost && (selected || d.id === tools.hoverDrawingId)) {
             const long = d.type === 'longpos';
             const risk = Math.abs(d.entry - d.stop);
             const reward = Math.abs(d.target - d.entry);
@@ -1173,8 +1281,49 @@ function buildChartEditBar(tools) {
         <button type="button" class="ct-edit-btn" data-action="width" title="Line thickness (click to cycle)">2px</button>
         <button type="button" class="ct-edit-btn" data-action="style" title="Line style (click to cycle)"><span class="ct-style-preview"></span></button>
         <div class="chart-tools-sep ct-edit-sep"></div>
+        <div class="ct-pos-fields">
+            <label>Entry<input type="number" step="any" class="ct-pos-input" data-pos-field="entry"></label>
+            <label class="tp">TP<input type="number" step="any" class="ct-pos-input" data-pos-field="target"></label>
+            <label class="sl">SL<input type="number" step="any" class="ct-pos-input" data-pos-field="stop"></label>
+        </div>
+        <div class="chart-tools-sep ct-pos-sep"></div>
         <button type="button" class="ct-edit-btn" data-action="lock" title="Lock (prevents dragging)"><i class="fa-solid fa-lock-open"></i></button>
         <button type="button" class="ct-edit-btn ct-edit-del" data-action="delete" title="Delete drawing"><i class="fa-solid fa-trash"></i></button>`;
+
+    // Long/Short position: type exact Entry / TP / SL prices (applied on
+    // Enter or when the field loses focus). Same rules as dragging - a value
+    // that would flip the trade is rejected and the field reverts.
+    bar.addEventListener('change', e => {
+        const input = e.target.closest ? e.target.closest('.ct-pos-input') : null;
+        if (!input) return;
+        e.stopPropagation();
+        const rec = getChartToolsRecord(tools.chartKey, false);
+        const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+        if (!drawing || (drawing.type !== 'longpos' && drawing.type !== 'shortpos')) return;
+
+        const long = drawing.type === 'longpos';
+        const value = parseFloat(input.value);
+        const next = { entry: drawing.entry, target: drawing.target, stop: drawing.stop };
+        next[input.dataset.posField] = value;
+        const valid = isFinite(value) && value > 0 && (long
+            ? next.stop < next.entry && next.entry < next.target
+            : next.target < next.entry && next.entry < next.stop);
+        if (!valid) {
+            input.classList.add('invalid');
+            input.title = long ? 'Long: SL must be below Entry, TP above it' : 'Short: TP must be below Entry, SL above it';
+            setTimeout(() => input.classList.remove('invalid'), 1500);
+            updateChartEditBar(tools, true); // put the stored value back
+            return;
+        }
+        input.title = '';
+        drawing[input.dataset.posField] = value;
+        saveChartToolsStore();
+        renderChartDrawings(tools);
+    });
+    // Typing in the price fields must not reach the chart's Delete/Escape keys
+    bar.addEventListener('keydown', e => {
+        if (e.target.closest && e.target.closest('.ct-pos-input')) e.stopPropagation();
+    });
 
     bar.addEventListener('click', e => {
         e.stopPropagation();
@@ -1214,7 +1363,7 @@ function buildChartEditBar(tools) {
     tools.editBar = bar;
 }
 
-function updateChartEditBar(tools) {
+function updateChartEditBar(tools, forceFields) {
     const bar = tools.editBar;
     if (!bar) return;
 
@@ -1244,100 +1393,273 @@ function updateChartEditBar(tools) {
     const lockIcon = bar.querySelector('[data-action="lock"] i');
     lockIcon.className = `fa-solid ${drawing.locked ? 'fa-lock' : 'fa-lock-open'}`;
     bar.querySelector('[data-action="lock"]').classList.toggle('active', !!drawing.locked);
+
+    // Position price fields mirror the drawing (incl. live drags), but never
+    // overwrite a field the user is in the middle of typing into.
+    if (drawing.type === 'longpos' || drawing.type === 'shortpos') {
+        const decimalsFor = v => (v < 10 ? 5 : v < 1000 ? 3 : 2);
+        bar.querySelectorAll('.ct-pos-input').forEach(input => {
+            if (!forceFields && document.activeElement === input) return;
+            const v = drawing[input.dataset.posField];
+            input.value = typeof v === 'number' ? v.toFixed(decimalsFor(v)) : '';
+        });
+    }
 }
 
 // ---- Indicators ----
-function applyChartIndicator(tools, id) {
-    const def = CHART_INDICATORS[id];
+function chartIndicatorLabel(ind) {
+    const def = CHART_INDICATOR_TYPES[ind.type];
+    if (!def) return ind.type;
+    if (ind.type === 'bb') return `${def.name} (${ind.period}, ${ind.mult})`;
+    if (ind.type === 'vwap') return def.name;
+    return `${def.name} ${ind.period}`;
+}
+
+function chartIndicatorColor(ind) {
+    return ind.color || (CHART_INDICATOR_TYPES[ind.type] || {}).color || '#888888';
+}
+
+// Bars an indicator is computed over: previous trading day + this day when the
+// warm-up has loaded and the type benefits from it, otherwise just this day.
+function chartIndicatorBars(tools, ind) {
+    const def = CHART_INDICATOR_TYPES[ind.type];
+    return (def && def.warmup && tools.warmup.length > 0) ? tools.warmup.concat(tools.data) : tools.data;
+}
+
+// Drops the warm-up portion so only this day's points are plotted.
+function chartIndicatorTrim(points, firstTime) {
+    return points.filter(p => p.time >= firstTime);
+}
+
+function applyChartIndicator(tools, ind) {
+    const def = CHART_INDICATOR_TYPES[ind.type];
     if (!def || tools.data.length === 0) return;
 
-    const lineOpts = color => ({
+    const color = chartIndicatorColor(ind);
+    const lineOpts = {
         color,
         lineWidth: 1,
         priceLineVisible: false,
         lastValueVisible: false,
-        crosshairMarkerVisible: false
-    });
+        crosshairMarkerVisible: false,
+        visible: !ind.hidden
+    };
 
-    // Create the series once; afterwards only refresh data
-    if (!tools.indicatorSeries[id]) {
+    // Create the series once; afterwards only restyle (edited color /
+    // show-hide) and refresh the data
+    if (!tools.indicatorSeries[ind.uid]) {
         const seriesList = [];
-        if (id === 'bb') {
-            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, lineOpts(def.color)));
-            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, lineOpts(def.color)));
-            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts(def.color), lineStyle: LightweightCharts.LineStyle.Dashed }));
-        } else if (id === 'rsi') {
-            const rsiSeries = tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts(def.color), lineWidth: 2 }, 1);
+        if (ind.type === 'bb') {
+            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, lineOpts));
+            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, lineOpts));
+            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts, lineStyle: LightweightCharts.LineStyle.Dashed }));
+        } else if (ind.type === 'rsi') {
+            const rsiSeries = tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts, lineWidth: 2 }, 1);
             rsiSeries.createPriceLine({ price: 70, color: 'rgba(246,70,93,0.55)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
             rsiSeries.createPriceLine({ price: 30, color: 'rgba(46,189,133,0.55)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: false, title: '' });
             seriesList.push(rsiSeries);
             const panes = tools.chart.panes ? tools.chart.panes() : [];
             if (panes[1] && panes[1].setHeight) panes[1].setHeight(110);
         } else {
-            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts(def.color), lineWidth: 2 }));
+            seriesList.push(tools.chart.addSeries(LightweightCharts.LineSeries, { ...lineOpts, lineWidth: 2 }));
         }
-        tools.indicatorSeries[id] = seriesList;
-    }
-
-    const seriesList = tools.indicatorSeries[id];
-    if (id === 'ema20') seriesList[0].setData(chartToolsEMA(tools.data, 20));
-    else if (id === 'ema50') seriesList[0].setData(chartToolsEMA(tools.data, 50));
-    else if (id === 'sma200') seriesList[0].setData(chartToolsSMA(tools.data, 200));
-    else if (id === 'vwap') seriesList[0].setData(chartToolsVWAP(tools.data));
-    else if (id === 'rsi') seriesList[0].setData(chartToolsRSI(tools.data, 14));
-    else if (id === 'bb') {
-        const bands = chartToolsBB(tools.data, 20, 2);
-        seriesList[0].setData(bands.upper);
-        seriesList[1].setData(bands.lower);
-        seriesList[2].setData(bands.middle);
-    }
-}
-
-function removeChartIndicator(tools, id, updateRecord) {
-    const seriesList = tools.indicatorSeries[id];
-    if (seriesList) {
-        seriesList.forEach(s => { try { tools.chart.removeSeries(s); } catch (e) { /* already gone */ } });
-        delete tools.indicatorSeries[id];
-    }
-    if (updateRecord) {
-        const rec = getChartToolsRecord(tools.chartKey, true);
-        rec.indicators = rec.indicators.filter(i => i !== id);
-        saveChartToolsStore();
-    }
-}
-
-function toggleChartIndicator(tools, id) {
-    const rec = getChartToolsRecord(tools.chartKey, true);
-    if (rec.indicators.includes(id)) {
-        removeChartIndicator(tools, id, true);
+        tools.indicatorSeries[ind.uid] = seriesList;
     } else {
-        rec.indicators.push(id);
-        applyChartIndicator(tools, id);
-        saveChartToolsStore();
+        tools.indicatorSeries[ind.uid].forEach(s => s.applyOptions({ color, visible: !ind.hidden }));
     }
-    renderChartIndMenu(tools);
-    renderChartObjectTree(tools);
+
+    const seriesList = tools.indicatorSeries[ind.uid];
+    const bars = chartIndicatorBars(tools, ind);
+    const firstT = tools.data[0].time;
+    const period = Math.max(1, parseInt(ind.period, 10) || def.defaults.period || 1);
+    if (ind.type === 'ema') seriesList[0].setData(chartIndicatorTrim(chartToolsEMA(bars, period), firstT));
+    else if (ind.type === 'sma') seriesList[0].setData(chartIndicatorTrim(chartToolsSMA(bars, period), firstT));
+    else if (ind.type === 'vwap') seriesList[0].setData(chartToolsVWAP(tools.data));
+    else if (ind.type === 'rsi') seriesList[0].setData(chartIndicatorTrim(chartToolsRSI(bars, period), firstT));
+    else if (ind.type === 'bb') {
+        const mult = parseFloat(ind.mult) > 0 ? parseFloat(ind.mult) : 2;
+        const bands = chartToolsBB(bars, period, mult);
+        seriesList[0].setData(chartIndicatorTrim(bands.upper, firstT));
+        seriesList[1].setData(chartIndicatorTrim(bands.lower, firstT));
+        seriesList[2].setData(chartIndicatorTrim(bands.middle, firstT));
+    }
+}
+
+function removeChartIndicatorSeries(tools, uid) {
+    const seriesList = tools.indicatorSeries[uid];
+    if (!seriesList) return;
+    seriesList.forEach(s => { try { tools.chart.removeSeries(s); } catch (e) { /* already gone */ } });
+    delete tools.indicatorSeries[uid];
+}
+
+// Syncs one chart with the global list: drops series of removed indicators,
+// (re)applies the rest.
+function applyAllChartIndicators(tools) {
+    if (tools.disposed) return;
+    const list = getGlobalIndicators();
+    const live = new Set(list.map(ind => ind.uid));
+    Object.keys(tools.indicatorSeries).forEach(uid => {
+        if (!live.has(uid)) removeChartIndicatorSeries(tools, uid);
+    });
+    if (tools.data.length === 0) return;
+    list.forEach(ind => applyChartIndicator(tools, ind));
+}
+
+function globalIndicatorsNeedWarmup() {
+    return getGlobalIndicators().some(ind => !ind.hidden && (CHART_INDICATOR_TYPES[ind.type] || {}).warmup);
+}
+
+// Lazily fetches the previous trading day's bars (only when an indicator
+// actually needs them), then recomputes this chart's indicators over them.
+function ensureChartWarmup(tools) {
+    if (!tools.warmupLoader || tools.disposed || tools.data.length === 0) return;
+    if (tools.warmupLoaded || tools.warmupPending || !globalIndicatorsNeedWarmup()) return;
+    const gen = tools.warmupGen;
+    tools.warmupPending = true;
+    Promise.resolve()
+        .then(() => tools.warmupLoader())
+        .then(bars => {
+            if (tools.disposed || gen !== tools.warmupGen) return; // newer bars replaced these
+            const firstT = tools.data.length > 0 ? tools.data[0].time : Infinity;
+            tools.warmup = (bars || []).filter(b => b.time < firstT);
+            tools.warmupLoaded = true;
+            tools.warmupPending = false;
+            applyAllChartIndicators(tools);
+        })
+        .catch(() => {
+            if (gen !== tools.warmupGen) return;
+            tools.warmupLoaded = true; // no previous day available - stays "cold"
+            tools.warmupPending = false;
+        });
+}
+
+// Any change to the global list re-syncs EVERY open chart (that's what makes
+// an indicator added or edited on one chart appear on all of them).
+function onGlobalIndicatorsChanged() {
+    liveChartTools.forEach(t => {
+        applyAllChartIndicators(t);
+        ensureChartWarmup(t);
+        renderChartIndMenu(t);
+        renderChartObjectTree(t);
+    });
+    saveChartToolsStore();
+}
+
+function addGlobalIndicator(presetId) {
+    const preset = CHART_INDICATOR_PRESETS[presetId];
+    if (!preset) return;
+    getGlobalIndicators().push(Object.assign({ uid: chartToolsId() }, preset));
+    onGlobalIndicatorsChanged();
+}
+
+function removeGlobalIndicator(uid) {
+    const list = getGlobalIndicators();
+    const idx = list.findIndex(ind => ind.uid === uid);
+    if (idx >= 0) list.splice(idx, 1);
+    onGlobalIndicatorsChanged();
+}
+
+function updateGlobalIndicator(uid, changes) {
+    const ind = getGlobalIndicators().find(i => i.uid === uid);
+    if (!ind) return;
+    Object.assign(ind, changes);
+    onGlobalIndicatorsChanged();
 }
 
 function renderChartIndMenu(tools) {
-    if (tools.indMenu.style.display === 'none') return;
-    const rec = getChartToolsRecord(tools.chartKey, false);
-    tools.indMenu.innerHTML = '<div class="chart-tools-panel-title">INDICATORS</div>' +
-        Object.keys(CHART_INDICATORS).map(id => {
-            const active = rec.indicators.includes(id);
-            return `<div class="chart-tools-row${active ? ' active' : ''}" data-ind="${id}">
-                <span class="chart-tools-row-dot" style="background:${CHART_INDICATORS[id].color}"></span>
-                <span class="chart-tools-row-label">${CHART_INDICATORS[id].label}</span>
-                <i class="fa-solid ${active ? 'fa-check' : 'fa-plus'}"></i>
-            </div>`;
+    if (!tools.indMenu || tools.indMenu.style.display === 'none') return;
+    const list = getGlobalIndicators();
+
+    const activeHtml = list.length === 0
+        ? '<div class="chart-tools-empty">None yet - add one below</div>'
+        : list.map(ind => {
+            const def = CHART_INDICATOR_TYPES[ind.type] || { defaults: {} };
+            const hasPeriod = def.defaults.period !== undefined;
+            const editor = tools.editingIndUid !== ind.uid ? '' : `
+                <div class="ct-ind-editor" data-ind-editor="${ind.uid}">
+                    ${hasPeriod ? `<label>Period<input type="number" min="1" max="500" step="1" class="ct-ind-period" value="${ind.period}"></label>` : ''}
+                    ${ind.type === 'bb' ? `<label>Std dev<input type="number" min="0.5" max="5" step="0.5" class="ct-ind-mult" value="${ind.mult}"></label>` : ''}
+                    <label>Color<input type="color" class="ct-ind-color" value="${chartIndicatorColor(ind)}"></label>
+                    <div class="ct-ind-editor-actions">
+                        <button type="button" class="ct-ind-save">Apply</button>
+                        <button type="button" class="ct-ind-cancel">Cancel</button>
+                    </div>
+                </div>`;
+            return `
+                <div class="chart-tools-row ct-ind-row${ind.hidden ? ' is-hidden' : ''}" data-ind-uid="${ind.uid}">
+                    <span class="chart-tools-row-dot" style="background:${chartIndicatorColor(ind)}"></span>
+                    <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}</span>
+                    <button type="button" class="ct-ind-btn" data-act="toggle" title="${ind.hidden ? 'Show' : 'Hide'}"><i class="fa-solid ${ind.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i></button>
+                    <button type="button" class="ct-ind-btn" data-act="edit" title="Edit settings"><i class="fa-solid fa-gear"></i></button>
+                    <button type="button" class="ct-ind-btn" data-act="remove" title="Remove from all charts"><i class="fa-solid fa-trash"></i></button>
+                </div>${editor}`;
         }).join('');
 
-    tools.indMenu.querySelectorAll('[data-ind]').forEach(row => {
+    const presetsHtml = Object.keys(CHART_INDICATOR_PRESETS).map(id => {
+        const preset = CHART_INDICATOR_PRESETS[id];
+        return `<div class="chart-tools-row" data-ind-add="${id}">
+                <span class="chart-tools-row-dot" style="background:${preset.color}"></span>
+                <span class="chart-tools-row-label">${chartIndicatorLabel(preset)}</span>
+                <i class="fa-solid fa-plus"></i>
+            </div>`;
+    }).join('');
+
+    tools.indMenu.innerHTML = `
+        <div class="chart-tools-panel-title">INDICATORS <span class="ct-ind-scope">applies to all charts</span></div>
+        <div class="chart-tools-section">On your charts</div>
+        ${activeHtml}
+        <div class="chart-tools-section">Add</div>
+        ${presetsHtml}`;
+
+    tools.indMenu.querySelectorAll('[data-ind-add]').forEach(row => {
         row.addEventListener('click', e => {
             e.stopPropagation();
-            toggleChartIndicator(tools, row.dataset.ind);
+            addGlobalIndicator(row.dataset.indAdd);
         });
     });
+
+    tools.indMenu.querySelectorAll('[data-ind-uid] .ct-ind-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const uid = btn.closest('[data-ind-uid]').dataset.indUid;
+            const act = btn.dataset.act;
+            if (act === 'remove') {
+                if (tools.editingIndUid === uid) tools.editingIndUid = null;
+                removeGlobalIndicator(uid);
+            } else if (act === 'toggle') {
+                const ind = getGlobalIndicators().find(i => i.uid === uid);
+                if (ind) updateGlobalIndicator(uid, { hidden: !ind.hidden });
+            } else if (act === 'edit') {
+                tools.editingIndUid = tools.editingIndUid === uid ? null : uid;
+                renderChartIndMenu(tools);
+            }
+        });
+    });
+
+    const editor = tools.indMenu.querySelector('[data-ind-editor]');
+    if (editor) {
+        editor.addEventListener('click', e => e.stopPropagation());
+        // Typing in the editor must not reach the chart's Delete/Escape shortcuts
+        editor.addEventListener('keydown', e => e.stopPropagation());
+        editor.querySelector('.ct-ind-save').addEventListener('click', e => {
+            e.stopPropagation();
+            const changes = {};
+            const periodEl = editor.querySelector('.ct-ind-period');
+            const multEl = editor.querySelector('.ct-ind-mult');
+            const colorEl = editor.querySelector('.ct-ind-color');
+            if (periodEl) changes.period = Math.min(500, Math.max(1, parseInt(periodEl.value, 10) || 1));
+            if (multEl) changes.mult = Math.min(5, Math.max(0.5, parseFloat(multEl.value) || 2));
+            if (colorEl) changes.color = colorEl.value;
+            const uid = editor.dataset.indEditor;
+            tools.editingIndUid = null;
+            updateGlobalIndicator(uid, changes);
+        });
+        editor.querySelector('.ct-ind-cancel').addEventListener('click', e => {
+            e.stopPropagation();
+            tools.editingIndUid = null;
+            renderChartIndMenu(tools);
+        });
+    }
 }
 
 // ---- Object tree ----
@@ -1381,23 +1703,24 @@ function renderChartObjectTree(tools) {
                 <button type="button" class="chart-tools-row-del" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
 
-    const indicatorsHtml = rec.indicators.length === 0
+    const indList = getGlobalIndicators();
+    const indicatorsHtml = indList.length === 0
         ? '<div class="chart-tools-empty">No indicators yet</div>'
-        : rec.indicators.map(id => `
-            <div class="chart-tools-row" data-ind-tree="${id}">
-                <span class="chart-tools-row-dot" style="background:${(CHART_INDICATORS[id] || {}).color || '#888'}"></span>
-                <span class="chart-tools-row-label">${(CHART_INDICATORS[id] || {}).label || id}</span>
-                <button type="button" class="chart-tools-row-del" title="Remove"><i class="fa-solid fa-trash"></i></button>
+        : indList.map(ind => `
+            <div class="chart-tools-row" data-ind-tree="${ind.uid}">
+                <span class="chart-tools-row-dot" style="background:${chartIndicatorColor(ind)}"></span>
+                <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}${ind.hidden ? ' (hidden)' : ''}</span>
+                <button type="button" class="chart-tools-row-del" title="Remove from all charts"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
 
     tools.treePanel.innerHTML = `
         <div class="chart-tools-panel-title">OBJECT TREE</div>
-        <div class="chart-tools-section">Drawings</div>
+        <div class="chart-tools-section">Drawings (this chart)</div>
         ${drawingsHtml}
-        <div class="chart-tools-section">Indicators</div>
+        <div class="chart-tools-section">Indicators (all charts)</div>
         ${indicatorsHtml}
-        ${(rec.drawings.length > 0 || rec.indicators.length > 0)
-            ? '<button type="button" class="chart-tools-clear-all"><i class="fa-solid fa-trash"></i> Clear all</button>'
+        ${rec.drawings.length > 0
+            ? '<button type="button" class="chart-tools-clear-all"><i class="fa-solid fa-trash"></i> Clear all drawings</button>'
             : ''}`;
 
     tools.treePanel.querySelectorAll('[data-drawing] .chart-tools-row-del').forEach(btn => {
@@ -1409,8 +1732,7 @@ function renderChartObjectTree(tools) {
     tools.treePanel.querySelectorAll('[data-ind-tree] .chart-tools-row-del').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
-            removeChartIndicator(tools, btn.closest('[data-ind-tree]').dataset.indTree, true);
-            renderChartObjectTree(tools);
+            removeGlobalIndicator(btn.closest('[data-ind-tree]').dataset.indTree);
         });
     });
     const clearBtn = tools.treePanel.querySelector('.chart-tools-clear-all');
@@ -1444,10 +1766,9 @@ function clearAllChartObjects(tools) {
         try { tools.series.removePriceLine(tools.priceLines[id]); } catch (e) { /* gone */ }
         delete tools.priceLines[id];
     });
-    rec.indicators.slice().forEach(id => removeChartIndicator(tools, id, false));
-
+    // Indicators are global (shared by every chart) and managed from the
+    // Indicators menu - clearing one chart's drawings leaves them alone.
     rec.drawings = [];
-    rec.indicators = [];
 
     saveChartToolsStore();
     renderChartDrawings(tools);

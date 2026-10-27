@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=124">
+    <link rel="stylesheet" href="styles.css?v=128">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -730,6 +730,9 @@
                             <i class="fa-solid fa-check-double"></i> Selected
                             <span class="chart-selected-count-badge" id="chart-selected-count-badge" style="display: none;">0</span>
                         </button>
+                        <button class="news-tab" id="chart-notes-toggle-btn" onclick="toggleChartNotesPanel()" title="Show or hide your notes for this chart symbol">
+                            <i class="fa-solid fa-note-sticky"></i> Notes
+                        </button>
                         <button class="news-tab chart-reset-filters-btn" id="chart-reset-filters-btn" onclick="resetChartToolbarFilters()" title="Reset all chart filters back to default">
                             <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
                         </button>
@@ -741,6 +744,15 @@
 
             <!-- News Content Workspace Container -->
             <div class="news-content-area" style="margin-top: 15px; width: 100%;">
+                <!-- Chart notes: one scratchpad per chart symbol, toggled from the
+                     toolbar "Notes" button (open/closed state is remembered) -->
+                <div class="chart-notes-panel" id="chart-notes-panel" style="display: none;">
+                    <div class="chart-notes-head">
+                        <span class="chart-notes-title"><i class="fa-solid fa-note-sticky"></i> <span id="chart-notes-symbol">XAUUSD</span> notes</span>
+                        <span class="chart-notes-status" id="chart-notes-status"></span>
+                    </div>
+                    <textarea id="chart-notes-input" class="chart-notes-input" rows="3" placeholder="Notes for this chart - key levels, bias, what to watch for..." oninput="onChartNotesInput()"></textarea>
+                </div>
                 <section class="cpi-panel" id="chart-blocks-container"></section>
 
                 <!-- Template cloned once per CSV file found in /data, newest date first -->
@@ -1007,6 +1019,36 @@
                             </thead>
                             <tbody id="settings-tag-table-body"></tbody>
                         </table>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Bulk Tag &amp; Playbook by Date</h3>
+                        <p class="settings-share-desc">
+                            Select every trade in a custom date range, then add a tag and/or set a playbook on all
+                            of them at once. Tags are added to each trade's existing tags; the playbook replaces.
+                            It counts as one change in Import Trades &rarr; Trade Change History, so it can be reverted.
+                        </p>
+                        <div class="bulk-date-grid">
+                            <div class="modal-field">
+                                <label class="modal-label">From</label>
+                                <input type="date" id="bulk-date-from" class="modal-input" onchange="updateBulkDateMatchCount()">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label">To</label>
+                                <input type="date" id="bulk-date-to" class="modal-input" onchange="updateBulkDateMatchCount()">
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label">Add tag</label>
+                                <select id="bulk-date-tag" class="modal-input"></select>
+                            </div>
+                            <div class="modal-field">
+                                <label class="modal-label">Set playbook</label>
+                                <select id="bulk-date-playbook" class="modal-input"></select>
+                            </div>
+                        </div>
+                        <p class="settings-field-hint" id="bulk-date-match-count">Choose a From and To date to see how many trades it covers.</p>
+                        <button class="btn-action btn-blue settings-save-btn" onclick="applyBulkTagByDate()"><i class="fa-solid fa-tags"></i> Apply to trades in range</button>
+                        <div id="bulk-date-status" class="settings-status"></div>
                     </div>
 
                     <!-- Instrument Settings: fixes P&L math for lot-based instruments (forex/CFDs),
@@ -1124,6 +1166,17 @@
                             <i class="fa-solid fa-rotate-left"></i> Undo Last Import
                         </button>
                         <button class="btn-action btn-danger settings-save-btn" onclick="removeCsvImportedTrades()">Remove Imported Trades</button>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Trade Change History</h3>
+                        <p class="settings-share-desc">
+                            The last 10 changes to this account's trades - edits, deletions, bulk tags and
+                            imports (a whole CSV import counts as one change). Revert to how your trades were
+                            before any of them; the revert itself is added here, so it can be undone too.
+                            History is kept in this browser.
+                        </p>
+                        <div id="trade-history-list" class="trade-history-list"></div>
                     </div>
 
                     <!-- Password & Security -->
@@ -1236,7 +1289,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-table-list"></i>
                         <h3>Trade Log</h3>
-                        <p>Click any column header to sort, including Confidence. Click a row to view full trade details. Use the <strong>⋯</strong> menu on a row to mark it as a wash or delete it.</p>
+                        <p>Click any column header to sort, including Confidence. Click a row to view full trade details. Use the <strong>⋯</strong> menu on a row to mark it as a wash or delete it. A grey tag icon on a row means it has tags, a gold book icon means it has a playbook - hover either to see which.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-list-check"></i>
+                        <h3>Bulk Tag &amp; Playbook</h3>
+                        <p>Click <strong>Select</strong> above the trade log, tick trades (or the header box for all trades in view), then use the bar at the bottom to add a tag and/or set a playbook on every ticked trade at once. Tags are added to existing ones; playbook replaces. To tag a whole date range instead, use Settings &rarr; Tags &rarr; Bulk Tag &amp; Playbook by Date.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-sack-dollar"></i>
@@ -1336,7 +1394,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-candlestick"></i>
                         <h3>Trade View Chart</h3>
-                        <p>Opening a trade shows that day's real candlestick chart (1m/5m/15m) with your Entry/Exit marked - available for any symbol with chart data on the News page. Chart drawings you make here are shared with the News page's chart for the same day.</p>
+                        <p>Opening a trade shows that day's real candlestick chart (1m/5m/15m) with your Entry/Exit marked - it opens on 1m when that data exists - available for any symbol with chart data on the News page. Chart drawings you make here are shared with the News page's chart for the same day.</p>
                     </div>
                 </div>
             </section>
@@ -1399,6 +1457,11 @@
                         <p>Uploaded the wrong file? "Undo Last Import" (Settings → Import Trades) swaps back to the batch your latest upload - or a "Remove Imported Trades" click - replaced. It keeps one level of history, so undoing twice toggles between the two batches.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <h3>Trade Change History</h3>
+                        <p>Settings → Import Trades lists your last 10 changes to the account's trades with timestamps - edits, deletions, bulk tags and imports (a whole CSV import counts as one change). <strong>Revert</strong> restores your trades to how they were before that change (undoing any newer ones too); the revert is added to the list, so it can be undone as well. History is kept in this browser.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-file-arrow-down"></i>
                         <h3>Exporting</h3>
                         <p>Settings → Account Settings → "Export as CSV" downloads your full trade history - it respects whatever filter is currently active on the Dashboard.</p>
@@ -1421,7 +1484,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-eye"></i>
                         <h3>Spotting Tags</h3>
-                        <p>A small tag icon appears next to a row's <strong>⋯</strong> menu when it has tags - hover it to see which ones.</p>
+                        <p>A small tag icon appears next to a row's <strong>⋯</strong> menu when it has tags - hover it to see which ones. A gold book icon beside it means the trade has a playbook.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <h3>Bulk Tag by Date</h3>
+                        <p>Settings → Tags → <strong>Bulk Tag &amp; Playbook by Date</strong>: pick a From/To date, then add a tag and/or set a playbook on every trade in that range at once - it shows how many trades the range covers first. Revertible from the Trade Change History.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-list-check"></i>
@@ -1451,12 +1519,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-shuffle"></i>
                         <h3>Multiple Accounts</h3>
-                        <p>Use the Primary Account dropdown at the top of the sidebar to switch between accounts - the Dashboard, Stats, Calendar and balance all follow whichever is active.</p>
+                        <p>Use the Primary Account dropdown at the top of the sidebar to switch between accounts - the Dashboard, Stats, Calendar and balance all follow whichever is active. The app remembers the last account you used and reopens on it.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-money-bill-transfer"></i>
                         <h3>Deposits &amp; Withdrawals</h3>
-                        <p>Click the pencil next to Account Balance to add, edit or remove transactions - they're combined with trade P&amp;L to compute your balance.</p>
+                        <p>Click the pencil next to Account Balance to add, edit or remove transactions - they're combined with trade P&amp;L to compute your balance. Each one has an optional <strong>Time</strong>, used to order a same-day top-up correctly against that day's trades for the Times Blown stat.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-plus"></i>
@@ -1516,7 +1584,22 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-calendar-week"></i>
                         <h3>Weekly Summary</h3>
-                        <p>The right-hand rail totals each visible week's P&amp;L, return % and win/loss count at a glance, labeled with its date range (e.g. "11 - 17 May"). On narrow screens it moves below the month grid.</p>
+                        <p>The right-hand rail totals each visible week's P&amp;L, return % and win/loss count at a glance, labeled with its date range (e.g. "11 - 17 May"). <strong>Click a week card to open that exact week in the Weekly Review.</strong> On narrow screens it moves below the month grid.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-chart-column"></i>
+                        <h3>Monthly Summary</h3>
+                        <p>A strip below the calendar sums the month shown: net P&amp;L, number of trades, win rate, wins/losses and green vs red days.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-bookmark"></i>
+                        <h3>Daily Notes</h3>
+                        <p>Each day has a bookmark in its top-right corner - gold when that day has a Day Note (click to open it), faint on hover to add the first note for that day. Saved notes show up immediately.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <h3>Today</h3>
+                        <p>Today's date is outlined in blue so you can find your place in the month at a glance.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-umbrella-beach"></i>
@@ -1587,12 +1670,17 @@
                     <i class="fa-solid fa-dumbbell"></i>
                     <h2>Coach</h2>
                 </div>
-                <p class="help-section-note">Your personal trainer for trading: it studies ALL of the active account's trades (at least 10 closed trades needed) and turns them into strengths, weak points and a training plan.</p>
+                <p class="help-section-note">Your personal trainer for trading: it studies the active account's trades (at least 10 closed trades needed) and turns them into strengths, weak points and a training plan. Coach insights are automated and for journaling/education only - not financial advice.</p>
                 <div class="help-grid">
+                    <div class="help-tile">
+                        <i class="fa-solid fa-calendar-week"></i>
+                        <h3>Whole Account / Selected Period</h3>
+                        <p>The switch at the top of the Coach page picks what it studies: your whole account, or just a date range. In <strong>Selected period</strong> a date bar appears (Today, This week, Last month, Custom...) - it's the same range as the Dashboard and Stats date buttons.</p>
+                    </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-heart-pulse"></i>
                         <h3>Trader Fitness</h3>
-                        <p>A 0-100 headline score: 65% performance (win rate, profit factor, drawdowns, consistency) + 35% discipline (stop-loss usage, tagging rate, guardrails set). Discipline counts because it's what keeps performance repeatable.</p>
+                        <p>A 0-100 headline score: 65% performance (win rate, profit factor, drawdowns, consistency) + 35% discipline (stop-loss usage, tagging rate, guardrails set). A trade counts as tagged if it has a tag <strong>or</strong> a playbook, so playbook users aren't penalized. Discipline counts because it's what keeps performance repeatable.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-magnifying-glass-chart"></i>
@@ -1626,9 +1714,19 @@
                 <p class="help-section-note">Everything on the Community page is opt-in and privacy-first: shares only ever contain symbols, percentages, R-multiples and grades - <strong>dollar amounts and account sizes are never shared</strong>. You need to be logged in to view or post.</p>
                 <div class="help-grid">
                     <div class="help-tile">
+                        <i class="fa-solid fa-ranking-star"></i>
+                        <h3>Weekly Leaderboard</h3>
+                        <p>The first tab on the Community page. Strictly opt-in: hit <strong>Publish my week</strong> to appear on the board, re-publish any time to refresh your numbers, or leave with one click. Traders are ranked by <strong>win rate weighted by number of trades</strong> - a perfect record on 2 trades can't outrank a strong win rate over 50. Switch between this week and last week.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-share-from-square"></i>
+                        <h3>Share My Stats</h3>
+                        <p>Once you're on the board, <strong>Share my stats</strong> posts your rank, win rate and trade count to WhatsApp, X, LinkedIn, Facebook or email - or use <strong>More</strong> for your device's share sheet (any other app), or <strong>Copy text</strong>. Never includes dollar amounts.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-table-cells-large"></i>
                         <h3>Trade Wall</h3>
-                        <p>A public feed of trades and week reviews shared by other traders. Trade cards show the symbol, direction, win/loss, R-multiple and return % - week cards show the grade and weekly stats.</p>
+                        <p>A public feed of trades and week reviews shared by other traders. Trade cards show the symbol, direction, win/loss, R-multiple, return % and hold time, plus the trade's playbook, tags and confidence (on trades shared from now on) - week cards show the grade and weekly stats.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-share-nodes"></i>
@@ -1644,11 +1742,6 @@
                         <i class="fa-solid fa-trash"></i>
                         <h3>Your Cards</h3>
                         <p>Cards you posted show a "you" chip and a delete button. Removing a share deletes it for everyone but never touches your actual journal data.</p>
-                    </div>
-                    <div class="help-tile">
-                        <i class="fa-solid fa-ranking-star"></i>
-                        <h3>Weekly Leaderboard</h3>
-                        <p>Strictly opt-in: hit <strong>Publish my week</strong> to appear on the board, re-publish any time to refresh your numbers, or leave with one click. Rank by Total R, Win Rate or Profit Factor, for this week or last week.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-crown"></i>
@@ -1693,7 +1786,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-table-cells"></i>
                         <h3>P&amp;L Heatmap</h3>
-                        <p>A day-of-week &times; hour grid showing where your money is actually made and lost - green cells profit, red cells bleed, intensity scaled to size. Hover any cell for its trades, win rate and P&amp;L; <strong>click it to list those exact trades</strong> and jump into any of them.</p>
+                        <p>A day-of-week &times; hour grid showing where your money is actually made and lost - green cells profit, red cells bleed, intensity scaled to size. Hover any cell for its trades, win rate and P&amp;L; <strong>click it to list those exact trades</strong> and jump into any of them. Below the grid, insight cards call out your best and toughest slot, your most active slot and your best win-rate slot (3+ trades).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-hashtag"></i>
@@ -1703,7 +1796,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-explosion"></i>
                         <h3>Times Blown</h3>
-                        <p>Counts how many times a losing trade wiped the account - the running balance (deposits, withdrawals and trade P&amp;L in date order) hitting $0 or below. Depositing back above $0 re-arms it. Always measured on the whole account, ignoring filters.</p>
+                        <p>Counts how many times a losing trade wiped the account - the running balance (deposits, withdrawals and trade P&amp;L, in time order) hitting $0 or below. Only a deposit that tops the balance back above $0 re-arms it, so a withdrawal of your own money, or trades hovering around $0, never inflate the count. Give a deposit/withdrawal an optional <strong>time</strong> (account pencil icon) so a same-day top-up is ordered correctly against that day's trades. Always measured on the whole account, ignoring filters.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-table"></i>
@@ -1713,7 +1806,12 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-arrows-up-down"></i>
                         <h3>MAE / MFE</h3>
-                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade - plus an MFE:MAE edge ratio (above 1x = the market moves in your favor more than against you). Works for any symbol with chart data (XAUUSD, BTCUSD, US500, UKOIL and the majors); same-day trades only.</p>
+                        <p>Shows your average Maximum Adverse/Favorable Excursion - the worst drawdown and best unrealized profit reached during a trade - plus an MFE:MAE edge ratio (above 1x = the market moves in your favor more than against you), with a plain-English summary underneath. Works for any symbol with chart data (XAUUSD, BTCUSD, US500, UKOIL and the majors); same-day trades only.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                        <h3>Stay Longer in Trades?</h3>
+                        <p>Inside the MAE / MFE panel: compares what your winners actually banked with the best profit they reached. Capturing under ~55% of that move reads <strong>Yes</strong> (you're leaving money on the table - think trailing stops or wider targets), 55-85% <strong>Roughly right</strong>, above 85% <strong>No</strong>. Needs 3+ winners with chart data.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-wave-square"></i>
@@ -1744,17 +1842,32 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-circle-dot"></i>
                         <h3>Economic Events</h3>
-                        <p>Calendar events for every currency (with Actual/Forecast/Previous values and a colored importance dot) appear above each day's chart - use the <strong>Currency</strong> button to narrow it down (e.g. USD only). They're hidden by default - the <strong>None</strong> chip is on until you pick High, Medium or Low to show those tiers.</p>
+                        <p>Calendar events for every currency - USD, EUR, GBP, JPY, CHF, AUD, CAD, NZD and CNY (China) - with Actual/Forecast/Previous values and a colored importance dot appear above each day's chart. Use the <strong>Currency</strong> button to narrow it down (e.g. USD only). They're hidden by default - the <strong>None</strong> chip is on until you pick High, Medium or Low to show those tiers.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-circle-question"></i>
+                        <h3>Beat / Miss Hint</h3>
+                        <p>The <strong>?</strong> next to an event's name: hover it to see whether the Actual came in higher or lower than Forecast, what that suggests for the currency, and the likely direction for the chart you're viewing (e.g. strong USD data &rarr; XAUUSD likely down). The arrow beside it shows that direction. A rough rule of thumb, not a prediction.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-filter"></i>
                         <h3>Filtering Days</h3>
-                        <p>Expand the arrow next to "All Charts" to filter days by event type (e.g. only CPI days) - there's a search box to find event names fast. <strong>Filter Dates</strong> narrows the list to a From/To range. Filters stack.</p>
+                        <p>Expand the arrow next to "All Charts" to filter days by event type (e.g. only CPI days) - there's a search box to find event names fast, and <strong>Reset</strong> clears the search and event selection. With a currency selected, an event filter only matches that currency (PPI + USD shows only days with USD PPI). <strong>Filter Dates</strong> narrows the list to a From/To range. Filters stack.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-clock"></i>
+                        <h3>Time &amp; Forecast Filters</h3>
+                        <p><strong>Time</strong> shows only news within a time window - or set one time (e.g. 14:30) to show only that exact release and hide the rest above every chart. <strong>Forecast only</strong> hides events that have no forecast value. Both clear with Reset Filters.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-star"></i>
                         <h3>Select &amp; Filter Charts</h3>
-                        <p>Every chart has a <strong>Select</strong> button next to its date - star any day worth coming back to. It's remembered per symbol, so starring a XAUUSD day doesn't also star that date under EURUSD. Click <strong>Selected</strong> in the toolbar to show only your starred charts; the badge shows how many you have.</p>
+                        <p>Every chart has a <strong>Select</strong> button next to its date - star any day worth coming back to. It's remembered per symbol, so starring a XAUUSD day doesn't also star that date under EURUSD. Click <strong>Selected</strong> in the toolbar to show only your starred charts; the badge shows how many you have. When two or more selected charts share the same news event, that event is <strong>highlighted in gold</strong> on each of them.</p>
+                    </div>
+                    <div class="help-tile">
+                        <i class="fa-solid fa-note-sticky"></i>
+                        <h3>Chart Notes</h3>
+                        <p>The <strong>Notes</strong> toolbar button opens a notepad above the charts - one per symbol, so your XAUUSD notes stay separate from EURUSD. It autosaves as you type, and whether the panel is open or closed is remembered.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-bullseye"></i>
@@ -1790,7 +1903,7 @@
                     <i class="fa-solid fa-pen-ruler"></i>
                     <h2>Chart Tools</h2>
                 </div>
-                <p class="help-section-note">Every day-chart (News page and Trade View) has a small toolbar in its top-left corner with drawing tools, indicators and an object tree.</p>
+                <p class="help-section-note">Every day-chart (News page and Trade View) has a small vertical toolbar in its top-left corner with drawing tools, indicators and an object tree. Expanding or minimizing it on one chart does the same on every chart, and it's remembered for next time.</p>
                 <div class="help-grid">
                     <div class="help-tile">
                         <i class="fa-solid fa-slash"></i>
@@ -1800,27 +1913,27 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-arrow-trend-up"></i>
                         <h3>Long / Short Position Tool</h3>
-                        <p>One click drops a TradingView-style position box: green profit zone to your target, red risk zone to your stop, solid Target/Stop label pills, a Risk/Reward card on the entry line, and square handles to drag the target, stop, entry or either edge.</p>
+                        <p>One click drops a TradingView-style position box: green profit zone to your target, red risk zone to your stop. To keep the chart clean, the Target/Stop price pills and Risk/Reward card only appear while you <strong>hover</strong> the box (or tap to select it on a phone). Drag the square handles to move the target, stop, entry or either edge - or select the box and <strong>type exact Entry, TP and SL prices</strong> in the bar at the top of the chart (a value that would flip the trade is rejected).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-line"></i>
                         <h3>Indicators</h3>
-                        <p>EMA 20, EMA 50, SMA 200, Bollinger Bands (20,2), VWAP and RSI 14 (in its own pane with 70/30 guides). Toggle them from the chart-line icon; they recompute automatically when you switch timeframes.</p>
+                        <p>Add EMA, SMA, Bollinger Bands, VWAP or RSI (own pane, 70/30 guides) from the chart-line icon. Indicators apply to <strong>every chart at once</strong> - add or change one anywhere and all charts follow. Click the gear on an indicator to edit its period, Bollinger std dev or color; the eye hides it without deleting; add the same type twice for e.g. EMA 9 + EMA 21. EMA/SMA/RSI/Bollinger are computed with the previous trading day's bars too, so they're already "warm" at the day's open (VWAP resets each session by design).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-layer-group"></i>
                         <h3>Object Tree</h3>
-                        <p>The layers icon lists every drawing and indicator on that chart, each with a remove button, plus Clear All. Anything you add stays until you delete it here.</p>
+                        <p>The layers icon lists that chart's drawings and your indicators, each with a remove button, plus <strong>Clear all drawings</strong> (indicators are shared by every chart, so they're managed from the Indicators menu and left alone). Anything you add stays until you delete it.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-cloud"></i>
                         <h3>Saved to Your Account</h3>
-                        <p>Drawings and indicators save per symbol + day and sync to your login, so they follow you between devices - and a drawing made on a News chart also appears on that same day's Trade View chart.</p>
+                        <p>Drawings save per symbol + day and indicators save once for all charts; both sync to your login, so they follow you between devices - and a drawing made on a News chart also appears on that same day's Trade View chart.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-up-down-left-right"></i>
                         <h3>Movable Toolbar</h3>
-                        <p>Drag the grip lines at the top of the toolbar to park it anywhere in the chart, so it never covers the candles you're studying.</p>
+                        <p>Drag the grip lines at the top of the toolbar to park it anywhere in the chart, so it never covers the candles you're studying. The chevron expands or minimizes it on all charts at once.</p>
                     </div>
                 </div>
             </section>
@@ -1848,19 +1961,19 @@
                         <p>Pick from 10 color themes - Slate, Light, Midnight, Ocean, Forest, Amethyst, Ember, Bullion (black &amp; gold), Neon (black &amp; pink) and Blossom (soft pink) - and choose your Sidebar Style: Hamburger (menu behind the &#9776; button, the default) or Fixed (pinned open). Both apply instantly and follow your login between devices. Small screens always use the hamburger. A matching icon in the sidebar's own toolbar (next to Privacy/Import/Filter) flips between the two without opening Settings.</p>
                     </div>
                     <div class="help-tile">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                        <h3>Instrument Settings</h3>
-                        <p>Per symbol: Contract Size fixes P&amp;L math for lot-based instruments (e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10 - built in for XAUUSD, add others you trade). Typical Fee auto-fills new trade legs for that symbol so you're not retyping your spread cost every time. Swap and Leverage are kept for your own reference - neither feeds into your stats automatically yet.</p>
-                    </div>
-                    <div class="help-tile">
                         <i class="fa-solid fa-book-open"></i>
                         <h3>Playbooks</h3>
                         <p>Define named strategies with their own rules, then assign one to any trade to track which setups actually perform.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <h3>Instrument Settings</h3>
+                        <p>Per symbol: Contract Size fixes P&amp;L math for lot-based instruments (e.g. Gold/XAUUSD is 100oz per lot, so a $10 move on 0.01 lots is $10, not $0.10 - built in for XAUUSD, add others you trade). Typical Fee auto-fills new trade legs for that symbol so you're not retyping your spread cost every time. Swap and Leverage are kept for your own reference - neither feeds into your stats automatically yet.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-tag"></i>
                         <h3>Tag Management</h3>
-                        <p>Rename, categorize, describe or delete any tag across your account.</p>
+                        <p>Rename, categorize, describe or delete any tag across your account - plus <strong>Bulk Tag &amp; Playbook by Date</strong> to tag every trade in a custom date range at once.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-file-csv"></i>
@@ -2613,11 +2726,11 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="chart-tools.js?v=9"></script>
+    <script src="chart-tools.js?v=10"></script>
     <script src="community.js?v=3"></script>
     <script src="coach.js?v=5"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=54"></script>
+    <script src="app.js?v=55"></script>
 
 </body>
 </html>

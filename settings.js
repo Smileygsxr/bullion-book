@@ -37,7 +37,12 @@ let appSettings = {
     // chip (true = strip hidden entirely). See restoreNewsImportanceFilters in
     // app.js. Defaults keep the first-load "None on, news hidden" behavior.
     newsImportanceFilters: [],
-    newsHideAllNews: true
+    newsHideAllNews: true,
+    // Charts page notes, one scratchpad per chart symbol (e.g. { XAUUSD: "..." }),
+    // and whether that notes panel above the charts is open. See
+    // renderChartNotesPanel in app.js.
+    chartNotes: {},
+    chartNotesVisible: false
 };
 
 // ---- Sidebar mode: hamburger drawer vs fixed ----
@@ -242,6 +247,9 @@ function applyLoadedSettings(saved) {
     renderSidebarModeButtons();
     renderSidebarAccount();
     if (typeof renderTradeLog === 'function') renderTradeLog();
+    // Chart notes + their show/hide state live in appSettings, which only
+    // arrives after login - refresh the panel once it has.
+    if (typeof renderChartNotesPanel === 'function') renderChartNotesPanel(true);
     // First login on this account? Offer the guided tour (tutorial.js) -
     // checked only now, after the account's synced settings have arrived.
     if (typeof maybeStartAutoTutorial === 'function') maybeStartAutoTutorial();
@@ -347,7 +355,10 @@ function switchSettingsPanel(tab) {
     if (tab === 'personal') populatePersonalInfoPanel();
     if (tab === 'account') populateAccountSettingsPanel();
     if (tab === 'appearance') { renderThemeSwatchGrid(); renderSidebarModeButtons(); }
-    if (tab === 'tags') renderTagTable();
+    if (tab === 'tags') {
+        renderTagTable();
+        if (typeof populateBulkDateSelects === 'function') populateBulkDateSelects();
+    }
     if (tab === 'contracts') renderContractSizeTable();
     if (tab === 'playbooks') renderPlaybookList();
     if (tab === 'import') renderCsvImportMeta();

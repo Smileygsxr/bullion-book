@@ -4357,6 +4357,112 @@ html.light-base ::-webkit-scrollbar-thumb:hover { background: rgba(15, 18, 32, 0
     line-height: 1.4;
 }
 
+/* "?" beat/miss + direction hint next to a news event name */
+.cpi-news-hint {
+    margin-left: 4px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    cursor: help;
+    white-space: nowrap;
+}
+.cpi-news-hint .cpi-hint-up { color: var(--win); margin-left: 1px; }
+.cpi-news-hint .cpi-hint-down { color: var(--loss); margin-left: 1px; }
+
+/* Settings > Tags: Bulk Tag & Playbook by Date */
+.bulk-date-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+@media (max-width: 760px) {
+    .bulk-date-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Settings > Import Trades: Trade Change History list */
+.trade-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+.trade-history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.trade-history-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.trade-history-label {
+    color: var(--text-light);
+    font-size: 0.82rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.trade-history-meta { color: var(--text-muted); font-size: 0.7rem; }
+.trade-history-meta .th-add { color: var(--win); }
+.trade-history-meta .th-del { color: var(--loss); }
+.trade-history-meta .th-edit { color: var(--accent-blue); }
+.trade-history-revert {
+    width: auto;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 0.76rem;
+}
+@media (max-width: 640px) {
+    .trade-history-row { flex-direction: column; align-items: stretch; }
+}
+
+/* A news event that also appears on another SELECTED chart */
+.cpi-mini-event.shared-news {
+    background: rgba(var(--accent-gold-rgb), 0.14);
+    box-shadow: inset 3px 0 0 var(--accent-gold);
+    border-radius: 4px;
+}
+.cpi-mini-event.shared-news .cpi-mini-event-name {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+/* Chart notes panel (one scratchpad per chart symbol) above the charts */
+.chart-notes-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent-gold);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+.chart-notes-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.chart-notes-title { color: var(--text-light); font-size: 0.82rem; font-weight: 600; }
+.chart-notes-title i { color: var(--accent-gold); margin-right: 4px; }
+.chart-notes-status { color: var(--text-muted); font-size: 0.7rem; }
+.chart-notes-input {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 60px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+.chart-notes-input:focus { outline: none; border-color: var(--accent-blue); }
+
 .event-tab-search-wrap i {
     position: absolute;
     left: 12px;
@@ -5835,6 +5941,81 @@ body.privacy-mode .equity-crosshair-label.price {
 
 .chart-tools-row > i.fa-check { color: var(--win); font-size: 0.7rem; }
 .chart-tools-row > i.fa-plus { color: var(--text-muted); font-size: 0.7rem; }
+
+/* Global indicators menu: per-indicator show/hide, settings and remove */
+.ct-ind-scope {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--accent-gold);
+    margin-left: 4px;
+}
+.ct-ind-row { cursor: default; }
+.ct-ind-row.is-hidden .chart-tools-row-label,
+.ct-ind-row.is-hidden .chart-tools-row-dot { opacity: 0.4; }
+.ct-ind-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.ct-ind-btn:hover { color: var(--text-light); background: rgba(255, 255, 255, 0.06); }
+.ct-ind-btn[data-act="remove"]:hover { color: var(--loss); }
+.ct-ind-editor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-end;
+    margin: 2px 0 8px 22px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+}
+.ct-ind-editor label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.66rem;
+    color: var(--text-muted);
+}
+.ct-ind-editor input[type="number"] {
+    width: 64px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 0.76rem;
+}
+.ct-ind-editor input[type="color"] {
+    width: 40px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background: none;
+    cursor: pointer;
+}
+.ct-ind-editor-actions { display: flex; gap: 6px; width: 100%; }
+.ct-ind-editor-actions button {
+    flex: 1;
+    font-size: 0.72rem;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-light);
+}
+.ct-ind-editor-actions .ct-ind-save {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
 
 .chart-tools-row-del {
     background: transparent;
@@ -8260,11 +8441,42 @@ html[data-theme="blossom"] {
     display: none;
 }
 
-/* Edit bar in position mode: only lock + delete apply */
+/* Edit bar in position mode: typed Entry/TP/SL + lock + delete (colors,
+   width and style don't apply to the fixed green/red position tool) */
 .ct-edit-bar.position-mode .ct-edit-colors,
 .ct-edit-bar.position-mode [data-action="width"],
 .ct-edit-bar.position-mode [data-action="style"],
-.ct-edit-bar.position-mode .ct-edit-sep:first-of-type { display: none; }
+.ct-edit-bar.position-mode .ct-edit-sep { display: none; }
+
+.ct-pos-fields,
+.ct-pos-sep { display: none; }
+.ct-edit-bar.position-mode .ct-pos-fields { display: flex; align-items: center; gap: 6px; }
+.ct-edit-bar.position-mode .ct-pos-sep { display: block; width: 1px; height: 18px; margin: 0 3px; background: var(--border-color); }
+.ct-pos-fields label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+.ct-pos-fields label.tp { color: var(--win); }
+.ct-pos-fields label.sl { color: var(--loss); }
+.ct-pos-input {
+    width: 78px;
+    background: var(--bg-dark);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 3px 5px;
+    font-size: 0.74rem;
+}
+.ct-pos-input:focus { outline: none; border-color: var(--accent-blue); }
+.ct-pos-input.invalid { border-color: var(--loss); background: rgba(var(--loss-rgb), 0.15); }
+@media (max-width: 640px) {
+    .ct-edit-bar.position-mode { flex-wrap: wrap; max-width: calc(100% - 70px); }
+    .ct-pos-input { width: 64px; }
+}
 
 /* ==== Weekly Review tiles: embedded mini visualizations (sparkline/donut) ==== */
 .review-tile-viz {

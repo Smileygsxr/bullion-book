@@ -53,10 +53,29 @@ function toggleChartSelected(buttonEl) {
     applyChartSelectedButtonState(block, nowSelected);
     saveChartSelection();
     syncChartSelectedFilterBadge();
+    refreshSharedNewsHighlights();
 
     // Deselecting while "Selected only" is active should drop this block
     // from view immediately, same as any other filter change.
     if (showSelectedChartsOnly && !nowSelected) applyEventFilterAndReload();
+}
+
+// When two or more SELECTED charts share a news event (same name + currency),
+// highlight that event on each of them - e.g. select several CPI days and the
+// common release stands out on every one.
+function refreshSharedNewsHighlights() {
+    const container = document.getElementById('chart-blocks-container');
+    if (!container) return;
+    const counts = new Map();
+    container.querySelectorAll('.xauusd-chart-panel.chart-selected').forEach(block => {
+        const keys = new Set(Array.from(block.querySelectorAll('.cpi-mini-event[data-event-key]'), row => row.dataset.eventKey));
+        keys.forEach(k => counts.set(k, (counts.get(k) || 0) + 1));
+    });
+    container.querySelectorAll('.cpi-mini-event[data-event-key]').forEach(row => {
+        const block = row.closest('.xauusd-chart-panel');
+        const shared = !!block && block.classList.contains('chart-selected') && (counts.get(row.dataset.eventKey) || 0) >= 2;
+        row.classList.toggle('shared-news', shared);
+    });
 }
 
 function applyChartSelectedButtonState(block, selected) {
@@ -920,6 +939,56 @@ function renderChartSymbolTabs() {
     updateNewsMobileFiltersLabel();
 }
 
+// ---- Chart notes: a per-symbol scratchpad above the charts, with a
+// remembered open/closed state (appSettings.chartNotes / chartNotesVisible).
+// Typing writes into appSettings immediately; only the save is debounced. ----
+let chartNotesSaveTimer = null;
+
+function renderChartNotesPanel(force) {
+    const panel = document.getElementById('chart-notes-panel');
+    const input = document.getElementById('chart-notes-input');
+    if (!panel || !input || typeof appSettings === 'undefined') return;
+    const visible = !!appSettings.chartNotesVisible;
+    panel.style.display = visible ? 'block' : 'none';
+    const btn = document.getElementById('chart-notes-toggle-btn');
+    if (btn) btn.classList.toggle('active', visible);
+    const label = document.getElementById('chart-notes-symbol');
+    if (label) label.textContent = activeChartSymbol.label;
+    // Never overwrite text the user is mid-way through typing, unless the
+    // symbol itself just changed (force).
+    if (force || document.activeElement !== input) {
+        const notes = (appSettings.chartNotes && typeof appSettings.chartNotes === 'object') ? appSettings.chartNotes : {};
+        input.value = notes[activeChartSymbol.symbol] || '';
+    }
+}
+
+function toggleChartNotesPanel() {
+    if (typeof appSettings === 'undefined') return;
+    appSettings.chartNotesVisible = !appSettings.chartNotesVisible;
+    if (typeof saveAppSettings === 'function') saveAppSettings();
+    renderChartNotesPanel(true);
+    if (appSettings.chartNotesVisible) {
+        const input = document.getElementById('chart-notes-input');
+        if (input) input.focus();
+    }
+}
+
+function onChartNotesInput() {
+    if (typeof appSettings === 'undefined') return;
+    const input = document.getElementById('chart-notes-input');
+    if (!input) return;
+    if (!appSettings.chartNotes || typeof appSettings.chartNotes !== 'object') appSettings.chartNotes = {};
+    if (input.value.trim()) appSettings.chartNotes[activeChartSymbol.symbol] = input.value;
+    else delete appSettings.chartNotes[activeChartSymbol.symbol];
+    const status = document.getElementById('chart-notes-status');
+    if (status) status.textContent = 'Saving...';
+    clearTimeout(chartNotesSaveTimer);
+    chartNotesSaveTimer = setTimeout(() => {
+        if (typeof saveAppSettings === 'function') saveAppSettings();
+        if (status) status.textContent = 'Saved';
+    }, 600);
+}
+
 function selectChartSymbol(filePrefix) {
     const match = CHART_SYMBOLS.find(s => s.filePrefix === filePrefix);
     if (!match) return;
@@ -928,6 +997,7 @@ function selectChartSymbol(filePrefix) {
         btn.classList.toggle('active', btn.dataset.filePrefix === filePrefix);
     });
     updateNewsMobileFiltersLabel();
+    renderChartNotesPanel(true);
     // On a phone, picking a symbol is usually the end goal - close the
     // drawer so the charts are immediately visible.
     if (window.innerWidth <= 640) closeNewsMobileFilters();
@@ -972,6 +1042,7 @@ function initCpiChart() {
             renderCurrencyFilterChips(eventsByDate);
             restoreNewsImportanceFilters();
             renderEventFilterTabs(eventsByDate);
+            renderChartNotesPanel(true);
         })
         .catch(err => {
             console.error("Data folder listing error:", err.message);
@@ -1136,6 +1207,8 @@ function renderChartBlocks(fileEntries, container, template, eventsByDate) {
         container.appendChild(block);
         createOneDayChart(date, files, chartContainer, events, defaultInterval, activeChartSymbol.symbol);
     });
+    // Newly rendered blocks may be selected charts sharing news with others
+    refreshSharedNewsHighlights();
 }
 
 // Click handler for the 1m/5m/15m pills on a chart block
@@ -1513,9 +1586,12 @@ function renderEventsForDate(block, date, eventsByDate) {
         const hasForecast = !!(forecast && String(forecast).trim() !== '');
         const timeMin = parseEventTimeToMinutes(time);
         const hidden = !newsEventPasses(importance, currency, hasForecast, timeMin);
+        const hint = newsDirectionHint(name, currency, actual, forecast, (typeof activeChartSymbol !== 'undefined' && activeChartSymbol) ? activeChartSymbol.symbol : '');
+        const hintArrow = hint.dir > 0 ? '<i class="fa-solid fa-caret-up cpi-hint-up"></i>' : hint.dir < 0 ? '<i class="fa-solid fa-caret-down cpi-hint-down"></i>' : '';
+        const hintHtml = `<span class="cpi-news-hint" title="${hint.text.replace(/"/g, '&quot;')}"><i class="fa-solid fa-circle-question"></i>${hintArrow}</span>`;
         return `
-        <div class="cpi-mini-event" data-importance="${importance || 'none'}" data-currency="${currency || ''}" data-has-forecast="${hasForecast ? '1' : '0'}" data-time-min="${timeMin >= Number.MAX_SAFE_INTEGER ? '' : timeMin}" style="${hidden ? 'display:none;' : ''}">
-            <span class="cpi-mini-event-name">${name}</span>
+        <div class="cpi-mini-event" data-event-key="${encodeURIComponent(`${name}|${currency || ''}`)}" data-importance="${importance || 'none'}" data-currency="${currency || ''}" data-has-forecast="${hasForecast ? '1' : '0'}" data-time-min="${timeMin >= Number.MAX_SAFE_INTEGER ? '' : timeMin}" style="${hidden ? 'display:none;' : ''}">
+            <span class="cpi-mini-event-name">${name} ${hintHtml}</span>
             <span class="cpi-mini-event-currency">${currency || ''}</span>
             <span class="cpi-mini-event-importance-dot importance-${importance || 'none'}" title="${(importance || 'none')} impact"></span>
             <span class="cpi-mini-event-vals">
@@ -1556,6 +1632,35 @@ function getActualColorClass(name, actual, forecast) {
     if (actualNum === forecastNum) return '';
     const beatForecast = isInverted ? actualNum < forecastNum : actualNum > forecastNum;
     return beatForecast ? 'cpi-value-up' : 'cpi-value-down';
+}
+
+// #4: the "?" hint beside a news event. Uses the same beat/miss polarity as
+// getActualColorClass, then maps the news currency's implied strength onto the
+// currently-selected chart symbol (its base goes the same way, its quote the
+// opposite) to suggest a price direction. A rough context heuristic, not a
+// prediction - the real market prices surprises in far more complex ways.
+function newsDirectionHint(name, currency, actual, forecast, chartSymbol) {
+    const a = parseEventNumber(actual);
+    const f = parseEventNumber(forecast);
+    if (a === null || f === null) return { dir: 0, text: 'No forecast to compare against.' };
+    if (a === f) return { dir: 0, text: `Actual ${actual} came in in line with forecast ${forecast}.` };
+
+    const isInverted = INVERTED_EVENT_KEYWORDS.some(k => name.toLowerCase().includes(k));
+    const higher = a > f;
+    const strength = (isInverted ? !higher : higher) ? 1 : -1; // +1 = currency likely stronger
+    const cmp = higher ? 'higher than' : 'lower than';
+
+    let base, quote;
+    if (/^[A-Z]{6}$/.test(chartSymbol)) { base = chartSymbol.slice(0, 3); quote = chartSymbol.slice(3); }
+    else { base = chartSymbol; quote = 'USD'; } // US500 / UKOIL are USD-priced
+
+    let dir = 0;
+    if (currency === base) dir = strength;
+    else if (currency === quote) dir = -strength;
+
+    let text = `Actual ${actual} is ${cmp} forecast ${forecast}, so ${currency} likely ${strength > 0 ? 'strengthens' : 'weakens'}. `;
+    text += dir > 0 ? `${chartSymbol} likely UP.` : dir < 0 ? `${chartSymbol} likely DOWN.` : `No clear ${chartSymbol} direction from ${currency} news.`;
+    return { dir, text };
 }
 
 // 4. THE CSV READING AND RENDER ENGINE
@@ -1624,8 +1729,22 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
     const markersApi = LightweightCharts.createSeriesMarkers(series, []);
     // Drawing tools/indicators/object tree (chart-tools.js). Keyed by
     // symbol+day so the same drawings appear on this day's Trade View chart.
+    // This chart's file prefix (e.g. "XAU-USD"), read off one of its filenames,
+    // so the indicator warm-up finds the previous day's file for the same symbol.
+    const anyChartFile = Object.values(filesByInterval || {})[0] || '';
+    const prefixMatch = anyChartFile.match(CHART_FILENAME_PATTERN);
+    const chartFilePrefix = prefixMatch ? prefixMatch[1].toUpperCase() : activeChartSymbol.filePrefix;
     const chartTools = typeof attachChartTools === 'function'
-        ? attachChartTools({ chart, series, container: chartContainer, chartKey: `${tradeSymbol}|${dateString}` })
+        ? attachChartTools({
+            chart, series, container: chartContainer, chartKey: `${tradeSymbol}|${dateString}`,
+            // Previous trading day's bars at the interval currently shown, so
+            // EMA/SMA/RSI/Bollinger are already warm at this day's open.
+            warmupLoader: () => {
+                const inst = cpiChartInstances.get(dateString);
+                const prevFile = inst ? findPrevDayChartFile(chartFilePrefix, dateString, inst.currentInterval) : null;
+                return prevFile ? fetchChartBars(prevFile) : Promise.resolve([]);
+            }
+        })
         : null;
     cpiChartInstances.set(dateString, {
         chart, series, container: chartContainer, events: events || [], markersApi,
@@ -1636,6 +1755,62 @@ function createOneDayChart(dateString, filesByInterval, chartContainer, events, 
     chart.timeScale().subscribeVisibleTimeRangeChange(() => scheduleTradeOverlayUpdate(dateString));
 
     loadChartInterval(dateString, defaultInterval);
+}
+
+// One day's chart CSV -> chronological candle bars. Shared by the chart itself
+// and the previous-day indicator warm-up (fetchChartBars).
+function parseChartCsvBars(csvText) {
+    // Use PapaParse to split the spreadsheet rows into JavaScript data structures
+    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    // The timestamp column is named after the CSV's timezone (e.g. "Etc/UTC", "Africa/Johannesburg")
+    const timestampField = parsed.meta.fields[0];
+
+    const formattedData = parsed.data.map(row => {
+        const stringTimestamp = row[timestampField];
+        // Use the literal date/time digits as-is (ignore any UTC offset suffix),
+        // so the chart shows the same wall-clock time recorded in the CSV.
+        const stamp = stringTimestamp && stringTimestamp.match(
+            /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/
+        );
+        const epochSeconds = stamp
+            ? Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], +stamp[6]) / 1000
+            : NaN;
+
+        return {
+            time: epochSeconds,
+            open: parseFloat(row.Open),
+            high: parseFloat(row.High),
+            low: parseFloat(row.Low),
+            close: parseFloat(row.Close),
+            volume: parseFloat(row.Volume)
+        };
+    });
+
+    // Filter out any broken header rows or text fragments and sort chronologically
+    const cleanData = formattedData.filter(d => !isNaN(d.time) && !isNaN(d.close));
+    cleanData.sort((a, b) => a.time - b.time);
+    return cleanData;
+}
+
+function fetchChartBars(filename) {
+    return fetch(`./data/${filename}`)
+        .then(response => {
+            if (!response.ok) throw new Error('File not found.');
+            return response.text();
+        })
+        .then(parseChartCsvBars);
+}
+
+// The most recent trading day BEFORE dateString that has a file for this
+// symbol + interval (skips weekends/holidays automatically - it's simply the
+// previous file on disk). Used to warm up indicators at the day's open.
+function findPrevDayChartFile(filePrefix, dateString, interval) {
+    let best = null;
+    allDiscoveredFiles.forEach(f => {
+        if (f.filePrefix !== filePrefix || f.date >= dateString || !f.files[interval]) return;
+        if (!best || f.date > best.date) best = f;
+    });
+    return best ? best.files[interval] : null;
 }
 
 // Fetches and renders one interval's CSV into an already-created chart/series -
@@ -1656,35 +1831,7 @@ function loadChartInterval(dateString, interval) {
             return response.text();
         })
         .then(csvText => {
-            // Use PapaParse to split the spreadsheet rows into JavaScript data structures
-            const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-            // The timestamp column is named after the CSV's timezone (e.g. "Etc/UTC", "Africa/Johannesburg")
-            const timestampField = parsed.meta.fields[0];
-
-            const formattedData = parsed.data.map(row => {
-                const stringTimestamp = row[timestampField];
-                // Use the literal date/time digits as-is (ignore any UTC offset suffix),
-                // so the chart shows the same wall-clock time recorded in the CSV.
-                const stamp = stringTimestamp && stringTimestamp.match(
-                    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/
-                );
-                const epochSeconds = stamp
-                    ? Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], +stamp[6]) / 1000
-                    : NaN;
-
-                return {
-                    time: epochSeconds,
-                    open: parseFloat(row.Open),
-                    high: parseFloat(row.High),
-                    low: parseFloat(row.Low),
-                    close: parseFloat(row.Close),
-                    volume: parseFloat(row.Volume)
-                };
-            });
-
-            // Filter out any broken header rows or text fragments and sort chronologically
-            const cleanData = formattedData.filter(d => !isNaN(d.time) && !isNaN(d.close));
-            cleanData.sort((a, b) => a.time - b.time);
+            const cleanData = parseChartCsvBars(csvText);
 
             if (cleanData.length > 0) {
                 series.setData(cleanData);

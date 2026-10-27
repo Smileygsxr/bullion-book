@@ -3,6 +3,7 @@
 // a Firestore doc to). "Primary account" == accountsState.activeAccountId: the
 // one shown in the sidebar and edited by default in the modal.
 const GUEST_ACCOUNTS_KEY = 'bb_accounts_guest';
+const LAST_ACCOUNT_KEY = 'bb_last_account'; // last account used on this device
 
 let accountsState = { accounts: {}, activeAccountId: null };
 let draftAccount = null;
@@ -181,20 +182,214 @@ function applyLoadedState(saved) {
         if (!accountsState.accounts[accountsState.activeAccountId]) {
             accountsState.activeAccountId = Object.keys(accountsState.accounts)[0];
         }
+        // Remember the last account used on this device, even if the stored
+        // activeAccountId is stale or a guest/Firestore load raced (account ids
+        // are globally unique, so a mismatched id simply falls through).
+        try {
+            const lastId = localStorage.getItem(LAST_ACCOUNT_KEY);
+            if (lastId && accountsState.accounts[lastId]) accountsState.activeAccountId = lastId;
+        } catch (e) { /* ignore unavailable storage */ }
         const anyFixed = Object.values(accountsState.accounts)
             .map(normalizeStoredTradeSymbols)
             .some(Boolean);
+        // The just-loaded (and symbol-cleaned) trades are the history baseline
+        // BEFORE any save, so loading never shows up as a "change".
+        resetTradeHistoryBaselines();
         if (anyFixed) saveAccountsState();
         renderSidebarAccount();
     } else {
         const account = makeDefaultAccount('Primary Live');
         accountsState = { accounts: { [account.id]: account }, activeAccountId: account.id };
+        resetTradeHistoryBaselines();
         saveAccountsState();
         renderSidebarAccount();
     }
+    renderTradeHistoryPanel();
+}
+
+// ---- Trade change history (Settings > Import Trades) ----
+// The last 10 changes to the active account's trades, each revertible.
+// Recorded automatically by diffing the trades at every save against the
+// last-saved copy - so ANY operation that saves once (a whole CSV import, a
+// bulk tag) is ONE change, and no individual edit site can be missed.
+// Only what's needed to undo is kept (ids of added trades, full copies of
+// deleted/edited ones), in this browser's localStorage rather than Firestore:
+// a big import's undo data could otherwise push the synced account document
+// past Firestore's size limit and make real saves fail.
+const TRADE_HISTORY_LIMIT = 10;
+let tradeHistoryBaselines = {}; // accountId -> JSON of its trades at last save/load
+let pendingTradeChangeLabel = null;
+
+function tradeHistoryKey(accountId) {
+    return `bb_trade_history_${accountId}`;
+}
+
+function loadTradeHistory(accountId) {
+    try { return JSON.parse(localStorage.getItem(tradeHistoryKey(accountId))) || []; } catch (e) { return []; }
+}
+
+function storeTradeHistory(accountId, entries) {
+    let list = entries.slice(0, TRADE_HISTORY_LIMIT);
+    while (list.length > 0) {
+        try {
+            localStorage.setItem(tradeHistoryKey(accountId), JSON.stringify(list));
+            return;
+        } catch (e) {
+            list = list.slice(0, -1); // storage full - drop the oldest entry and retry
+        }
+    }
+    try { localStorage.removeItem(tradeHistoryKey(accountId)); } catch (e) { /* ignore */ }
+}
+
+// The current trades become the baseline the next change is diffed against
+// (on load, and for accounts seen for the first time).
+function resetTradeHistoryBaselines() {
+    tradeHistoryBaselines = {};
+    Object.values(accountsState.accounts || {}).forEach(acc => {
+        tradeHistoryBaselines[acc.id] = JSON.stringify(acc.trades || []);
+    });
+}
+
+// Lets a caller name the change it's about to save (e.g. the CSV importer);
+// otherwise a label is generated from what changed.
+function labelNextTradeChange(label) {
+    pendingTradeChangeLabel = label;
+}
+
+function diffTradeLists(before, after) {
+    const beforeById = new Map(before.map(t => [t.id, t]));
+    const afterById = new Map(after.map(t => [t.id, t]));
+    return {
+        added: after.filter(t => !beforeById.has(t.id)).map(t => t.id),
+        removed: before.filter(t => !afterById.has(t.id)),
+        changed: before.filter(t => afterById.has(t.id) && JSON.stringify(t) !== JSON.stringify(afterById.get(t.id)))
+    };
+}
+
+function describeTradeDiff(diff, after) {
+    const afterById = new Map(after.map(t => [t.id, t]));
+    const sym = t => (t && t.symbol) || 'trade';
+    const parts = [];
+    if (diff.added.length === 1) parts.push(`Added ${sym(afterById.get(diff.added[0]))} trade`);
+    else if (diff.added.length > 1) parts.push(`Added ${diff.added.length} trades`);
+    if (diff.removed.length === 1) parts.push(`Deleted ${sym(diff.removed[0])} trade`);
+    else if (diff.removed.length > 1) parts.push(`Deleted ${diff.removed.length} trades`);
+    if (diff.changed.length === 1) parts.push(`Edited ${sym(diff.changed[0])} trade`);
+    else if (diff.changed.length > 1) parts.push(`Edited ${diff.changed.length} trades`);
+    return parts.join(', ') || 'Changed trades';
+}
+
+// Called at the start of every save: records the active account's trade
+// changes since the last save as ONE history entry.
+function recordTradeHistory() {
+    const account = getActiveAccount();
+    if (!account) return;
+    const nowJson = JSON.stringify(account.trades || []);
+    const baseJson = tradeHistoryBaselines[account.id];
+    tradeHistoryBaselines[account.id] = nowJson;
+    const label = pendingTradeChangeLabel;
+    pendingTradeChangeLabel = null;
+    if (baseJson === undefined || baseJson === nowJson) return; // first sight of the account, or no trade change
+
+    const after = account.trades || [];
+    const diff = diffTradeLists(JSON.parse(baseJson), after);
+    if (diff.added.length === 0 && diff.removed.length === 0 && diff.changed.length === 0) return;
+
+    const entry = {
+        id: `th_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        at: Date.now(),
+        label: label || describeTradeDiff(diff, after),
+        added: diff.added,
+        removed: diff.removed,
+        changed: diff.changed
+    };
+    storeTradeHistory(account.id, [entry].concat(loadTradeHistory(account.id)));
+    renderTradeHistoryPanel();
+}
+
+// Restores the active account's trades to how they were BEFORE the chosen
+// change - undoing it and every newer one - by applying each entry's inverse,
+// newest first. The revert is itself recorded as a change, so it's undoable.
+function revertTradeHistoryTo(entryId) {
+    const account = getActiveAccount();
+    if (!account) return;
+    const history = loadTradeHistory(account.id);
+    const idx = history.findIndex(h => h.id === entryId);
+    if (idx < 0) return;
+
+    let trades = (account.trades || []).slice();
+    for (let i = 0; i <= idx; i++) {
+        const h = history[i];
+        const added = new Set(h.added || []);
+        trades = trades.filter(t => !added.has(t.id));
+        const changedById = new Map((h.changed || []).map(t => [t.id, t]));
+        trades = trades.map(t => (changedById.has(t.id) ? JSON.parse(JSON.stringify(changedById.get(t.id))) : t));
+        const present = new Set(trades.map(t => t.id));
+        (h.removed || []).forEach(t => {
+            if (!present.has(t.id)) trades.push(JSON.parse(JSON.stringify(t)));
+        });
+    }
+
+    const count = idx + 1;
+    const undoneLabel = history[idx].label;
+    storeTradeHistory(account.id, history.slice(idx + 1)); // the undone entries are consumed
+    account.trades = trades;
+    labelNextTradeChange(`Reverted ${count} change${count === 1 ? '' : 's'} (back to before "${undoneLabel}")`);
+    saveAccountsState();
+
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    updateSidebarBalanceDisplay();
+    if (typeof refreshActivePageForAccountChange === 'function') refreshActivePageForAccountChange();
+    if (typeof renderCsvImportMeta === 'function') renderCsvImportMeta();
+    renderTradeHistoryPanel();
+}
+
+function confirmRevertTradeHistory(entryId) {
+    const account = getActiveAccount();
+    const history = account ? loadTradeHistory(account.id) : [];
+    const idx = history.findIndex(h => h.id === entryId);
+    if (idx < 0) return;
+    const newer = idx;
+    showConfirmDialog({
+        title: 'Revert trade changes?',
+        body: `Restore your trades to how they were before "${history[idx].label}"? `
+            + (newer === 0 ? 'This undoes that change.' : `This undoes that change and the ${newer} newer change${newer === 1 ? '' : 's'} above it.`)
+            + ' You can undo the revert afterwards from this list.',
+        confirmText: 'Yes, revert',
+        onConfirm: () => revertTradeHistoryTo(entryId)
+    });
+}
+
+function renderTradeHistoryPanel() {
+    const el = document.getElementById('trade-history-list');
+    if (!el) return;
+    const account = getActiveAccount();
+    const history = account ? loadTradeHistory(account.id) : [];
+    if (history.length === 0) {
+        el.innerHTML = '<p class="settings-field-hint">No changes recorded yet - edits, deletions and imports on this account will appear here.</p>';
+        return;
+    }
+    el.innerHTML = history.map((h, i) => {
+        const counts = [];
+        if ((h.added || []).length) counts.push(`<span class="th-add">+${h.added.length} added</span>`);
+        if ((h.removed || []).length) counts.push(`<span class="th-del">${h.removed.length} removed</span>`);
+        if ((h.changed || []).length) counts.push(`<span class="th-edit">${h.changed.length} edited</span>`);
+        return `
+            <div class="trade-history-row">
+                <div class="trade-history-main">
+                    <span class="trade-history-label">${escapeHtml(h.label)}</span>
+                    <span class="trade-history-meta">${new Date(h.at).toLocaleString()} &middot; ${counts.join(' &middot; ')}</span>
+                </div>
+                <button type="button" class="btn-action btn-neutral trade-history-revert" onclick="confirmRevertTradeHistory('${h.id}')"
+                    title="Restore trades to before this change${i > 0 ? ` (also undoes the ${i} newer change${i === 1 ? '' : 's'} above)` : ''}">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Revert
+                </button>
+            </div>`;
+    }).join('');
 }
 
 function saveAccountsState() {
+    recordTradeHistory();
     const uid = auth.currentUser && auth.currentUser.uid;
     if (uid) {
         // mergeFields (NOT merge:true): accounts is a map keyed by account id,
@@ -265,6 +460,7 @@ document.addEventListener('click', event => {
 function switchActiveAccount(accountId) {
     if (!accountsState.accounts[accountId]) return;
     accountsState.activeAccountId = accountId;
+    try { localStorage.setItem(LAST_ACCOUNT_KEY, accountId); } catch (e) { /* ignore unavailable storage */ }
     saveAccountsState();
     renderSidebarAccount();
     // Each account remembers its own CSV import timezone/history - refresh the
