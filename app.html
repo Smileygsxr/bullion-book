@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=130">
+    <link rel="stylesheet" href="styles.css?v=131">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -24,7 +24,7 @@
             if (bbSidebar !== 'fixed' || window.innerWidth <= 900) document.documentElement.classList.add('sidebar-drawer-mode');
         } catch (e) { }
     </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
 </head>
 <body>
 
@@ -75,9 +75,9 @@
 
         <!-- 2. Primary Account Switcher -->
         <div class="account-switcher">
-            <label class="account-switcher-label">Primary Account</label>
+            <label id="account-switcher-label" class="account-switcher-label">Primary Account</label>
             <div class="custom-select" id="account-switcher-dropdown">
-                <button type="button" class="custom-select-trigger account-switcher-select" onclick="toggleAccountSwitcherDropdown()">
+                <button type="button" class="custom-select-trigger account-switcher-select" onclick="toggleAccountSwitcherDropdown()" aria-labelledby="account-switcher-label">
                     <span id="account-switcher-current-label"></span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </button>
@@ -844,6 +844,10 @@
                         <span><i class="fa-solid fa-file-csv"></i> Import Trades</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
                     </button>
+                    <button class="settings-subnav-item" id="settings-tab-storage" onclick="switchSettingsPanel('storage')">
+                        <span><i class="fa-solid fa-database"></i> Data & Storage</span>
+                        <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
                     <button class="settings-subnav-item" id="settings-tab-security" onclick="switchSettingsPanel('security')">
                         <span><i class="fa-solid fa-shield-halved"></i> Password & Security</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
@@ -867,11 +871,11 @@
                         </div>
 
                         <div class="modal-field settings-field">
-                            <label class="modal-label">Name</label>
+                            <label class="modal-label" for="settings-name-input">Name</label>
                             <input type="text" id="settings-name-input" class="modal-input">
                         </div>
                         <div class="modal-field settings-field">
-                            <label class="modal-label">Email</label>
+                            <label class="modal-label" for="settings-email-input">Email</label>
                             <input type="text" id="settings-email-input" class="modal-input" readonly>
                         </div>
 
@@ -885,7 +889,7 @@
 
                         <div class="settings-form-grid">
                             <div class="modal-field">
-                                <label class="modal-label">Currency Format
+                                <label class="modal-label" for="settings-currency-format">Currency Format
                                     <button type="button" class="settings-info-btn" data-tooltip="Sets the $/€/£/R symbol shown throughout the app (Dashboard, Stats, Trade View, etc)." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-currency-format" class="modal-input">
@@ -896,7 +900,7 @@
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Order Date
+                                <label class="modal-label" for="settings-default-order-date">Default Order Date
                                     <button type="button" class="settings-info-btn" data-tooltip="When you add a new leg to a trade, its date/time is pre-filled either by copying the previous leg you entered, or with the current date/time." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-default-order-date" class="modal-input">
@@ -905,7 +909,7 @@
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Grid Date
+                                <label class="modal-label" for="settings-default-grid-date">Default Grid Date
                                     <button type="button" class="settings-info-btn" data-tooltip="Controls which date represents a trade on the Dashboard, Calendar, and Stats charts: its most recent action (exit), or when it was originally opened." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-default-grid-date" class="modal-input">
@@ -914,31 +918,31 @@
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Symbol
+                                <label class="modal-label" for="settings-default-symbol">Default Symbol
                                     <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Symbol field whenever you open New Trade." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="text" id="settings-default-symbol" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Qty
+                                <label class="modal-label" for="settings-default-qty">Default Qty
                                     <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Quantity field on a new trade's first leg." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="number" step="0.0001" id="settings-default-qty" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Fee $
+                                <label class="modal-label" for="settings-default-fee">Default Fee $
                                     <button type="button" class="settings-info-btn" data-tooltip="Pre-fills the Fee field on a new trade's first leg." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="number" step="0.01" id="settings-default-fee" class="modal-input">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Default Journal Tag
+                                <label class="modal-label" for="settings-default-tag">Default Journal Tag
                                     <button type="button" class="settings-info-btn" data-tooltip="Pre-selects this tag whenever you open New Trade." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-default-tag" class="modal-input"></select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">PnL % Calculation Type
+                                <label class="modal-label" for="settings-pnl-calc-type">PnL % Calculation Type
                                     <button type="button" class="settings-info-btn" data-tooltip="Return on Invested Capital divides PnL by that trade's own entry value. Return on Account Balance divides by your total account balance instead." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <select id="settings-pnl-calc-type" class="modal-input">
@@ -947,19 +951,19 @@
                                 </select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Breakeven Range ($)
+                                <label class="modal-label" for="settings-breakeven-range">Breakeven Range ($)
                                     <button type="button" class="settings-info-btn" data-tooltip="A win or loss within this $ amount is counted as a breakeven (wash) instead of a win/loss for win-rate and streak purposes. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="number" step="0.01" min="0" id="settings-breakeven-range" class="modal-input" placeholder="0">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Max Daily Loss ($)
+                                <label class="modal-label" for="settings-max-daily-loss">Max Daily Loss ($)
                                     <button type="button" class="settings-info-btn" data-tooltip="Your daily loss limit. When today's closed P&L drops past this amount, a warning banner shows on the Dashboard telling you to stop trading. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="number" step="1" min="0" id="settings-max-daily-loss" class="modal-input" placeholder="0">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Max Trades Per Day
+                                <label class="modal-label" for="settings-max-daily-trades">Max Trades Per Day
                                     <button type="button" class="settings-info-btn" data-tooltip="A cap on how many trades you want to take per day. When today's trade count reaches it, a warning banner shows on the Dashboard - a guard against overtrading. Set to 0 to disable." onmouseenter="showSettingsInfoTooltip(this)" onmouseleave="hideSettingsInfoTooltip()" onclick="toggleSettingsInfoTooltip(event, this)">?</button>
                                 </label>
                                 <input type="number" step="1" min="0" id="settings-max-daily-trades" class="modal-input" placeholder="0">
@@ -1033,19 +1037,19 @@
                         </p>
                         <div class="bulk-date-grid">
                             <div class="modal-field">
-                                <label class="modal-label">From</label>
+                                <label class="modal-label" for="bulk-date-from">From</label>
                                 <input type="date" id="bulk-date-from" class="modal-input" onchange="updateBulkDateMatchCount()">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">To</label>
+                                <label class="modal-label" for="bulk-date-to">To</label>
                                 <input type="date" id="bulk-date-to" class="modal-input" onchange="updateBulkDateMatchCount()">
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Add tag</label>
+                                <label class="modal-label" for="bulk-date-tag">Add tag</label>
                                 <select id="bulk-date-tag" class="modal-input"></select>
                             </div>
                             <div class="modal-field">
-                                <label class="modal-label">Set playbook</label>
+                                <label class="modal-label" for="bulk-date-playbook">Set playbook</label>
                                 <select id="bulk-date-playbook" class="modal-input"></select>
                             </div>
                         </div>
@@ -1113,9 +1117,9 @@
                         </p>
 
                         <div class="modal-field settings-field csv-import-timezone-field">
-                            <label class="modal-label">Time Adjustment (hours to add to your CSV's times)</label>
+                            <label id="csv-timezone-label" class="modal-label">Time Adjustment (hours to add to your CSV's times)</label>
                             <div class="custom-select" id="csv-timezone-dropdown">
-                                <button type="button" class="custom-select-trigger" onclick="toggleCsvTimezoneDropdown()">
+                                <button type="button" class="custom-select-trigger" onclick="toggleCsvTimezoneDropdown()" aria-labelledby="csv-timezone-label">
                                     <span id="csv-timezone-dropdown-label">+0 hours</span>
                                     <i class="fa-solid fa-chevron-down"></i>
                                 </button>
@@ -1182,16 +1186,62 @@
                         <div id="trade-history-list" class="trade-history-list"></div>
                     </div>
 
+                    <!-- Data & Storage -->
+                    <div class="settings-panel" id="settings-panel-storage" style="display: none;">
+                        <h2 class="settings-panel-title">Data &amp; Storage</h2>
+                        <p class="settings-share-desc">
+                            Where your journal is saved and how full it is - plus a backup file you can
+                            keep anywhere. When you're logged in, changes made on your phone and PC are
+                            merged trade by trade, so one device never overwrites the other.
+                        </p>
+                        <div id="storage-overview" class="storage-overview"></div>
+
+                        <hr class="settings-divider">
+
+                        <h3 class="settings-subtitle">Backup</h3>
+                        <p class="settings-share-desc">
+                            Download everything - every account, trade, note, tag and playbook, your
+                            settings and chart drawings - as one file. Restoring a backup replaces your
+                            current journal with the one in the file.
+                        </p>
+                        <label class="storage-check" for="storage-backup-include-shots">
+                            <input type="checkbox" id="storage-backup-include-shots">
+                            Include screenshots (a much bigger file)
+                        </label>
+                        <div class="storage-actions">
+                            <button type="button" class="btn-action btn-blue" onclick="downloadJournalBackup()">
+                                <i class="fa-solid fa-download"></i> Download backup
+                            </button>
+                            <label class="btn-action btn-neutral" for="storage-restore-file-input">
+                                <i class="fa-solid fa-upload"></i> Restore from backup...
+                            </label>
+                            <input type="file" id="storage-restore-file-input" accept=".json,application/json" style="display: none;" onchange="handleJournalBackupFile(event)">
+                        </div>
+                        <div id="storage-backup-status" class="settings-status"></div>
+
+                        <div id="storage-preupgrade-box" style="display: none;">
+                            <hr class="settings-divider">
+                            <h3 class="settings-subtitle">Copy from before the storage upgrade</h3>
+                            <p class="settings-share-desc">
+                                When your journal moved to split storage, an exact copy of it as it was just
+                                before was kept. You won't normally need it.
+                            </p>
+                            <button type="button" class="btn-action btn-neutral" onclick="downloadPreUpgradeBackup()">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Download pre-upgrade copy
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Password & Security -->
                     <div class="settings-panel" id="settings-panel-security" style="display: none;">
                         <h2 class="settings-panel-title">Edit Password & Security</h2>
 
                         <div class="modal-field settings-field">
-                            <label class="modal-label">Password (6 Char min)</label>
+                            <label class="modal-label" for="settings-new-password">Password (6 Char min)</label>
                             <input type="password" id="settings-new-password" class="modal-input">
                         </div>
                         <div class="modal-field settings-field">
-                            <label class="modal-label">Confirm Password (6 Char min)</label>
+                            <label class="modal-label" for="settings-confirm-password">Confirm Password (6 Char min)</label>
                             <input type="password" id="settings-confirm-password" class="modal-input">
                         </div>
 
@@ -1447,7 +1497,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-rotate"></i>
                         <h3>Re-Uploading</h3>
-                        <p>Uploading a new file replaces the previous import, but any tags, journal notes or wash-flags you added to those trades carry over automatically (matched by ticket number).</p>
+                        <p>Uploading a new file replaces the previous import, but any tags, journal notes, playbook, confidence, screenshots or wash-flags you added to those trades carry over automatically (matched by ticket number) - each trade stays the same trade, so the Trade Change History shows only what actually changed.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-download"></i>
@@ -1457,7 +1507,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-rotate-left"></i>
                         <h3>Undo Last Import</h3>
-                        <p>Uploaded the wrong file? "Undo Last Import" (Settings → Import Trades) swaps back to the batch your latest upload - or a "Remove Imported Trades" click - replaced. It keeps one level of history, so undoing twice toggles between the two batches.</p>
+                        <p>Uploaded the wrong file? "Undo Last Import" (Settings → Import Trades) puts your trades back the way they were before your latest upload - or "Remove Imported Trades" click - including the Last Import details. It works through the Trade Change History below, so the undo can itself be undone, and it's available in the browser you imported from.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-clock-rotate-left"></i>
@@ -1999,6 +2049,11 @@
                         <p>Download your full trade history as a CSV, matching whatever's currently filtered on the Dashboard.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-database"></i>
+                        <h3>Data &amp; Storage</h3>
+                        <p>See where your journal is saved and how full it is, and download a <strong>backup file</strong> of everything - accounts, trades, notes, tags, playbooks, settings and chart drawings, optionally with screenshots. <strong>Restore from backup</strong> loads one back (replacing the current journal). Journals that were upgraded to split storage also keep a copy from just before the upgrade, downloadable here.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-shield-halved"></i>
                         <h3>Password &amp; Security</h3>
                         <p>Change your password here. If it fails, log out and back in first - this is a security requirement for sensitive changes.</p>
@@ -2078,6 +2133,18 @@
                     <details class="help-faq-item">
                         <summary>Can I bulk-import my trade history instead of entering trades one by one?</summary>
                         <p>Yes - Settings → Import Trades accepts a closed-trades CSV export from brokers like Exness (MT4/MT5-style reports), and if your broker only gives HTML reports, that page has free MT4/MT5 scripts that export the CSV for you. Re-uploading a newer export replaces the previous import but keeps any tags/notes you added - and "Undo Last Import" brings back the replaced batch if you upload the wrong file.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>I use Bullion Book on my phone and my PC - can one overwrite the other?</summary>
+                        <p>No. When you're logged in, a change made on one device shows up on the other within moments (you'll see "Updated with changes from your other device"). If both save at nearly the same time, the changes are merged trade by trade and field by field - e.g. a tag added on your phone and a note written on your PC both survive. Only when both devices change the very same field of the same trade does the later save win.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>What does the "Not saved" message in the corner mean?</summary>
+                        <p>A save didn't reach the server - usually because you're offline. Your change is kept on screen and retried automatically (or tap <strong>Retry now</strong>), and the app asks before you close the tab while anything is unsaved. If the app ever can't load your journal, it says so and saves nothing until it loads, so an empty screen can never overwrite your real data.</p>
+                    </details>
+                    <details class="help-faq-item">
+                        <summary>How do I back up my journal?</summary>
+                        <p>Settings → Data &amp; Storage → <strong>Download backup</strong> saves everything in one file you can keep anywhere (tick "Include screenshots" for a complete copy). <strong>Restore from backup</strong> on the same page loads it back. Your journal is stored safely in the cloud either way - the backup is for your own peace of mind.</p>
                     </details>
                 </div>
             </section>
@@ -2247,22 +2314,22 @@
                 <div id="trade-tab-panel-general">
                     <div class="modal-field-row">
                         <div class="modal-field">
-                            <label class="modal-label">Symbol</label>
+                            <label class="modal-label" for="trade-modal-symbol">Symbol</label>
                             <input type="text" id="trade-modal-symbol" class="modal-input" placeholder="XAUUSD" oninput="clearFieldInvalid(this)">
                         </div>
                         <div class="modal-field">
-                            <label class="modal-label">Target</label>
+                            <label class="modal-label" for="trade-modal-target">Target</label>
                             <input type="number" step="0.001" id="trade-modal-target" class="modal-input">
                         </div>
                         <div class="modal-field">
-                            <label class="modal-label">Stop-Loss</label>
+                            <label class="modal-label" for="trade-modal-stoploss">Stop-Loss</label>
                             <input type="number" step="0.001" id="trade-modal-stoploss" class="modal-input">
                         </div>
                     </div>
 
                     <div class="modal-field-row" style="align-items: flex-start;">
                         <div class="modal-field">
-                            <label class="modal-label">Playbook</label>
+                            <label class="modal-label" for="trade-modal-playbook">Playbook</label>
                             <div class="modal-input-with-btn">
                                 <select id="trade-modal-playbook" class="modal-input"></select>
                                 <button type="button" class="modal-add-row-btn modal-inline-add-btn" onclick="quickAddPlaybookFromTradeModal()" title="Create a new playbook">
@@ -2271,7 +2338,7 @@
                             </div>
                         </div>
                         <div class="modal-field">
-                            <label class="modal-label">Tags</label>
+                            <label class="modal-label" for="trade-modal-tag-select">Tags</label>
                             <div class="modal-input-with-btn">
                                 <select id="trade-modal-tag-select" class="modal-input" onchange="addTagFromTradeModalSelect(this.value); this.value = '';">
                                     <option value="">Add a tag...</option>
@@ -2307,12 +2374,12 @@
 
                 <div id="trade-tab-panel-journal" style="display: none;">
                     <div class="modal-field">
-                        <label class="modal-label">Notes</label>
+                        <label class="modal-label" for="trade-modal-journal">Notes</label>
                         <textarea id="trade-modal-journal" class="modal-input trade-journal-textarea" rows="8" placeholder="What was your setup, reasoning, lessons learned?"></textarea>
                     </div>
 
                     <div class="modal-field">
-                        <label class="modal-label">Confidence: <span id="trade-confidence-value">5</span></label>
+                        <label class="modal-label" for="trade-modal-confidence">Confidence: <span id="trade-confidence-value">5</span></label>
                         <input type="range" id="trade-modal-confidence" class="confidence-slider" min="0" max="10" step="1" value="5" oninput="updateTradeConfidenceLabel(this.value)">
                         <div class="confidence-slider-ticks"><span>0</span><span>5</span><span>10</span></div>
                     </div>
@@ -2340,11 +2407,11 @@
     <!-- Custom date-range popover (toggled from the "Custom" quick-filter button, shared between Dashboard and Stats) -->
     <div id="custom-date-range-popover" class="custom-date-popover" style="display: none;">
         <div class="modal-field">
-            <label class="modal-label">From</label>
+            <label class="modal-label" for="custom-date-from">From</label>
             <input type="date" id="custom-date-from" class="modal-input">
         </div>
         <div class="modal-field">
-            <label class="modal-label">To</label>
+            <label class="modal-label" for="custom-date-to">To</label>
             <input type="date" id="custom-date-to" class="modal-input">
         </div>
         <button class="btn-action btn-blue" style="width: auto;" onclick="applyCustomDateRange()">Apply</button>
@@ -2354,11 +2421,11 @@
          blocks are shown, by From/To range and/or specific weekdays) -->
     <div id="chart-date-range-popover" class="custom-date-popover chart-date-popover-stack" style="display: none;">
         <div class="modal-field">
-            <label class="modal-label">From</label>
+            <label class="modal-label" for="chart-date-from">From</label>
             <input type="date" id="chart-date-from" class="modal-input">
         </div>
         <div class="modal-field">
-            <label class="modal-label">To</label>
+            <label class="modal-label" for="chart-date-to">To</label>
             <input type="date" id="chart-date-to" class="modal-input">
         </div>
         <div class="modal-field">
@@ -2406,7 +2473,7 @@
          time window; one time, or both equal, means that exact minute) -->
     <div id="chart-time-popover" class="custom-date-popover" style="display: none;">
         <div class="modal-field">
-            <label class="modal-label">Show news between</label>
+            <label class="modal-label" for="news-time-from">Show news between</label>
             <div class="news-time-filter-row">
                 <input type="time" id="news-time-from" class="modal-input">
                 <span class="news-time-sep">to</span>
@@ -2426,7 +2493,7 @@
 
         <div class="trade-filter-grid">
             <div class="modal-field">
-                <label class="modal-label">Tags</label>
+                <label class="modal-label" for="filter-tag-input">Tags</label>
                 <div class="tag-chip-box filter-chip-box" id="filter-tag-chip-box" onclick="document.getElementById('filter-tag-input').focus()">
                     <span id="filter-tag-chips"></span>
                     <input type="text" id="filter-tag-input" class="tag-chip-text-input" placeholder="Search & Select"
@@ -2436,7 +2503,7 @@
             </div>
 
             <div class="modal-field">
-                <label class="modal-label">Symbol</label>
+                <label class="modal-label" for="filter-symbol-input">Symbol</label>
                 <div class="tag-chip-box filter-chip-box" id="filter-symbol-chip-box" onclick="document.getElementById('filter-symbol-input').focus()">
                     <span id="filter-symbol-chips"></span>
                     <input type="text" id="filter-symbol-input" class="tag-chip-text-input" placeholder="Search & Select"
@@ -2446,7 +2513,7 @@
             </div>
 
             <div class="modal-field">
-                <label class="modal-label">Playbook</label>
+                <label class="modal-label" for="filter-playbook-input">Playbook</label>
                 <div class="tag-chip-box filter-chip-box" id="filter-playbook-chip-box" onclick="document.getElementById('filter-playbook-input').focus()">
                     <span id="filter-playbook-chips"></span>
                     <input type="text" id="filter-playbook-input" class="tag-chip-text-input" placeholder="Search & Select"
@@ -2456,7 +2523,7 @@
             </div>
 
             <div class="modal-field">
-                <label class="modal-label">Direction</label>
+                <label class="modal-label" for="filter-direction-select">Direction</label>
                 <select id="filter-direction-select" class="modal-input" onchange="updateTradeFilterCounter()">
                     <option value="">All</option>
                     <option value="long">Long</option>
@@ -2465,7 +2532,7 @@
             </div>
 
             <div class="modal-field" style="grid-column: 1 / -1;">
-                <label class="modal-label">Status</label>
+                <label class="modal-label" for="filter-status-select">Status</label>
                 <select id="filter-status-select" class="modal-input" onchange="updateTradeFilterCounter()">
                     <option value="">All</option>
                     <option value="WIN">Win</option>
@@ -2520,11 +2587,11 @@
 
                 <div class="modal-field-row">
                     <div class="modal-field" style="flex: 0 0 180px;">
-                        <label class="modal-label">Date</label>
+                        <label class="modal-label" for="note-modal-date">Date</label>
                         <input type="date" id="note-modal-date" class="modal-input">
                     </div>
                     <div class="modal-field">
-                        <label class="modal-label">Summary</label>
+                        <label class="modal-label" for="note-modal-summary">Summary</label>
                         <input type="text" id="note-modal-summary" class="modal-input">
                     </div>
                 </div>
@@ -2685,15 +2752,15 @@
             <div class="modal-card-body">
                 <div class="modal-field-row">
                     <div class="modal-field">
-                        <label class="modal-label">Name</label>
+                        <label class="modal-label" for="account-modal-name">Name</label>
                         <input type="text" id="account-modal-name" class="modal-input">
                     </div>
                     <div class="modal-field modal-field-narrow">
-                        <label class="modal-label">Primary</label>
+                        <label class="modal-label" for="account-modal-primary">Primary</label>
                         <input type="checkbox" id="account-modal-primary" class="modal-primary-checkbox">
                     </div>
                     <div class="modal-field">
-                        <label class="modal-label">Account Balance</label>
+                        <label class="modal-label" for="account-modal-balance">Account Balance</label>
                         <input type="text" id="account-modal-balance" class="modal-input modal-balance-input" readonly>
                     </div>
                 </div>
@@ -2728,11 +2795,15 @@
         </div>
     </div>
 
+    <!-- Save/load problems (sync.js) - hidden while everything is saved -->
+    <div id="sync-status" class="sync-status" role="status" aria-live="polite" style="display: none;"></div>
+
     <!-- Page Engine Logic Script -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" integrity="sha384-AQ3POAMqIhwS81FrUH95ekxqBZHeP5tG2JfEL3+7GuTtfRLWnrRh32UxwzM+//A9" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" integrity="sha384-TnlRYaR4JYz/lpaGuaiU61PjNberSA4vjLjtF+oRC/IkohkJqnWxw5EmDSOt1vA1" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" integrity="sha384-qn4Jh88HhJA8dplNQyGjOh9OGI4izVhrfj/qIFgaKcdgOE06pXqIKGlsCILZcLAC" crossorigin="anonymous"></script>
     <script src="firebase-config.js"></script>
+    <script src="sync.js"></script>
     <script src="auth.js"></script>
     <script src="accounts.js"></script>
     <script src="trades.js"></script>
@@ -2743,13 +2814,13 @@
     <script src="notes.js"></script>
     <script src="filters.js"></script>
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="chart-tools.js?v=12"></script>
-    <script src="community.js?v=3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" integrity="sha384-D/t0ZMqQW31H3az8ktEiNb39wyKnS82iFY52QPACM+IjKW3jDUhyIgh2PApRqJZs" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js" integrity="sha384-H0EPPjv7ixOj+jc02Ij2W0/YnejsLctsMgFa/B1lyNwXOtrYfH40FPGyCtU+N5c/" crossorigin="anonymous"></script>
+    <script src="chart-tools.js?v=13"></script>
+    <script src="community.js?v=4"></script>
     <script src="coach.js?v=5"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=56"></script>
+    <script src="app.js?v=57"></script>
 
 </body>
 </html>

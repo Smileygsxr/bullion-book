@@ -1,0 +1,39 @@
+# Runs the test suite on every push and pull request: first against the
+# source, then against the minified production build (the same build Vercel
+# deploys), so a change that only breaks after minifying is caught too.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The ~220 MB of chart data in data/ isn't needed to test the code
+          sparse-checkout: |
+            /*
+            !/data/
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install build tools (esbuild)
+        run: npm install --no-audit --no-fund
+
+      - name: Tests (source)
+        run: node tests/run.js
+
+      - name: Build (minify + content-hash stamps)
+        run: node scripts/build.js --skip-data
+
+      - name: Tests (minified build)
+        run: node tests/run.js
+        env:
+          BB_TEST_ROOT: dist

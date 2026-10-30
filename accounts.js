@@ -1,12 +1,14 @@
-// Multi-account balances/transactions. Persisted in Firestore under users/{uid}
-// for logged-in users, or localStorage for guests (skipLogin has no uid to scope
-// a Firestore doc to). "Primary account" == accountsState.activeAccountId: the
+// Multi-account balances/transactions. Persisted in Firestore for logged-in
+// users - loading, conflict-safe saving and the storage format all live in
+// sync.js - or localStorage for guests (skipLogin has no uid to scope a
+// Firestore doc to). "Primary account" == accountsState.activeAccountId: the
 // one shown in the sidebar and edited by default in the modal.
 const GUEST_ACCOUNTS_KEY = 'bb_accounts_guest';
 const LAST_ACCOUNT_KEY = 'bb_last_account'; // last account used on this device
 
 let accountsState = { accounts: {}, activeAccountId: null };
 let draftAccount = null;
+let draftAccountBase = null; // the account as it was when the modal opened
 
 function genId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -134,20 +136,16 @@ function runGenericConfirmModalAction() {
 function initAccounts() {
     auth.onAuthStateChanged(user => {
         if (user) {
-            loadAccountsFromFirestore(user.uid);
+            // sync.js loads the journal (then calls applyLoadedState) and keeps
+            // it in sync with the user's other devices. A failed load no longer
+            // falls back to a fresh empty account - that empty account used to
+            // be saved straight over the real journal.
+            startUserSync(user.uid);
         } else {
+            stopUserSync();
             loadAccountsFromLocalStorage();
         }
     });
-}
-
-function loadAccountsFromFirestore(uid) {
-    db.collection('users').doc(uid).get()
-        .then(doc => applyLoadedState(doc.exists ? doc.data().bullionAccounts : null))
-        .catch(err => {
-            console.error('Failed to load accounts from Firestore:', err.message);
-            applyLoadedState(null);
-        });
 }
 
 function loadAccountsFromLocalStorage() {
@@ -189,9 +187,14 @@ function applyLoadedState(saved) {
             const lastId = localStorage.getItem(LAST_ACCOUNT_KEY);
             if (lastId && accountsState.accounts[lastId]) accountsState.activeAccountId = lastId;
         } catch (e) { /* ignore unavailable storage */ }
+        // csvImportUndo was a one-level undo copy of a whole CSV import, kept
+        // inside the account - doubling the size of every save. The Trade
+        // Change History (below) replaced it; drop any left from before.
+        const hadImportUndo = Object.values(accountsState.accounts).some(acc => acc && acc.csvImportUndo !== undefined);
+        Object.values(accountsState.accounts).forEach(acc => { if (acc) delete acc.csvImportUndo; });
         const anyFixed = Object.values(accountsState.accounts)
             .map(normalizeStoredTradeSymbols)
-            .some(Boolean);
+            .some(Boolean) || hadImportUndo;
         // The just-loaded (and symbol-cleaned) trades are the history baseline
         // BEFORE any save, so loading never shows up as a "change".
         resetTradeHistoryBaselines();
@@ -219,6 +222,7 @@ function applyLoadedState(saved) {
 const TRADE_HISTORY_LIMIT = 10;
 let tradeHistoryBaselines = {}; // accountId -> JSON of its trades at last save/load
 let pendingTradeChangeLabel = null;
+let pendingTradeChangeExtra = null;
 
 function tradeHistoryKey(accountId) {
     return `bb_trade_history_${accountId}`;
@@ -251,9 +255,12 @@ function resetTradeHistoryBaselines() {
 }
 
 // Lets a caller name the change it's about to save (e.g. the CSV importer);
-// otherwise a label is generated from what changed.
-function labelNextTradeChange(label) {
+// otherwise a label is generated from what changed. extra is stored on the
+// entry - the CSV importer passes { kind: 'csv-import', csvMetaBefore } so
+// "Undo Last Import" can find its entry and restore the Last Import info.
+function labelNextTradeChange(label, extra) {
     pendingTradeChangeLabel = label;
+    pendingTradeChangeExtra = extra || null;
 }
 
 function diffTradeLists(before, after) {
@@ -288,7 +295,9 @@ function recordTradeHistory() {
     const baseJson = tradeHistoryBaselines[account.id];
     tradeHistoryBaselines[account.id] = nowJson;
     const label = pendingTradeChangeLabel;
+    const extra = pendingTradeChangeExtra;
     pendingTradeChangeLabel = null;
+    pendingTradeChangeExtra = null;
     if (baseJson === undefined || baseJson === nowJson) return; // first sight of the account, or no trade change
 
     const after = account.trades || [];
@@ -303,6 +312,7 @@ function recordTradeHistory() {
         removed: diff.removed,
         changed: diff.changed
     };
+    if (extra) Object.assign(entry, extra);
     storeTradeHistory(account.id, [entry].concat(loadTradeHistory(account.id)));
     renderTradeHistoryPanel();
 }
@@ -320,6 +330,12 @@ function revertTradeHistoryTo(entryId) {
     let trades = (account.trades || []).slice();
     for (let i = 0; i <= idx; i++) {
         const h = history[i];
+        // A CSV import also replaced the Last Import info - put back the one
+        // from before it (oldest undone entry last, so it ends up winning)
+        if (Object.prototype.hasOwnProperty.call(h, 'csvMetaBefore')) {
+            if (h.csvMetaBefore) account.csvImportMeta = h.csvMetaBefore;
+            else delete account.csvImportMeta;
+        }
         const added = new Set(h.added || []);
         trades = trades.filter(t => !added.has(t.id));
         const changedById = new Map((h.changed || []).map(t => [t.id, t]));
@@ -392,15 +408,18 @@ function saveAccountsState() {
     recordTradeHistory();
     const uid = auth.currentUser && auth.currentUser.uid;
     if (uid) {
-        // mergeFields (NOT merge:true): accounts is a map keyed by account id,
-        // and a deep merge would treat deleted ids as "keep the stored value" -
-        // resurrecting deleted accounts on the next load. mergeFields replaces
-        // this field wholesale while preserving the doc's other fields
-        // (chartDrawings, appSettings, profilePhotoDataUrl).
-        db.collection('users').doc(uid).set({ bullionAccounts: accountsState }, { mergeFields: ['bullionAccounts'] })
-            .catch(err => console.error('Failed to save accounts to Firestore:', err.message));
+        // sync.js: written shortly after (a burst of saves becomes one write),
+        // merged with any change made on another device in the meantime, and
+        // shown on screen + retried if it fails.
+        requestJournalSync();
     } else {
-        localStorage.setItem(GUEST_ACCOUNTS_KEY, JSON.stringify(accountsState));
+        try {
+            localStorage.setItem(GUEST_ACCOUNTS_KEY, JSON.stringify(accountsState));
+        } catch (e) {
+            if (typeof communityToast === 'function') {
+                communityToast('Not saved - this browser\'s storage is full. Log in to keep your journal in the cloud, or remove some screenshots.', true);
+            }
+        }
     }
 }
 
@@ -478,6 +497,7 @@ function openAccountModal() {
     const active = getActiveAccount();
     if (!active) return;
     draftAccount = JSON.parse(JSON.stringify(active));
+    draftAccountBase = JSON.parse(JSON.stringify(active));
     renderAccountModal();
     document.getElementById('account-modal-overlay').style.display = 'flex';
 }
@@ -485,6 +505,7 @@ function openAccountModal() {
 function closeAccountModal() {
     document.getElementById('account-modal-overlay').style.display = 'none';
     draftAccount = null;
+    draftAccountBase = null;
 }
 
 function renderAccountModal() {
@@ -539,7 +560,13 @@ function saveAccountModal() {
     draftAccount.name = document.getElementById('account-modal-name').value.trim() || 'Account';
     const makePrimary = document.getElementById('account-modal-primary').checked;
 
-    accountsState.accounts[draftAccount.id] = draftAccount;
+    // Merged into the live account rather than replacing it, so a trade or
+    // change that arrived from another device while the modal was open
+    // (sync.js) isn't wiped by this older copy
+    const live = accountsState.accounts[draftAccount.id];
+    accountsState.accounts[draftAccount.id] = live && draftAccountBase && typeof mergeJournalValues === 'function'
+        ? mergeJournalValues(draftAccountBase, draftAccount, live)
+        : draftAccount;
     if (makePrimary) accountsState.activeAccountId = draftAccount.id;
 
     saveAccountsState();
@@ -578,5 +605,6 @@ function newAccountModal() {
     renderSidebarAccount();
 
     draftAccount = JSON.parse(JSON.stringify(fresh));
+    draftAccountBase = JSON.parse(JSON.stringify(fresh));
     renderAccountModal();
 }

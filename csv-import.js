@@ -308,6 +308,11 @@ function importTradesFromCsvText(csvText, filename) {
     (account.trades || []).forEach(t => {
         if (t.source === 'csv-import' && t.csvRowKey) {
             previousByKey.set(t.csvRowKey, {
+                // Same trade, same ids: the re-import then shows up in the
+                // Trade Change History (and merges across devices) as edits
+                // to existing trades rather than "deleted all, added all"
+                id: t.id,
+                legIds: (t.legs || []).map(leg => leg && leg.id),
                 tagIds: t.tagIds || [],
                 journal: t.journal || '',
                 forceWash: !!t.forceWash,
@@ -319,6 +324,7 @@ function importTradesFromCsvText(csvText, filename) {
     });
 
     const importedTrades = [];
+    const usedTradeIds = new Set();
     rows.forEach(row => {
         const typeRaw = (row[columns.type] || '').trim().toLowerCase();
         if (typeRaw !== 'buy' && typeRaw !== 'sell') return; // skip pending orders/balance rows/etc.
@@ -386,6 +392,11 @@ function importTradesFromCsvText(csvText, filename) {
 
         const previous = previousByKey.get(dedupKey);
         if (previous) {
+            // (a file listing the same ticket twice mustn't give two trades one id)
+            if (previous.id && !usedTradeIds.has(previous.id)) {
+                trade.id = previous.id;
+                legs.forEach((leg, i) => { if (previous.legIds[i]) leg.id = previous.legIds[i]; });
+            }
             trade.tagIds = previous.tagIds;
             trade.journal = previous.journal;
             trade.forceWash = previous.forceWash;
@@ -394,6 +405,7 @@ function importTradesFromCsvText(csvText, filename) {
             trade.screenshots = previous.screenshots;
         }
 
+        usedTradeIds.add(trade.id);
         importedTrades.push(trade);
     });
 
@@ -403,14 +415,7 @@ function importTradesFromCsvText(csvText, filename) {
     }
 
     if (!account.trades) account.trades = [];
-
-    // One-level undo: snapshot the batch being replaced (and its meta) so a
-    // bad upload can be rolled back - see undoLastCsvImport.
-    account.csvImportUndo = {
-        trades: account.trades.filter(t => t.source === 'csv-import'),
-        meta: account.csvImportMeta || null,
-        savedAt: new Date().toISOString()
-    };
+    const metaBefore = account.csvImportMeta || null;
 
     // Replace whatever was imported last time - trades added manually (no
     // source: 'csv-import' marker) are left untouched.
@@ -418,9 +423,11 @@ function importTradesFromCsvText(csvText, filename) {
     account.trades.push(...importedTrades);
     account.csvImportMeta = { filename, importedAt: new Date().toISOString(), tradeCount: importedTrades.length };
 
-    // The whole import is ONE entry in the trade change history
+    // The whole import is ONE entry in the trade change history - which is
+    // also what "Undo Last Import" reverts (see undoLastCsvImport)
     if (typeof labelNextTradeChange === 'function') {
-        labelNextTradeChange(`Imported ${importedTrades.length} trade${importedTrades.length === 1 ? '' : 's'} from ${filename}`);
+        labelNextTradeChange(`Imported ${importedTrades.length} trade${importedTrades.length === 1 ? '' : 's'} from ${filename}`,
+            { kind: 'csv-import', csvMetaBefore: metaBefore });
     }
     saveAccountsState();
     updateSidebarBalanceDisplay();
@@ -438,21 +445,17 @@ function importTradesFromCsvText(csvText, filename) {
 function removeCsvImportedTrades() {
     const account = getActiveAccount();
     const before = (account.trades || []).length;
-
-    // Same one-level undo snapshot as an import - an accidental Remove click
-    // is recoverable via Undo Last Import.
-    account.csvImportUndo = {
-        trades: (account.trades || []).filter(t => t.source === 'csv-import'),
-        meta: account.csvImportMeta || null,
-        savedAt: new Date().toISOString()
-    };
+    const metaBefore = account.csvImportMeta || null;
 
     account.trades = (account.trades || []).filter(t => t.source !== 'csv-import');
     const removed = before - account.trades.length;
     delete account.csvImportMeta;
 
+    // Recorded like an import, so an accidental Remove click is recoverable
+    // via Undo Last Import too
     if (typeof labelNextTradeChange === 'function') {
-        labelNextTradeChange(`Removed ${removed} imported trade${removed === 1 ? '' : 's'}`);
+        labelNextTradeChange(`Removed ${removed} imported trade${removed === 1 ? '' : 's'}`,
+            { kind: 'csv-import', csvMetaBefore: metaBefore });
     }
     saveAccountsState();
     updateSidebarBalanceDisplay();
@@ -463,38 +466,25 @@ function removeCsvImportedTrades() {
     showCsvImportStatus(`Removed ${removed} imported trade${removed === 1 ? '' : 's'}.`, false);
 }
 
-// Restores the CSV-imported batch that the most recent upload (or "Remove
-// Imported Trades" click) replaced - one level deep: undoing twice swaps back
-// and forth between the two batches, nothing is ever lost.
-function undoLastCsvImport() {
+// The most recent import (or "Remove Imported Trades") in this browser's
+// Trade Change History, if it's still among the last 10 changes.
+function findLastCsvImportChange() {
     const account = getActiveAccount();
-    const undo = account.csvImportUndo;
-    if (!undo) {
-        showCsvImportStatus('Nothing to undo - no previous import has been replaced yet.', true);
+    if (!account || typeof loadTradeHistory !== 'function') return null;
+    return loadTradeHistory(account.id).find(h => h.kind === 'csv-import') || null;
+}
+
+// Puts the trades back the way they were before the latest import/remove -
+// a revert in the Trade Change History (accounts.js), so it's undoable too.
+// This used to swap with a full copy of the previous import stored inside the
+// synced account, which doubled the size of every save.
+function undoLastCsvImport() {
+    const entry = findLastCsvImportChange();
+    if (!entry) {
+        showCsvImportStatus('Nothing to undo - no import is in this browser\'s Trade Change History.', true);
         return;
     }
-
-    // Swap: the current batch becomes the new undo snapshot, the snapshot
-    // becomes the live batch.
-    const currentBatch = (account.trades || []).filter(t => t.source === 'csv-import');
-    const currentMeta = account.csvImportMeta || null;
-
-    account.trades = (account.trades || []).filter(t => t.source !== 'csv-import');
-    account.trades.push(...(undo.trades || []));
-    if (undo.meta) account.csvImportMeta = undo.meta;
-    else delete account.csvImportMeta;
-
-    account.csvImportUndo = { trades: currentBatch, meta: currentMeta, savedAt: new Date().toISOString() };
-
-    if (typeof labelNextTradeChange === 'function') labelNextTradeChange('Undid last CSV import');
-    saveAccountsState();
-    updateSidebarBalanceDisplay();
-    if (typeof renderTradeLog === 'function') renderTradeLog();
-    if (typeof renderStatsPage === 'function') renderStatsPage();
-
-    renderCsvImportMeta();
-    const restored = (undo.trades || []).length;
-    showCsvImportStatus(`Undone - restored the previous import (${restored} trade${restored === 1 ? '' : 's'}).`, false);
+    confirmRevertTradeHistory(entry.id);
 }
 
 function showCsvImportStatus(message, isError) {
@@ -523,14 +513,14 @@ function renderCsvImportMeta() {
 
     const account = getActiveAccount();
 
-    // Undo button only shows once there's a replaced batch to fall back to
+    // Undo button only shows while an import is in the change history
     const undoBtn = document.getElementById('csv-import-undo-btn');
     if (undoBtn) {
-        const undo = account.csvImportUndo;
-        undoBtn.style.display = undo ? 'flex' : 'none';
-        if (undo) {
-            const count = (undo.trades || []).length;
-            undoBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Undo Last Import (restores ${count} trade${count === 1 ? '' : 's'})`;
+        const entry = findLastCsvImportChange();
+        undoBtn.style.display = entry ? 'flex' : 'none';
+        if (entry) {
+            const count = (entry.removed || []).length;
+            undoBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Undo Last Import (restores the ${count} trade${count === 1 ? '' : 's'} it replaced)`;
         }
     }
 

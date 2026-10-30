@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-t1nt8BQoYMLFN5p42tRAtuAAFQaCQODekUVeKKZrEnEyp4H2R0RHFz0KWpmj7i8g" crossorigin="anonymous">
     <style>
         :root {
             --bg-dark: #131722;
@@ -154,6 +154,30 @@
     </div>
 
     <script>
+        // Everything below comes from the link itself (#data=...), and anyone
+        // can craft a link - so the payload is normalized ONCE: text escaped,
+        // numbers forced to real numbers, and only that clean copy is rendered.
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function finiteOr(v, fallback) {
+            return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+        }
+
+        function normalizeTrades(raw) {
+            return (Array.isArray(raw) ? raw : []).slice(0, 500).filter(t => t && typeof t === 'object').map(t => ({
+                date: typeof t.date === 'string' ? t.date : '',
+                symbol: escapeHtml(String(t.symbol == null ? '' : t.symbol).slice(0, 20)),
+                direction: t.direction === 'long' ? 'long' : 'short',
+                qty: finiteOr(t.qty, 0),
+                entry: finiteOr(t.entry, 0),
+                exit: finiteOr(t.exit, null),
+                ret: finiteOr(t.ret, 0),
+                retPct: finiteOr(t.retPct, 0)
+            }));
+        }
+
         function formatTotal(value, symbol) {
             const sign = value < 0 ? '-' : '';
             return `${sign}${symbol}${Math.abs(value).toFixed(2)}`;
@@ -190,8 +214,13 @@
 
         function renderJournal() {
             const hash = window.location.hash.replace(/^#/, '');
-            const params = new URLSearchParams(hash);
-            const encoded = params.get('data');
+            // URLSearchParams turns '+' into a space, which corrupted plain-base64
+            // links whenever the data produced a '+' - restore it so links that
+            // were already shared still open. New links are URL-safe base64
+            // ('-' / '_', no '=' padding), mapped back here.
+            const rawData = (new URLSearchParams(hash).get('data') || '')
+                .replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/');
+            const encoded = rawData ? rawData + '='.repeat((4 - rawData.length % 4) % 4) : '';
             const content = document.getElementById('journal-content');
 
             if (!encoded) {
@@ -207,19 +236,24 @@
                 return;
             }
 
-            const symbol = payload.currencySymbol || '$';
-            document.getElementById('journal-title').textContent = `${payload.accountName || 'Trading'} Journal`;
+            if (!payload || typeof payload !== 'object') {
+                content.innerHTML = '<div class="journal-empty">This link is invalid or corrupted.</div>';
+                return;
+            }
+            const symbol = escapeHtml(String(payload.currencySymbol || '$').slice(0, 4));
+            const trades = normalizeTrades(payload.trades);
+            // textContent never interprets HTML, so these two are safe as-is
+            document.getElementById('journal-title').textContent = `${String(payload.accountName || 'Trading').slice(0, 60)} Journal`;
             document.getElementById('journal-meta').textContent =
-                `Generated ${new Date(payload.generatedAt).toLocaleString()} - last ${payload.trades.length} trade(s)`;
+                `Generated ${new Date(payload.generatedAt).toLocaleString()} - last ${trades.length} trade(s)`;
 
-            if (payload.trades.length === 0) {
+            if (trades.length === 0) {
                 content.innerHTML = '<div class="journal-empty">No closed trades to show.</div>';
                 return;
             }
 
             // Summary stats derived on the fly from the shared trades - the
             // link payload stays minimal and older links render these too.
-            const trades = payload.trades;
             const netPnl = trades.reduce((s, t) => s + t.ret, 0);
             const winners = trades.filter(t => t.ret > 0);
             const losers = trades.filter(t => t.ret < 0);
@@ -265,7 +299,7 @@
                         <td>${sideChip}</td>
                         <td>${t.qty}</td>
                         <td>${symbol}${t.entry.toFixed(3)}</td>
-                        <td>${t.exit ? symbol + t.exit.toFixed(3) : '-'}</td>
+                        <td>${t.exit !== null ? symbol + t.exit.toFixed(3) : '-'}</td>
                         <td class="${returnClass}">${formatTotal(t.ret, symbol)}</td>
                         <td class="${returnClass}">${t.retPct.toFixed(2)}%</td>
                     </tr>`;

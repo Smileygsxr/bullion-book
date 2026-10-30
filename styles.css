@@ -8967,3 +8967,74 @@ html[data-theme="blossom"] {
 @media (max-width: 900px) {
     .review-tiles { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 }
+
+/* ---- Save/load status pill (sync.js renderSyncStatus) ----------------
+   Hidden while everything is saved. Shows a failed save (with Retry), a
+   journal that couldn't load, "offline", or "Saving..." for a slow save.
+   Sits above the toast layer so a long-lived problem stays visible. */
+.sync-status {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(92vw, 440px);
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    color: var(--text-light);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    z-index: 950;
+}
+
+.sync-status i { color: var(--text-muted); flex-shrink: 0; }
+.sync-status.error { border-color: rgba(var(--loss-rgb), 0.6); }
+.sync-status.error i { color: var(--loss); }
+.sync-status.info i { color: var(--accent-gold); }
+.sync-status.saving i { color: var(--accent-blue); }
+
+.sync-status button {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    background: rgba(var(--loss-rgb), 0.12);
+    border: 1px solid rgba(var(--loss-rgb), 0.5);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sync-status button:hover { background: rgba(var(--loss-rgb), 0.22); }
+
+@media (max-width: 700px) {
+    .sync-status { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+}
+
+/* ---- Settings > Data & Storage --------------------------------------- */
+.storage-overview { display: flex; flex-direction: column; gap: 10px; margin-bottom: 6px; }
+.storage-mode { margin: 0; font-size: 0.86rem; font-weight: 600; color: var(--text-light); display: flex; gap: 8px; align-items: baseline; }
+.storage-mode i { color: var(--text-muted); }
+.storage-mode.ok i { color: var(--win); }
+.storage-mode.warn i { color: var(--accent-gold); }
+.storage-overview .settings-field-hint { margin: 0; }
+
+.storage-meter { display: flex; flex-direction: column; gap: 5px; max-width: 520px; }
+.storage-meter-head { display: flex; justify-content: space-between; gap: 12px; font-size: 0.76rem; color: var(--text-muted); }
+.storage-meter-track { height: 8px; border-radius: 4px; background: var(--bg-dark); border: 1px solid var(--border-color); overflow: hidden; }
+.storage-meter-fill { height: 100%; background: var(--win); border-radius: 4px; transition: width 0.3s ease; }
+.storage-meter-fill.warn { background: var(--accent-gold); }
+.storage-meter-fill.danger { background: var(--loss); }
+
+.storage-check { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; font-size: 0.8rem; color: var(--text-light); cursor: pointer; }
+.storage-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.storage-actions .btn-action { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+
+/* Trade screenshots stored as their own documents load on demand
+   (sync.js hydrateScreenshotImages) */
+img.screenshot-loading { background: var(--bg-dark); min-height: 60px; }
+img.screenshot-missing { background: var(--bg-dark); min-height: 60px; outline: 1px dashed var(--border-color); }

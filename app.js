@@ -1788,8 +1788,10 @@ function parseChartCsvBars(csvText) {
         };
     });
 
-    // Filter out any broken header rows or text fragments and sort chronologically
-    const cleanData = formattedData.filter(d => !isNaN(d.time) && !isNaN(d.close));
+    // Filter out any broken header rows or text fragments (a candle needs all
+    // four prices - one missing any can't be drawn) and sort chronologically.
+    // Also used by the Trade View chart (trades.js).
+    const cleanData = formattedData.filter(d => !isNaN(d.time) && !isNaN(d.open) && !isNaN(d.high) && !isNaN(d.low) && !isNaN(d.close));
     cleanData.sort((a, b) => a.time - b.time);
     return cleanData;
 }

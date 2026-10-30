@@ -4,59 +4,173 @@ rules_version = '2';
 //
 // Derived from the app's actual access patterns:
 //   users/{uid}                  - accounts.js, settings.js, chart-tools.js
+//   users/{uid}/...              - sync.js: journal parts, screenshots, backups
 //   communityShares/{shareId}    - community.js (Trade Wall)
 //   communityLeaderboard/{entry} - community.js (weekly board)
 //
 // Deploy with:  firebase deploy --only firestore:rules
+// (or paste this file into Firebase console > Firestore > Rules > Publish)
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function str(v, maxLen) {
+      return v is string && v.size() <= maxLen;
+    }
+
+    function optStr(v, maxLen) {
+      return v == null || str(v, maxLen);
+    }
+
+    function optNum(v, lo, hi) {
+      return v == null || (v is number && v >= lo && v <= hi);
+    }
+
+    function validPhoto(v) {
+      return v == null || (str(v, 2048) && v.matches('https?://.+'));
+    }
+
     // ---- Private journal data -------------------------------------------
-    // One document per user holding bullionAccounts (every trade, note and
-    // account), appSettings, chartDrawings and profilePhotoDataUrl. This is
-    // the sensitive data - only ever readable/writable by its owner. Nothing
-    // in the app reads another user's document.
+    // One main document per user (settings, chart drawings, profile photo,
+    // the journal's index) plus its subcollections - journalParts (the
+    // journal itself), screenshots and backups. See sync.js. The sensitive
+    // data: only ever readable/writable by its owner.
+    function storageVersion(data) {
+      return data.get('bullionStorage', {}).get('version', 1);
+    }
+
+    // Once a journal has moved to split storage (bullionStorage.version 2),
+    // an out-of-date copy of the app - an old tab or phone still running the
+    // previous version - would save its stale single-document copy back into
+    // bullionAccounts. Refuse exactly that write. Every current-app write
+    // leaves bullionAccounts alone, and an explicit switch back to the
+    // single-document format (version 1) is still allowed.
+    function staleJournalWrite() {
+      return storageVersion(resource.data) >= 2
+        && storageVersion(request.resource.data) >= 2
+        && request.resource.data.get('bullionAccounts', null) != resource.data.get('bullionAccounts', null);
+    }
+
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, create, delete: if isOwner(uid);
+      allow update: if isOwner(uid) && !staleJournalWrite();
+
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     // ---- Trade Wall (public) --------------------------------------------
-    // Deliberately world-readable: loadTradeWall() runs for logged-out
-    // visitors too. The payload carries no dollar amounts - only symbol,
-    // direction, status, R-multiple, return %, hold time and a display name.
+    // World-readable. Every card is rendered in OTHER users' browsers, so a
+    // create must have exactly the fields the app writes, with the right
+    // types and sizes - the client escapes everything too (defense in depth).
     match /communityShares/{shareId} {
       allow read: if true;
 
-      // You may only post as yourself.
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+      function validCommon(d) {
+        return d.uid == request.auth.uid
+          && str(d.displayName, 100)
+          && validPhoto(d.photoURL)
+          && d.createdAt is number
+          && d.reactions == { 'fire': 0, 'rocket': 0, 'clap': 0 };
+      }
 
-      // Anyone signed in can react to anyone's card, so updates are allowed
-      // across users - but ONLY to the reactions map, and only to the three
-      // known counters. Every other field (uid, symbol, rMultiple, ...) is
-      // frozen after creation, so a reaction can't be used to rewrite a card.
-      allow update: if request.auth != null
+      function validTradeShare(d) {
+        return d.keys().hasOnly(['type', 'uid', 'displayName', 'photoURL', 'createdAt', 'symbol', 'direction',
+                                 'status', 'rMultiple', 'returnPct', 'hold', 'day', 'playbook', 'tags',
+                                 'confidence', 'reactions'])
+          && d.type == 'trade'
+          && str(d.symbol, 20) && d.symbol.size() > 0
+          && d.direction in ['long', 'short']
+          && d.status in ['WIN', 'LOSS', 'WASH']
+          && optNum(d.get('rMultiple', null), -100000, 100000)
+          && optNum(d.get('returnPct', null), -1000000, 1000000)
+          && str(d.hold, 12)
+          && str(d.day, 10)
+          && optStr(d.get('playbook', null), 100)
+          && d.get('tags', []) is list && d.get('tags', []).size() <= 4
+          && optNum(d.get('confidence', null), 0, 10);
+      }
+
+      function validWeekShare(d) {
+        return d.keys().hasOnly(['type', 'uid', 'displayName', 'photoURL', 'createdAt', 'weekKey', 'grade',
+                                 'gradeScore', 'winRate', 'profitFactor', 'trades', 'greenDays', 'reactions'])
+          && d.type == 'week'
+          && str(d.weekKey, 10)
+          && d.grade in ['A+', 'A', 'B', 'C', 'D']
+          && optNum(d.gradeScore, 0, 100)
+          && optNum(d.winRate, 0, 100)
+          && optNum(d.profitFactor, 0, 1000000000)
+          && d.trades is int && d.trades >= 1 && d.trades <= 100000
+          && str(d.greenDays, 9);
+      }
+
+      // Plain auto-ids only (what .add() generates), so an id can never smuggle
+      // quotes or markup into the page.
+      allow create: if signedIn()
+                    && shareId.matches('[A-Za-z0-9]{1,40}')
+                    && validCommon(request.resource.data)
+                    && (validTradeShare(request.resource.data) || validWeekShare(request.resource.data));
+
+      // Anyone signed in can react to anyone's card - but ONLY the reactions
+      // map, only the three known counters, each moving by at most one per
+      // write and never below zero. Every other field is frozen after creation.
+      function reactionStep(key) {
+        let before = resource.data.reactions.get(key, 0);
+        let after = request.resource.data.reactions.get(key, 0);
+        return after is int && after >= 0 && (after == before || after - before == 1 || before - after == 1);
+      }
+
+      allow update: if signedIn()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
-                    && request.resource.data.reactions.keys().hasOnly(['fire', 'rocket', 'clap']);
+                    && request.resource.data.reactions.keys().hasOnly(['fire', 'rocket', 'clap'])
+                    && reactionStep('fire') && reactionStep('rocket') && reactionStep('clap');
 
       // Only the author can take their own card down.
-      allow delete: if request.auth != null
-                    && resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
     // ---- Weekly leaderboard (public) ------------------------------------
-    // One document per user per week, keyed "{uid}_{weekKey}". Also read by
-    // logged-out visitors. Enforcing the key shape stops anyone writing an
-    // entry under someone else's id.
+    // One document per user per week, keyed "{uid}_{weekKey}". Numbers are
+    // self-reported by each user's browser: these checks reject impossible
+    // values (win rate over 100%, more wins than trades, a win rate that
+    // doesn't match wins/trades), but can't prove a record is genuine - that
+    // would need the stats computed server-side.
     match /communityLeaderboard/{entryId} {
       allow read: if true;
 
-      allow create, update: if request.auth != null
-                            && request.resource.data.uid == request.auth.uid
-                            && entryId == request.auth.uid + '_' + request.resource.data.weekKey;
+      function validEntry(d) {
+        return d.keys().hasOnly(['uid', 'displayName', 'photoURL', 'weekKey', 'winRate', 'wins', 'profitFactor',
+                                 'totalR', 'rCount', 'trades', 'grade', 'gradeScore', 'updatedAt'])
+          && d.uid == request.auth.uid
+          && str(d.displayName, 100)
+          && validPhoto(d.photoURL)
+          && str(d.weekKey, 10)
+          && d.trades is int && d.trades >= 1 && d.trades <= 100000
+          && d.winRate is number && d.winRate >= 0 && d.winRate <= 100
+          && d.wins is int && d.wins >= 0 && d.wins <= d.trades
+          // (* 1.0 forces float division - int / int could truncate to 0)
+          && math.abs(d.winRate - (d.wins * 1.0 / d.trades) * 100) <= 1
+          && optNum(d.get('profitFactor', null), 0, 1000000000)
+          && optNum(d.get('totalR', null), -1000000, 1000000)
+          && (d.get('rCount', null) == null || (d.rCount is int && d.rCount >= 0 && d.rCount <= d.trades))
+          && d.grade in ['A+', 'A', 'B', 'C', 'D']
+          && optNum(d.get('gradeScore', null), 0, 100)
+          && d.updatedAt is number;
+      }
 
-      allow delete: if request.auth != null
-                    && resource.data.uid == request.auth.uid;
+      allow create, update: if signedIn()
+                            && entryId == request.auth.uid + '_' + request.resource.data.weekKey
+                            && validEntry(request.resource.data);
+
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
     // ---- Everything else -------------------------------------------------

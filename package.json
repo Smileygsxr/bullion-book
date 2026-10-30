@@ -1,0 +1,13 @@
+{
+  "name": "bullion-book",
+  "private": true,
+  "description": "Bullion Book trading journal - static site; build and test tooling only.",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node tests/run.js",
+    "test:build": "node scripts/build.js --skip-data && node -e \"process.env.BB_TEST_ROOT='dist'; require('./tests/run.js')\""
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}

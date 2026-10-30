@@ -6,3 +6,7 @@ __pycache__/
 
 # Generated at deploy time by scripts/write-version.js
 version.json
+
+# Build output (scripts/build.js) and its npm install
+dist/
+node_modules/

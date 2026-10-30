@@ -2,6 +2,7 @@
 // (accountsState.accounts[id].trades, see accounts.js), so switching/deleting an
 // account swaps/clears its trade log along with its balance.
 let draftTrade = null;
+let draftTradeBase = null; // the trade as it was when the Edit modal opened
 let editingTradeId = null;
 let viewingTradeId = null;
 
@@ -30,6 +31,7 @@ function openTradeModal(tradeId) {
     const defaults = (typeof appSettings !== 'undefined') ? appSettings : {};
 
     editingTradeId = existing ? existing.id : null;
+    draftTradeBase = existing ? JSON.parse(JSON.stringify(existing)) : null;
     draftTrade = existing
         ? JSON.parse(JSON.stringify(existing))
         : {
@@ -223,12 +225,11 @@ function updateTradeConfidenceLabel(value) {
 
 // ---- Screenshot upload (Journal tab) ----
 // Resizes/compresses to a JPEG data URL before storing (same technique as the
-// profile avatar in settings.js) so a handful of screenshots per trade don't
-// blow past Firestore's per-document size limit - the whole account (every
-// trade, tag, playbook, and all embedded screenshots) lives in a single
-// document capped at 1MiB. 1600px/0.85 is a deliberate quality/size
-// tradeoff, not full original resolution - true original-quality storage
-// would need images moved out of Firestore into Cloud Storage instead.
+// profile avatar in settings.js). For logged-in users each screenshot is saved
+// as its own Firestore document (sync.js), so it must stay under that 1 MiB
+// document limit - resizeScreenshotToFit steps the quality/size down until it
+// does. 1600px/0.85 first is a deliberate quality/size tradeoff, not full
+// original resolution - that would need Cloud Storage instead of Firestore.
 function resizeImageFileToDataUrl(file, maxWidth, quality) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -252,11 +253,22 @@ function resizeImageFileToDataUrl(file, maxWidth, quality) {
     });
 }
 
+// Busy screenshots can encode bigger than one document allows at full
+// quality - try smaller/lower-quality versions until one fits.
+const SCREENSHOT_FIT_STEPS = [[1600, 0.85], [1600, 0.7], [1280, 0.7], [1024, 0.65], [800, 0.6]];
+
+function resizeScreenshotToFit(file, step) {
+    const i = step || 0;
+    const [maxWidth, quality] = SCREENSHOT_FIT_STEPS[i];
+    return resizeImageFileToDataUrl(file, maxWidth, quality).then(dataUrl =>
+        (dataUrl.length <= 900000 || i === SCREENSHOT_FIT_STEPS.length - 1 ? dataUrl : resizeScreenshotToFit(file, i + 1)));
+}
+
 function handleTradeScreenshotFileChange(event) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    Promise.all(files.map(file => resizeImageFileToDataUrl(file, 1600, 0.85)))
+    Promise.all(files.map(file => resizeScreenshotToFit(file)))
         .then(dataUrls => {
             if (!draftTrade.screenshots) draftTrade.screenshots = [];
             dataUrls.forEach(dataUrl => draftTrade.screenshots.push({ id: genTradeId(), dataUrl }));
@@ -271,11 +283,15 @@ function renderTradeScreenshotThumbs() {
     if (!container) return;
     const shots = draftTrade.screenshots || [];
 
+    // (stored screenshots arrive as a placeholder, filled in once fetched -
+    // see screenshotSrc/hydrateScreenshotImages in sync.js. The lightbox
+    // replaces window.open, which browsers block for data: URLs.)
     container.innerHTML = shots.map(s => `
         <div class="trade-screenshot-thumb">
-            <img src="${s.dataUrl}" onclick="window.open(this.src, '_blank')" alt="Trade screenshot">
+            <img src="${escapeHtml(screenshotSrc(s))}" data-shot-id="${escapeHtml(s.id)}" onclick="openScreenshotLightbox(this.src)" alt="Trade screenshot">
             <button type="button" class="trade-screenshot-remove-btn" onclick="removeTradeScreenshot('${s.id}')" title="Remove"><i class="fa-solid fa-circle-xmark"></i></button>
         </div>`).join('');
+    hydrateScreenshotImages(container);
 }
 
 function removeTradeScreenshot(id) {
@@ -286,6 +302,7 @@ function removeTradeScreenshot(id) {
 function closeTradeModal() {
     document.getElementById('trade-modal-overlay').style.display = 'none';
     draftTrade = null;
+    draftTradeBase = null;
     editingTradeId = null;
 }
 
@@ -406,8 +423,14 @@ function saveTradeModal() {
 
     if (editingTradeId) {
         const index = account.trades.findIndex(t => t.id === editingTradeId);
-        if (index >= 0) account.trades[index] = draftTrade;
-        else account.trades.push(draftTrade);
+        // Merged with the live trade, so a change to it from another device
+        // while this modal was open (sync.js) survives in every field the
+        // user didn't touch here
+        if (index >= 0) {
+            account.trades[index] = draftTradeBase && typeof mergeJournalValues === 'function'
+                ? mergeJournalValues(draftTradeBase, draftTrade, account.trades[index])
+                : draftTrade;
+        } else account.trades.push(draftTrade);
     } else {
         account.trades.push(draftTrade);
     }
@@ -915,22 +938,8 @@ function loadTradeViewChartInterval(interval) {
             return response.text();
         })
         .then(csvText => {
-            const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-            const timestampField = parsed.meta.fields[0];
-            const cleanData = parsed.data.map(row => {
-                const stringTimestamp = row[timestampField];
-                const stamp = stringTimestamp && stringTimestamp.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
-                const epochSeconds = stamp
-                    ? Date.UTC(+stamp[1], +stamp[2] - 1, +stamp[3], +stamp[4], +stamp[5], +stamp[6]) / 1000
-                    : NaN;
-                return {
-                    time: epochSeconds,
-                    open: parseFloat(row.Open), high: parseFloat(row.High),
-                    low: parseFloat(row.Low), close: parseFloat(row.Close),
-                    volume: parseFloat(row.Volume)
-                };
-            }).filter(d => !isNaN(d.time) && !isNaN(d.open) && !isNaN(d.high) && !isNaN(d.low) && !isNaN(d.close));
-            cleanData.sort((a, b) => a.time - b.time);
+            // Same parser as the Charts page (app.js)
+            const cleanData = parseChartCsvBars(csvText);
 
             if (cleanData.length === 0) throw new Error('empty');
             // Bail if the modal was closed, reopened for a different trade, or
@@ -1189,8 +1198,9 @@ function openTradeViewModal(event, tradeId) {
     const screenshots = trade.screenshots || [];
     if (screenshots.length > 0) {
         screenshotsList.innerHTML = screenshots.map(s => `
-            <img src="${s.dataUrl}" class="trade-view-screenshot-thumb" onclick="openScreenshotLightbox(this.src)" alt="Trade screenshot">
+            <img src="${escapeHtml(screenshotSrc(s))}" data-shot-id="${escapeHtml(s.id)}" class="trade-view-screenshot-thumb" onclick="openScreenshotLightbox(this.src)" alt="Trade screenshot">
         `).join('');
+        hydrateScreenshotImages(screenshotsList);
         screenshotsPanel.style.display = 'block';
     } else {
         screenshotsList.innerHTML = '';

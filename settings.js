@@ -1,7 +1,8 @@
 // Settings page: Personal Info, Account Settings, Tag Management, Password &
-// Security, Danger. App-wide preferences (appSettings) and the custom avatar are
-// stored on the Firestore users/{uid} doc for logged-in users, or localStorage for
-// guests - same split pattern as accounts.js.
+// Security, Data & Storage, Danger. App-wide preferences (appSettings) and the
+// custom avatar are stored on the Firestore users/{uid} doc for logged-in users
+// (loaded and conflict-safely saved by sync.js), or localStorage for guests -
+// same split pattern as accounts.js.
 const CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£', ZAR: 'R' };
 
 let appSettings = {
@@ -225,15 +226,13 @@ document.addEventListener('click', () => {
 
 function loadAppSettings() {
     auth.onAuthStateChanged(user => {
-        if (user) {
-            db.collection('users').doc(user.uid).get()
-                .then(doc => applyLoadedSettings(doc.exists ? doc.data().appSettings : null))
-                .catch(() => applyLoadedSettings(null));
-        } else {
-            let saved = null;
-            try { saved = JSON.parse(localStorage.getItem('bb_settings_guest')); } catch (e) { /* ignore */ }
-            applyLoadedSettings(saved);
-        }
+        // Logged in: sync.js calls applyLoadedSettings with the user document.
+        // (A failed load used to fall back to the defaults here - which the
+        // next settings change then saved over the real ones.)
+        if (user) return;
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem('bb_settings_guest')); } catch (e) { /* ignore */ }
+        applyLoadedSettings(saved);
     });
 }
 
@@ -255,32 +254,46 @@ function applyLoadedSettings(saved) {
     if (typeof maybeStartAutoTutorial === 'function') maybeStartAutoTutorial();
 }
 
+// A settings change made on another device (merged with this one's by sync.js)
+function applyRemoteSettings(merged) {
+    appSettings = Object.assign({}, appSettings, merged);
+    applyTheme(appSettings.theme);
+    applySidebarMode();
+    renderSidebarModeButtons();
+    if (typeof renderTradeLog === 'function') renderTradeLog();
+    if (typeof renderChartNotesPanel === 'function') renderChartNotesPanel(true);
+}
+
 function saveAppSettings() {
     const uid = auth.currentUser && auth.currentUser.uid;
     if (uid) {
-        // mergeFields replaces appSettings wholesale (a deep merge would keep
-        // removed keys alive in Firestore) while preserving the doc's other fields.
-        db.collection('users').doc(uid).set({ appSettings }, { mergeFields: ['appSettings'] })
-            .catch(err => console.error('Failed to save settings to Firestore:', err.message));
+        // sync.js: merged with any change from another device, then written
+        // as the whole appSettings field (so removed keys really go away)
+        requestUserDocFieldSave('appSettings');
     } else {
-        localStorage.setItem('bb_settings_guest', JSON.stringify(appSettings));
+        try {
+            localStorage.setItem('bb_settings_guest', JSON.stringify(appSettings));
+        } catch (e) {
+            if (typeof communityToast === 'function') communityToast('Settings not saved - this browser\'s storage is full.', true);
+        }
     }
 }
 
 // ---- Custom avatar (overrides Google photoURL once set) ----
 function loadCustomAvatar() {
     auth.onAuthStateChanged(user => {
-        if (!user) return;
-        db.collection('users').doc(user.uid).get()
-            .then(doc => {
-                const dataUrl = doc.exists ? doc.data().profilePhotoDataUrl : null;
-                if (dataUrl) {
-                    customAvatarDataUrl = dataUrl;
-                    applyAvatarToSidebar(dataUrl);
-                }
-            })
-            .catch(err => console.error('Failed to load avatar:', err.message));
+        // Logged in: sync.js calls applyLoadedAvatar with the user document
+        if (user) return;
+        let saved = null;
+        try { saved = localStorage.getItem('bb_avatar_guest'); } catch (e) { /* ignore */ }
+        applyLoadedAvatar(saved);
     });
+}
+
+function applyLoadedAvatar(dataUrl) {
+    if (!dataUrl || typeof dataUrl !== 'string' || dataUrl.indexOf('data:image/') !== 0) return;
+    customAvatarDataUrl = dataUrl;
+    applyAvatarToSidebar(dataUrl);
 }
 
 function applyAvatarToSidebar(dataUrl) {
@@ -331,9 +344,16 @@ function saveCustomAvatar() {
     if (!customAvatarDataUrl) return;
     if (uid) {
         db.collection('users').doc(uid).set({ profilePhotoDataUrl: customAvatarDataUrl }, { merge: true })
-            .catch(err => console.error('Failed to save avatar:', err.message));
+            .catch(err => {
+                console.error('Failed to save avatar:', err.message);
+                if (typeof communityToast === 'function') communityToast(`Profile photo not saved - ${err.message}`, true);
+            });
     } else {
-        localStorage.setItem('bb_avatar_guest', customAvatarDataUrl);
+        try {
+            localStorage.setItem('bb_avatar_guest', customAvatarDataUrl);
+        } catch (e) {
+            if (typeof communityToast === 'function') communityToast('Profile photo not saved - this browser\'s storage is full.', true);
+        }
     }
 }
 
@@ -345,7 +365,7 @@ function renderSettingsPage() {
 
 function switchSettingsPanel(tab) {
     currentSettingsTab = tab;
-    ['personal', 'account', 'appearance', 'tags', 'contracts', 'playbooks', 'import', 'security', 'danger'].forEach(t => {
+    ['personal', 'account', 'appearance', 'tags', 'contracts', 'playbooks', 'import', 'storage', 'security', 'danger'].forEach(t => {
         const panel = document.getElementById(`settings-panel-${t}`);
         const navItem = document.getElementById(`settings-tab-${t}`);
         if (panel) panel.style.display = t === tab ? 'block' : 'none';
@@ -362,6 +382,7 @@ function switchSettingsPanel(tab) {
     if (tab === 'contracts') renderContractSizeTable();
     if (tab === 'playbooks') renderPlaybookList();
     if (tab === 'import') renderCsvImportMeta();
+    if (tab === 'storage' && typeof renderStoragePanel === 'function') renderStoragePanel();
     if (tab === 'danger') {
         const nameEl = document.getElementById('settings-danger-account-name');
         if (nameEl) nameEl.textContent = getActiveAccount().name;
@@ -490,7 +511,9 @@ function generatePublicLink() {
     };
 
     const json = JSON.stringify(payload);
-    const encoded = btoa(unescape(encodeURIComponent(json)));
+    // URL-safe base64 (no '+', '/' or '=' padding): a '+' becomes a space when
+    // the journal page reads the link, which silently corrupted some links.
+    const encoded = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     // Replace the current file name (app.html, index.html, or none) with the
     // shared-view page in the same directory - the old /index\.html$/ replace
     // did nothing on app.html and produced ".../app.htmljournal.html".
@@ -942,12 +965,22 @@ function deleteUserAccount() {
         return;
     }
 
+    // Firebase only deletes a login after a recent sign-in - check that FIRST,
+    // instead of deleting all the data and then failing to delete the login
+    // (which left an empty account behind).
+    const lastSignIn = Date.parse((user.metadata && user.metadata.lastSignInTime) || '');
+    if (Number.isFinite(lastSignIn) && Date.now() - lastSignIn > 5 * 60 * 1000) {
+        showSettingsStatus('settings-danger-account-status', 'For security, please log out and log back in, then delete your account within 5 minutes.', 'error');
+        return;
+    }
+
     showConfirmDialog({
         title: 'Delete Your Account?',
         body: 'This will PERMANENTLY delete your account and all its data. This cannot be undone. Continue?',
         confirmText: 'Yes, delete my account',
         onConfirm: () => {
-            db.collection('users').doc(user.uid).delete()
+            // Every trade part, screenshot and backup document too (sync.js)
+            deleteAllUserData(user.uid)
                 .then(() => user.delete())
                 .then(() => { window.location.href = 'login.html'; })
                 .catch(err => {

@@ -20,20 +20,28 @@ const liveChartTools = new Set();
 
 function loadChartToolsStore() {
     auth.onAuthStateChanged(user => {
+        // Logged in: sync.js calls applyLoadedChartDrawings with the user
+        // document - or, if that arrived while this script was still
+        // downloading, hands it over now
         if (user && db) {
-            db.collection('users').doc(user.uid).get()
-                .then(doc => {
-                    chartToolsStore = (doc.exists && doc.data().chartDrawings) || {};
-                    liveChartTools.forEach(tools => chartToolsRestore(tools));
-                    renderChartIndicatorManager();
-                })
-                .catch(err => console.error('Chart drawings load error:', err.message));
-        } else {
-            try { chartToolsStore = JSON.parse(localStorage.getItem('bb_chart_drawings')) || {}; } catch (e) { chartToolsStore = {}; }
-            liveChartTools.forEach(tools => chartToolsRestore(tools));
-            renderChartIndicatorManager();
+            if (typeof userDocArrivedEarly === 'function') userDocArrivedEarly('chartDrawings');
+            return;
         }
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem('bb_chart_drawings')); } catch (e) { /* ignore corrupt data */ }
+        applyLoadedChartDrawings(saved);
     });
+}
+
+function applyLoadedChartDrawings(saved) {
+    chartToolsStore = saved || {};
+    liveChartTools.forEach(tools => chartToolsRestore(tools));
+    renderChartIndicatorManager();
+}
+
+// Drawings/indicators changed on another device (merged by sync.js)
+function applyRemoteChartDrawings(merged) {
+    applyLoadedChartDrawings(merged);
 }
 
 function saveChartToolsStore() {
@@ -53,14 +61,16 @@ function saveChartToolsStore() {
 
         const uid = auth.currentUser && auth.currentUser.uid;
         if (uid && db) {
-            // update() REPLACES the chartDrawings field (unlike set+merge, whose
-            // deep-merge would resurrect deleted drawings); set is only the
-            // first-write fallback when the user doc doesn't exist yet.
-            db.collection('users').doc(uid).update({ chartDrawings: chartToolsStore })
-                .catch(() => db.collection('users').doc(uid).set({ chartDrawings: chartToolsStore }, { merge: true }))
-                .catch(err => console.error('Chart drawings save error:', err.message));
+            // sync.js replaces the whole chartDrawings field (a deep merge would
+            // resurrect deleted drawings), after merging in any change made on
+            // another device since the last save
+            requestUserDocFieldSave('chartDrawings');
         } else {
-            localStorage.setItem('bb_chart_drawings', JSON.stringify(chartToolsStore));
+            try {
+                localStorage.setItem('bb_chart_drawings', JSON.stringify(chartToolsStore));
+            } catch (e) {
+                if (typeof communityToast === 'function') communityToast('Chart drawings not saved - this browser\'s storage is full.', true);
+            }
         }
     }, 600);
 }

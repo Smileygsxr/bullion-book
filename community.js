@@ -8,7 +8,6 @@
 // Sharing is always an explicit user action (a "Share" button), never automatic.
 
 let communityTab = 'board';
-let leaderboardMetric = 'winRate';
 let leaderboardWeekOffset = 0; // 0 = this week, -1 = last week
 let myLeaderboardShare = null; // the current user's rank/stats, for the share popover
 let communityWallCache = null;
@@ -62,7 +61,8 @@ function communityToast(message, isError) {
         document.body.appendChild(toast);
     }
     toast.className = `community-toast${isError ? ' error' : ''}`;
-    toast.innerHTML = `<i class="fa-solid ${isError ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i> ${message}`;
+    // Plain text: messages can carry a CSV filename or an error message
+    toast.innerHTML = `<i class="fa-solid ${isError ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i> ${escapeHtml(message)}`;
     toast.classList.add('show');
     clearTimeout(toast._hideTimer);
     // Longer messages (e.g. a CSV import error listing missing columns) get
@@ -147,73 +147,99 @@ function myReactionSet() {
     try { return new Set(JSON.parse(localStorage.getItem('bb_my_reactions')) || []); } catch (e) { return new Set(); }
 }
 
+// ---- Untrusted card data ----
+// Every share card and leaderboard entry was written by ANOTHER user's
+// browser, and Firestore rules can't stop a determined user writing odd
+// types - so nothing from a doc goes into the page raw: numbers must really
+// be numbers (else treated as missing), text is always escaped, and doc ids
+// travel in escaped data-attributes, never inside an onclick string.
+function cwNum(v) {
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+function cwText(v, maxLen) {
+    if (v === null || v === undefined) return '';
+    return escapeHtml(String(v).slice(0, maxLen || 80));
+}
+
 function buildReactionsRowHtml(doc) {
-    const data = doc.data();
+    const data = doc.data() || {};
     const mine = myReactionSet();
+    const reactions = (data.reactions && typeof data.reactions === 'object') ? data.reactions : {};
     return `<div class="cw-reactions">${COMMUNITY_REACTIONS.map(r => {
-        const count = (data.reactions && data.reactions[r.key]) || 0;
+        const count = Math.max(0, Math.floor(cwNum(reactions[r.key]) || 0));
         const reacted = mine.has(`${doc.id}_${r.key}`);
-        return `<button type="button" class="cw-react-btn${reacted ? ' reacted' : ''}" onclick="reactToShare('${doc.id}', '${r.key}', this)">
+        return `<button type="button" class="cw-react-btn${reacted ? ' reacted' : ''}" data-share-id="${escapeHtml(doc.id)}" onclick="reactToShare(this.dataset.shareId, '${r.key}', this)">
             <span class="cw-react-emoji">${r.emoji}</span><span class="cw-react-count">${count}</span>
         </button>`;
     }).join('')}</div>`;
 }
 
 function buildShareCardHtml(doc) {
-    const d = doc.data();
+    const d = doc.data() || {};
     const mine = auth.currentUser && d.uid === auth.currentUser.uid;
+    const createdAt = cwNum(d.createdAt) || Date.now();
     const header = `
         <div class="cw-card-head">
-            ${communityAvatarHtml(d.displayName, d.photoURL)}
+            ${communityAvatarHtml(typeof d.displayName === 'string' ? d.displayName : '', typeof d.photoURL === 'string' ? d.photoURL : null)}
             <div class="cw-card-who">
-                <span class="cw-card-name">${escapeHtml(d.displayName || 'Trader')}${mine ? ' <span class="cw-you-chip">you</span>' : ''}</span>
-                <span class="cw-card-when">${communityTimeAgo(d.createdAt || Date.now())}</span>
+                <span class="cw-card-name">${cwText(d.displayName || 'Trader', 60)}${mine ? ' <span class="cw-you-chip">you</span>' : ''}</span>
+                <span class="cw-card-when">${communityTimeAgo(createdAt)}</span>
             </div>
-            ${mine ? `<button type="button" class="cw-card-del" title="Delete this share" onclick="deleteMyShare('${doc.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+            ${mine ? `<button type="button" class="cw-card-del" title="Delete this share" data-share-id="${escapeHtml(doc.id)}" onclick="deleteMyShare(this.dataset.shareId)"><i class="fa-solid fa-trash"></i></button>` : ''}
         </div>`;
 
     let body = '';
     if (d.type === 'week') {
-        const gradeCls = d.grade && d.grade.startsWith('A') ? 'grade-a' : d.grade === 'B' ? 'grade-b' : d.grade === 'C' ? 'grade-c' : 'grade-d';
+        const grade = typeof d.grade === 'string' ? d.grade : '';
+        const gradeCls = grade.startsWith('A') ? 'grade-a' : grade === 'B' ? 'grade-b' : grade === 'C' ? 'grade-c' : 'grade-d';
+        const gradeScore = cwNum(d.gradeScore);
+        const winRate = cwNum(d.winRate);
+        const profitFactor = cwNum(d.profitFactor);
+        const trades = cwNum(d.trades);
         body = `
             <div class="cw-week-body">
                 <div class="cw-week-grade ${gradeCls}">
-                    <span class="cw-week-letter">${escapeHtml(d.grade || '-')}</span>
-                    <span class="cw-week-score">${d.gradeScore != null ? d.gradeScore + '/100' : ''}</span>
+                    <span class="cw-week-letter">${cwText(grade || '-', 3)}</span>
+                    <span class="cw-week-score">${gradeScore !== null ? Math.round(gradeScore) + '/100' : ''}</span>
                 </div>
                 <div class="cw-week-stats">
-                    <div class="cw-week-title"><i class="fa-solid fa-clipboard-check"></i> Week of ${escapeHtml(d.weekKey || '')}</div>
-                    <div class="cw-week-row"><span>Win rate</span><strong>${d.winRate != null ? d.winRate + '%' : '-'}</strong></div>
-                    <div class="cw-week-row"><span>Profit factor</span><strong>${d.profitFactor === 999 ? '&infin;' : (d.profitFactor != null ? d.profitFactor : '-')}</strong></div>
-                    <div class="cw-week-row"><span>Trades</span><strong>${d.trades != null ? d.trades : '-'}</strong></div>
-                    <div class="cw-week-row"><span>Green days</span><strong>${d.greenDays != null ? d.greenDays : '-'}</strong></div>
+                    <div class="cw-week-title"><i class="fa-solid fa-clipboard-check"></i> Week of ${cwText(d.weekKey, 10)}</div>
+                    <div class="cw-week-row"><span>Win rate</span><strong>${winRate !== null ? Math.round(winRate) + '%' : '-'}</strong></div>
+                    <div class="cw-week-row"><span>Profit factor</span><strong>${profitFactor === 999 ? '&infin;' : (profitFactor !== null ? profitFactor : '-')}</strong></div>
+                    <div class="cw-week-row"><span>Trades</span><strong>${trades !== null ? Math.round(trades) : '-'}</strong></div>
+                    <div class="cw-week-row"><span>Green days</span><strong>${d.greenDays != null ? cwText(d.greenDays, 9) : '-'}</strong></div>
                 </div>
             </div>`;
     } else {
         const isWin = d.status === 'WIN';
         const isLoss = d.status === 'LOSS';
-        const rHtml = d.rMultiple != null
-            ? `<div class="cw-trade-r ${d.rMultiple >= 0 ? 'pos' : 'neg'}">${d.rMultiple >= 0 ? '+' : ''}${d.rMultiple}R</div>`
+        const rMultiple = cwNum(d.rMultiple);
+        const returnPct = cwNum(d.returnPct);
+        const confidence = cwNum(d.confidence);
+        const tags = Array.isArray(d.tags) ? d.tags.slice(0, 4) : [];
+        const rHtml = rMultiple !== null
+            ? `<div class="cw-trade-r ${rMultiple >= 0 ? 'pos' : 'neg'}">${rMultiple >= 0 ? '+' : ''}${rMultiple}R</div>`
             : `<div class="cw-trade-r ${isLoss ? 'neg' : 'pos'}">${isWin ? 'WIN' : isLoss ? 'LOSS' : 'WASH'}</div>`;
         body = `
             <div class="cw-trade-body">
                 <div class="cw-trade-top">
-                    <span class="cw-trade-symbol">${escapeHtml(d.symbol || '?')}</span>
+                    <span class="cw-trade-symbol">${cwText(d.symbol || '?', 20)}</span>
                     <span class="cw-side-chip ${d.direction === 'long' ? 'long' : 'short'}">
                         <i class="fa-solid ${d.direction === 'long' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${d.direction === 'long' ? 'LONG' : 'SHORT'}
                     </span>
-                    <span class="cw-status-chip ${isWin ? 'win' : isLoss ? 'loss' : 'wash'}">${escapeHtml(d.status || '')}</span>
+                    <span class="cw-status-chip ${isWin ? 'win' : isLoss ? 'loss' : 'wash'}">${isWin ? 'WIN' : isLoss ? 'LOSS' : 'WASH'}</span>
                 </div>
                 ${rHtml}
                 <div class="cw-trade-meta">
-                    ${d.returnPct != null ? `<span class="${d.returnPct >= 0 ? 'value-positive' : 'value-negative'}">${d.returnPct >= 0 ? '+' : ''}${d.returnPct}%</span> &middot; ` : ''}
-                    ${d.hold ? `${escapeHtml(d.hold)} &middot; ` : ''}${escapeHtml(d.day || '')}
+                    ${returnPct !== null ? `<span class="${returnPct >= 0 ? 'value-positive' : 'value-negative'}">${returnPct >= 0 ? '+' : ''}${returnPct}%</span> &middot; ` : ''}
+                    ${d.hold ? `${cwText(d.hold, 12)} &middot; ` : ''}${cwText(d.day, 10)}
                 </div>
-                ${(d.playbook || (d.tags && d.tags.length) || d.confidence != null) ? `
+                ${(d.playbook || tags.length || confidence !== null) ? `
                 <div class="cw-trade-tags">
-                    ${d.playbook ? `<span class="cw-trade-tag playbook"><i class="fa-solid fa-book"></i> ${escapeHtml(d.playbook)}</span>` : ''}
-                    ${(d.tags || []).map(t => `<span class="cw-trade-tag"><i class="fa-solid fa-tag"></i> ${escapeHtml(t)}</span>`).join('')}
-                    ${d.confidence != null ? `<span class="cw-trade-tag confidence"><i class="fa-solid fa-gauge-high"></i> ${d.confidence}/10</span>` : ''}
+                    ${d.playbook ? `<span class="cw-trade-tag playbook"><i class="fa-solid fa-book"></i> ${cwText(d.playbook, 40)}</span>` : ''}
+                    ${tags.map(t => `<span class="cw-trade-tag"><i class="fa-solid fa-tag"></i> ${cwText(t, 40)}</span>`).join('')}
+                    ${confidence !== null ? `<span class="cw-trade-tag confidence"><i class="fa-solid fa-gauge-high"></i> ${Math.round(confidence)}/10</span>` : ''}
                 </div>` : ''}
             </div>`;
     }
@@ -385,11 +411,6 @@ function shareWeekToCommunity() {
 }
 
 // ---- Leaderboard ----
-function setLeaderboardMetric(metric) {
-    leaderboardMetric = metric;
-    loadLeaderboard();
-}
-
 function setLeaderboardWeek(offset) {
     leaderboardWeekOffset = offset;
     loadLeaderboard();
@@ -432,17 +453,24 @@ function removeMyLeaderboardEntry() {
         .catch(err => communityToast(communityErrorNote(err), true));
 }
 
-function leaderboardMetricValue(entry) {
-    const v = entry[leaderboardMetric];
-    return typeof v === 'number' ? v : -Infinity;
-}
-
-function leaderboardMetricDisplay(entry) {
-    const v = entry[leaderboardMetric];
-    if (typeof v !== 'number') return '-';
-    if (leaderboardMetric === 'profitFactor') return v === 999 ? '∞' : v.toFixed(2);
-    if (leaderboardMetric === 'winRate') return `${v}%`;
-    return `${v >= 0 ? '+' : ''}${v}R`;
+// Leaderboard docs are written by other users' browsers - normalize every
+// field once on load so rendering and ranking only ever see sane values.
+function sanitizeLeaderboardEntry(raw) {
+    const e = raw || {};
+    const winRate = cwNum(e.winRate);
+    const trades = cwNum(e.trades);
+    const tradeCount = trades === null ? 0 : Math.max(0, Math.floor(trades));
+    const wins = cwNum(e.wins);
+    return {
+        uid: typeof e.uid === 'string' ? e.uid : '',
+        displayName: typeof e.displayName === 'string' && e.displayName.trim() ? e.displayName.slice(0, 60) : 'Trader',
+        photoURL: typeof e.photoURL === 'string' ? e.photoURL : null,
+        winRate: winRate === null ? null : Math.max(0, Math.min(100, winRate)),
+        trades: tradeCount,
+        wins: wins === null ? null : Math.max(0, Math.min(tradeCount, Math.floor(wins))),
+        grade: typeof e.grade === 'string' && e.grade ? e.grade.slice(0, 3) : '-',
+        weekKey: typeof e.weekKey === 'string' ? e.weekKey : ''
+    };
 }
 
 // Rank score: win rate combined with trade count via the Wilson lower bound,
@@ -520,15 +548,14 @@ function loadLeaderboard() {
 
     // Toolbar active states
     document.querySelectorAll('.lb-week-btn').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.week, 10) === leaderboardWeekOffset));
-    document.querySelectorAll('.lb-metric-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.metric === leaderboardMetric));
 
     container.innerHTML = '<div class="community-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading the board...</div>';
 
     db.collection('communityLeaderboard').where('weekKey', '==', weekKey).get()
         .then(snapshot => {
             const uid = auth.currentUser ? auth.currentUser.uid : null;
-            const entries = snapshot.docs.map(doc => doc.data())
-                .filter(e => typeof e.winRate === 'number' && (e.trades || 0) > 0)
+            const entries = snapshot.docs.map(doc => sanitizeLeaderboardEntry(doc.data()))
+                .filter(e => e.winRate !== null && e.trades > 0)
                 .sort((a, b) => leaderboardRankScore(b) - leaderboardRankScore(a));
 
             const iAmOnBoard = entries.some(e => e.uid === uid);
@@ -584,8 +611,8 @@ function loadLeaderboard() {
                         <div class="lb-podium-medal"><i class="fa-solid ${ranks[i] === 1 ? 'fa-crown' : 'fa-medal'}"></i> #${ranks[i]}</div>
                         ${communityAvatarHtml(e.displayName, e.photoURL)}
                         <div class="lb-podium-name">${escapeHtml(e.displayName || 'Trader')}${isMe ? ' <span class="cw-you-chip">you</span>' : ''}</div>
-                        <div class="lb-podium-value">${leaderboardMetricDisplay(e)}</div>
-                        <div class="lb-podium-sub">${e.trades} trades &middot; grade ${escapeHtml(e.grade || '-')}</div>
+                        <div class="lb-podium-value">${Math.round(e.winRate)}%</div>
+                        <div class="lb-podium-sub">${e.trades} trades &middot; grade ${escapeHtml(e.grade)}</div>
                     </div>`;
             }).join('')}</div>`;
 
@@ -597,8 +624,8 @@ function loadLeaderboard() {
                         <span class="lb-row-rank">#${i + 4}</span>
                         ${communityAvatarHtml(e.displayName, e.photoURL)}
                         <span class="lb-row-name">${escapeHtml(e.displayName || 'Trader')}${isMe ? ' <span class="cw-you-chip">you</span>' : ''}</span>
-                        <span class="lb-row-sub">${e.trades} trades &middot; ${e.winRate}% &middot; grade ${escapeHtml(e.grade || '-')}</span>
-                        <span class="lb-row-value">${leaderboardMetricDisplay(e)}</span>
+                        <span class="lb-row-sub">${e.trades} trades &middot; grade ${escapeHtml(e.grade)}</span>
+                        <span class="lb-row-value">${Math.round(e.winRate)}%</span>
                     </div>`;
                 }).join('')}</div>`;
 
