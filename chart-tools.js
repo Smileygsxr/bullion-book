@@ -25,11 +25,13 @@ function loadChartToolsStore() {
                 .then(doc => {
                     chartToolsStore = (doc.exists && doc.data().chartDrawings) || {};
                     liveChartTools.forEach(tools => chartToolsRestore(tools));
+                    renderChartIndicatorManager();
                 })
                 .catch(err => console.error('Chart drawings load error:', err.message));
         } else {
             try { chartToolsStore = JSON.parse(localStorage.getItem('bb_chart_drawings')) || {}; } catch (e) { chartToolsStore = {}; }
             liveChartTools.forEach(tools => chartToolsRestore(tools));
+            renderChartIndicatorManager();
         }
     });
 }
@@ -39,9 +41,10 @@ function saveChartToolsStore() {
     chartToolsSaveTimer = setTimeout(() => {
         // Drop empty records so the doc doesn't accumulate dead keys forever
         Object.keys(chartToolsStore).forEach(key => {
-            // The global indicator list is an array, not a chart record - and
-            // an empty one must persist too (so old per-chart ones don't return).
-            if (key === CHART_GLOBAL_IND_KEY) return;
+            // The "global|..." entries (all-charts indicators and vertical
+            // lines) are arrays, not chart records - and an empty one must
+            // persist too (so old per-chart indicators don't return).
+            if (key.indexOf('global|') === 0) return;
             const rec = chartToolsStore[key];
             if ((!rec.drawings || rec.drawings.length === 0) && (!rec.indicators || rec.indicators.length === 0)) {
                 delete chartToolsStore[key];
@@ -122,6 +125,99 @@ function getGlobalIndicators() {
     });
     chartToolsStore[CHART_GLOBAL_IND_KEY] = list;
     return list;
+}
+
+// ---- Vertical lines on ALL charts ----
+// A vertical line can be switched to "all charts" from its edit bar. It's then
+// stored ONCE, as a time of day ({ id, tod: seconds after midnight, color,
+// width, style, locked }), and every chart - any symbol, any day, News page
+// and Trade View - draws it at that same clock time (e.g. 14:30 on every day).
+const CHART_GLOBAL_VLINES_KEY = 'global|vlines';
+const CHART_VLINE_STYLE_KEYS = ['color', 'width', 'style', 'locked'];
+
+function getGlobalVlines() {
+    let list = chartToolsStore[CHART_GLOBAL_VLINES_KEY];
+    if (!Array.isArray(list)) {
+        list = [];
+        chartToolsStore[CHART_GLOBAL_VLINES_KEY] = list;
+    }
+    return list;
+}
+
+// Midnight (in the charts' wall-clock epoch seconds) of the day a chart shows,
+// read from its "SYMBOL|YYYY-MM-DD" key.
+function chartDayStart(tools) {
+    const m = String(tools.chartKey || '').match(/\|(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]) / 1000;
+    return tools.data.length > 0 ? Math.floor(tools.data[0].time / 86400) * 86400 : null;
+}
+
+function chartTimeOfDay(t, dayStart) {
+    return ((Math.round(t - dayStart) % 86400) + 86400) % 86400;
+}
+
+// A per-chart stand-in for one all-charts line. Reading/writing t and the
+// style fields goes straight to the shared record, so the existing drag, edit
+// bar, lock and delete code works on it unchanged - and moving it on one
+// chart moves it on every chart.
+function globalVlineView(g, dayStart) {
+    const view = { id: g.id, type: 'vline', global: true };
+    Object.defineProperty(view, 't', {
+        enumerable: true,
+        get: () => dayStart + g.tod,
+        set: v => { g.tod = chartTimeOfDay(v, dayStart); }
+    });
+    CHART_VLINE_STYLE_KEYS.forEach(k => Object.defineProperty(view, k, {
+        enumerable: true,
+        get: () => g[k],
+        set: v => { g[k] = v; }
+    }));
+    return view;
+}
+
+// Everything drawn on a chart: its own drawings + the all-charts lines.
+function chartDrawingsFor(tools) {
+    const rec = getChartToolsRecord(tools.chartKey, false);
+    const dayStart = chartDayStart(tools);
+    const globals = dayStart === null ? [] : getGlobalVlines().map(g => globalVlineView(g, dayStart));
+    return rec.drawings.concat(globals);
+}
+
+function findChartDrawing(tools, id) {
+    return chartDrawingsFor(tools).find(d => d.id === id) || null;
+}
+
+function rerenderAllChartDrawings() {
+    liveChartTools.forEach(t => {
+        renderChartDrawings(t);
+        renderChartObjectTree(t);
+    });
+    if (typeof renderChartIndicatorManager === 'function') renderChartIndicatorManager();
+}
+
+// Edit bar "All charts" toggle on a vertical line: moves it between this
+// chart's own drawings and the shared all-charts list, keeping its time+style.
+function toggleVlineAllCharts(tools, drawing) {
+    const dayStart = chartDayStart(tools);
+    if (dayStart === null) return;
+    const copyStyle = (src, dst) => {
+        CHART_VLINE_STYLE_KEYS.forEach(k => { if (src[k] !== undefined) dst[k] = src[k]; }); // Firestore rejects undefined
+        return dst;
+    };
+    if (drawing.global) {
+        const list = getGlobalVlines();
+        const idx = list.findIndex(g => g.id === drawing.id);
+        if (idx < 0) return;
+        const g = list.splice(idx, 1)[0];
+        getChartToolsRecord(tools.chartKey, true).drawings.push(
+            copyStyle(g, { id: g.id, type: 'vline', t: dayStart + g.tod }));
+    } else {
+        const rec = getChartToolsRecord(tools.chartKey, true);
+        rec.drawings = rec.drawings.filter(d => d.id !== drawing.id);
+        getGlobalVlines().push(copyStyle(drawing, { id: drawing.id, tod: chartTimeOfDay(drawing.t, dayStart) }));
+    }
+    saveChartToolsStore();
+    rerenderAllChartDrawings();
 }
 
 function chartToolsSMA(data, period) {
@@ -420,8 +516,7 @@ function beginChartDrawingDrag(tools, e) {
     e.stopPropagation();
 
     const id = target.dataset.drawingId;
-    const rec = getChartToolsRecord(tools.chartKey, false);
-    const drawing = rec.drawings.find(d => d.id === id);
+    const drawing = findChartDrawing(tools, id);
     if (!drawing) return;
 
     tools.selectedId = id;
@@ -447,8 +542,7 @@ function beginChartDrawingDrag(tools, e) {
 
 function moveChartDrawingDrag(tools, e) {
     if (!tools.drag || tools.disposed) return;
-    const rec = getChartToolsRecord(tools.chartKey, false);
-    const drawing = rec.drawings.find(d => d.id === tools.drag.id);
+    const drawing = findChartDrawing(tools, tools.drag.id);
     if (!drawing) { tools.drag = null; return; }
 
     const { x, y } = chartToolsMouseXY(tools, e);
@@ -541,12 +635,14 @@ function moveChartDrawingDrag(tools, e) {
 function endChartDrawingDrag(tools) {
     if (!tools.drag) return;
     const moved = tools.drag.moved;
+    const dragged = findChartDrawing(tools, tools.drag.id);
     tools.drag = null;
     if (moved) {
         saveChartToolsStore();
         renderChartObjectTree(tools);
     }
-    renderChartDrawings(tools);
+    if (moved && dragged && dragged.global) rerenderAllChartDrawings(); // it moved on every chart
+    else renderChartDrawings(tools);
 }
 
 // Re-applies everything saved for this chart against the CURRENT data -
@@ -1227,7 +1323,7 @@ function renderChartDrawings(tools) {
     const rec = getChartToolsRecord(tools.chartKey, false);
     const interactive = !tools.activeTool;
 
-    rec.drawings.forEach(d => {
+    chartDrawingsFor(tools).forEach(d => {
         renderChartDrawingShape(tools, svg, d, {
             interactive,
             selected: d.id === tools.selectedId && interactive
@@ -1287,6 +1383,7 @@ function buildChartEditBar(tools) {
             <label class="sl">SL<input type="number" step="any" class="ct-pos-input" data-pos-field="stop"></label>
         </div>
         <div class="chart-tools-sep ct-pos-sep"></div>
+        <button type="button" class="ct-edit-btn ct-allcharts-btn" data-action="allcharts" title="Show this line on ALL charts at the same time of day"><i class="fa-solid fa-clone"></i> All charts</button>
         <button type="button" class="ct-edit-btn" data-action="lock" title="Lock (prevents dragging)"><i class="fa-solid fa-lock-open"></i></button>
         <button type="button" class="ct-edit-btn ct-edit-del" data-action="delete" title="Delete drawing"><i class="fa-solid fa-trash"></i></button>`;
 
@@ -1297,8 +1394,7 @@ function buildChartEditBar(tools) {
         const input = e.target.closest ? e.target.closest('.ct-pos-input') : null;
         if (!input) return;
         e.stopPropagation();
-        const rec = getChartToolsRecord(tools.chartKey, false);
-        const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+        const drawing = findChartDrawing(tools, tools.selectedId);
         if (!drawing || (drawing.type !== 'longpos' && drawing.type !== 'shortpos')) return;
 
         const long = drawing.type === 'longpos';
@@ -1327,8 +1423,7 @@ function buildChartEditBar(tools) {
 
     bar.addEventListener('click', e => {
         e.stopPropagation();
-        const rec = getChartToolsRecord(tools.chartKey, false);
-        const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+        const drawing = findChartDrawing(tools, tools.selectedId);
         if (!drawing) return;
 
         const colorBtn = e.target.closest('.ct-edit-color');
@@ -1344,6 +1439,9 @@ function buildChartEditBar(tools) {
                 drawing.style = styles[(styles.indexOf(drawingStyle(drawing)) + 1) % styles.length];
             } else if (action === 'lock') {
                 drawing.locked = !drawing.locked;
+            } else if (action === 'allcharts') {
+                toggleVlineAllCharts(tools, drawing);
+                return;
             } else if (action === 'delete') {
                 deleteChartDrawing(tools, drawing.id);
                 tools.selectedId = null;
@@ -1356,7 +1454,8 @@ function buildChartEditBar(tools) {
 
         if (drawing.type === 'hline') refreshChartHLineStyle(tools, drawing);
         saveChartToolsStore();
-        renderChartDrawings(tools);
+        if (drawing.global) rerenderAllChartDrawings();
+        else renderChartDrawings(tools);
     });
 
     tools.container.appendChild(bar);
@@ -1367,8 +1466,7 @@ function updateChartEditBar(tools, forceFields) {
     const bar = tools.editBar;
     if (!bar) return;
 
-    const rec = getChartToolsRecord(tools.chartKey, false);
-    const drawing = rec.drawings.find(d => d.id === tools.selectedId);
+    const drawing = findChartDrawing(tools, tools.selectedId);
     if (!drawing || tools.activeTool) {
         bar.style.display = 'none';
         return;
@@ -1377,6 +1475,15 @@ function updateChartEditBar(tools, forceFields) {
     bar.style.display = 'flex';
     // Position tools have fixed green/red semantics - only lock/delete apply
     bar.classList.toggle('position-mode', drawing.type === 'longpos' || drawing.type === 'shortpos');
+    // Vertical lines get the "All charts" toggle (lit when it's on every chart)
+    bar.classList.toggle('vline-mode', drawing.type === 'vline');
+    const allChartsBtn = bar.querySelector('[data-action="allcharts"]');
+    if (allChartsBtn) {
+        allChartsBtn.classList.toggle('active', !!drawing.global);
+        allChartsBtn.title = drawing.global
+            ? 'On all charts at this time - click to keep it on this chart only'
+            : 'Show this line on ALL charts at the same time of day';
+    }
     // Top-center of the chart, clear of the left tool rail
     bar.style.left = `${Math.max(60, (tools.container.clientWidth - bar.offsetWidth) / 2)}px`;
     bar.style.top = '8px';
@@ -1492,11 +1599,27 @@ function removeChartIndicatorSeries(tools, uid) {
     delete tools.indicatorSeries[uid];
 }
 
-// Syncs one chart with the global list: drops series of removed indicators,
-// (re)applies the rest.
+// An indicator either applies to every chart (no chartKey) or only to the one
+// chart it was scoped to ("SYMBOL|YYYY-MM-DD" - the same key the News chart
+// and that day's Trade View chart share, like drawings do).
+function chartIndicatorAppliesTo(ind, chartKey) {
+    return !ind.chartKey || ind.chartKey === chartKey;
+}
+
+function chartIndicatorsFor(tools) {
+    return getGlobalIndicators().filter(ind => chartIndicatorAppliesTo(ind, tools.chartKey));
+}
+
+// "XAUUSD|2026-01-05" -> "XAUUSD 2026-01-05"
+function chartKeyLabel(chartKey) {
+    return String(chartKey || '').replace('|', ' ');
+}
+
+// Syncs one chart with the indicator list: drops series of removed (or
+// re-scoped elsewhere) indicators, (re)applies the ones that belong here.
 function applyAllChartIndicators(tools) {
     if (tools.disposed) return;
-    const list = getGlobalIndicators();
+    const list = chartIndicatorsFor(tools);
     const live = new Set(list.map(ind => ind.uid));
     Object.keys(tools.indicatorSeries).forEach(uid => {
         if (!live.has(uid)) removeChartIndicatorSeries(tools, uid);
@@ -1505,15 +1628,15 @@ function applyAllChartIndicators(tools) {
     list.forEach(ind => applyChartIndicator(tools, ind));
 }
 
-function globalIndicatorsNeedWarmup() {
-    return getGlobalIndicators().some(ind => !ind.hidden && (CHART_INDICATOR_TYPES[ind.type] || {}).warmup);
+function chartNeedsWarmup(tools) {
+    return chartIndicatorsFor(tools).some(ind => !ind.hidden && (CHART_INDICATOR_TYPES[ind.type] || {}).warmup);
 }
 
 // Lazily fetches the previous trading day's bars (only when an indicator
 // actually needs them), then recomputes this chart's indicators over them.
 function ensureChartWarmup(tools) {
     if (!tools.warmupLoader || tools.disposed || tools.data.length === 0) return;
-    if (tools.warmupLoaded || tools.warmupPending || !globalIndicatorsNeedWarmup()) return;
+    if (tools.warmupLoaded || tools.warmupPending || !chartNeedsWarmup(tools)) return;
     const gen = tools.warmupGen;
     tools.warmupPending = true;
     Promise.resolve()
@@ -1533,8 +1656,9 @@ function ensureChartWarmup(tools) {
         });
 }
 
-// Any change to the global list re-syncs EVERY open chart (that's what makes
-// an indicator added or edited on one chart appear on all of them).
+// Any change to the indicator list re-syncs EVERY open chart (that's what makes
+// an all-charts indicator added or edited on one chart appear on all of them,
+// and a re-scoped one disappear from the charts it no longer belongs to).
 function onGlobalIndicatorsChanged() {
     liveChartTools.forEach(t => {
         applyAllChartIndicators(t);
@@ -1542,6 +1666,7 @@ function onGlobalIndicatorsChanged() {
         renderChartIndMenu(t);
         renderChartObjectTree(t);
     });
+    renderChartIndicatorManager();
     saveChartToolsStore();
 }
 
@@ -1566,32 +1691,64 @@ function updateGlobalIndicator(uid, changes) {
     onGlobalIndicatorsChanged();
 }
 
+// The settings editor shown under an indicator (period / std dev / color, and
+// optionally the "Apply to all charts" box). Shared by each chart's own
+// Indicators menu and the page-level indicator manager. scope = null hides the
+// checkbox; otherwise { checked, hint }.
+function chartIndicatorEditorHtml(ind, scope) {
+    const def = CHART_INDICATOR_TYPES[ind.type] || { defaults: {} };
+    const hasPeriod = def.defaults.period !== undefined;
+    return `
+        <div class="ct-ind-editor" data-ind-editor="${ind.uid}">
+            ${hasPeriod ? `<label>Period<input type="number" min="1" max="500" step="1" class="ct-ind-period" value="${ind.period}"></label>` : ''}
+            ${ind.type === 'bb' ? `<label>Std dev<input type="number" min="0.5" max="5" step="0.5" class="ct-ind-mult" value="${ind.mult}"></label>` : ''}
+            <label>Color<input type="color" class="ct-ind-color" value="${chartIndicatorColor(ind)}"></label>
+            ${scope ? `
+            <label class="ct-ind-scope-opt">
+                <input type="checkbox" class="ct-ind-all-charts"${scope.checked ? ' checked' : ''}>
+                <span>Apply to all charts</span>
+            </label>
+            <div class="ct-ind-scope-hint">${scope.hint}</div>` : ''}
+            <div class="ct-ind-editor-actions">
+                <button type="button" class="ct-ind-save">Apply</button>
+                <button type="button" class="ct-ind-cancel">Cancel</button>
+            </div>
+        </div>`;
+}
+
+// Reads an editor back into changes. When it has the "Apply to all charts"
+// box: ticked = every chart, unticked = only `singleChartKey`.
+function readChartIndicatorEditor(editor, singleChartKey) {
+    const changes = {};
+    const periodEl = editor.querySelector('.ct-ind-period');
+    const multEl = editor.querySelector('.ct-ind-mult');
+    const colorEl = editor.querySelector('.ct-ind-color');
+    const allChartsEl = editor.querySelector('.ct-ind-all-charts');
+    if (periodEl) changes.period = Math.min(500, Math.max(1, parseInt(periodEl.value, 10) || 1));
+    if (multEl) changes.mult = Math.min(5, Math.max(0.5, parseFloat(multEl.value) || 2));
+    if (colorEl) changes.color = colorEl.value;
+    if (allChartsEl) changes.chartKey = allChartsEl.checked ? null : singleChartKey;
+    return changes;
+}
+
 function renderChartIndMenu(tools) {
     if (!tools.indMenu || tools.indMenu.style.display === 'none') return;
-    const list = getGlobalIndicators();
+    const list = chartIndicatorsFor(tools);
 
     const activeHtml = list.length === 0
         ? '<div class="chart-tools-empty">None yet - add one below</div>'
         : list.map(ind => {
-            const def = CHART_INDICATOR_TYPES[ind.type] || { defaults: {} };
-            const hasPeriod = def.defaults.period !== undefined;
-            const editor = tools.editingIndUid !== ind.uid ? '' : `
-                <div class="ct-ind-editor" data-ind-editor="${ind.uid}">
-                    ${hasPeriod ? `<label>Period<input type="number" min="1" max="500" step="1" class="ct-ind-period" value="${ind.period}"></label>` : ''}
-                    ${ind.type === 'bb' ? `<label>Std dev<input type="number" min="0.5" max="5" step="0.5" class="ct-ind-mult" value="${ind.mult}"></label>` : ''}
-                    <label>Color<input type="color" class="ct-ind-color" value="${chartIndicatorColor(ind)}"></label>
-                    <div class="ct-ind-editor-actions">
-                        <button type="button" class="ct-ind-save">Apply</button>
-                        <button type="button" class="ct-ind-cancel">Cancel</button>
-                    </div>
-                </div>`;
+            const editor = tools.editingIndUid !== ind.uid ? '' : chartIndicatorEditorHtml(ind, {
+                checked: !ind.chartKey,
+                hint: `Unticked: only on ${chartKeyLabel(tools.chartKey)} (and that day's Trade View chart).`
+            });
             return `
                 <div class="chart-tools-row ct-ind-row${ind.hidden ? ' is-hidden' : ''}" data-ind-uid="${ind.uid}">
                     <span class="chart-tools-row-dot" style="background:${chartIndicatorColor(ind)}"></span>
-                    <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}</span>
+                    <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}${ind.chartKey ? ' <span class="ct-ind-badge" title="Only on this chart">this chart</span>' : ''}</span>
                     <button type="button" class="ct-ind-btn" data-act="toggle" title="${ind.hidden ? 'Show' : 'Hide'}"><i class="fa-solid ${ind.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i></button>
                     <button type="button" class="ct-ind-btn" data-act="edit" title="Edit settings"><i class="fa-solid fa-gear"></i></button>
-                    <button type="button" class="ct-ind-btn" data-act="remove" title="Remove from all charts"><i class="fa-solid fa-trash"></i></button>
+                    <button type="button" class="ct-ind-btn" data-act="remove" title="${ind.chartKey ? 'Remove' : 'Remove from all charts'}"><i class="fa-solid fa-trash"></i></button>
                 </div>${editor}`;
         }).join('');
 
@@ -1605,8 +1762,8 @@ function renderChartIndMenu(tools) {
     }).join('');
 
     tools.indMenu.innerHTML = `
-        <div class="chart-tools-panel-title">INDICATORS <span class="ct-ind-scope">applies to all charts</span></div>
-        <div class="chart-tools-section">On your charts</div>
+        <div class="chart-tools-panel-title">INDICATORS <span class="ct-ind-scope">new ones go on all charts</span></div>
+        <div class="chart-tools-section">On this chart</div>
         ${activeHtml}
         <div class="chart-tools-section">Add</div>
         ${presetsHtml}`;
@@ -1643,13 +1800,8 @@ function renderChartIndMenu(tools) {
         editor.addEventListener('keydown', e => e.stopPropagation());
         editor.querySelector('.ct-ind-save').addEventListener('click', e => {
             e.stopPropagation();
-            const changes = {};
-            const periodEl = editor.querySelector('.ct-ind-period');
-            const multEl = editor.querySelector('.ct-ind-mult');
-            const colorEl = editor.querySelector('.ct-ind-color');
-            if (periodEl) changes.period = Math.min(500, Math.max(1, parseInt(periodEl.value, 10) || 1));
-            if (multEl) changes.mult = Math.min(5, Math.max(0.5, parseFloat(multEl.value) || 2));
-            if (colorEl) changes.color = colorEl.value;
+            // Unticking "Apply to all charts" keeps it on the chart it's edited on
+            const changes = readChartIndicatorEditor(editor, tools.chartKey);
             const uid = editor.dataset.indEditor;
             tools.editingIndUid = null;
             updateGlobalIndicator(uid, changes);
@@ -1658,6 +1810,140 @@ function renderChartIndMenu(tools) {
             e.stopPropagation();
             tools.editingIndUid = null;
             renderChartIndMenu(tools);
+        });
+    }
+}
+
+// ---- Page-level indicator manager (News toolbar "Indicators" button) ----
+// Manage every chart's indicators from one place without opening a chart's
+// own toolbar: the all-charts ones, the single-chart ones (labelled with
+// their chart), presets to add to all charts, and the all-charts vertical lines.
+let chartIndManagerEditingUid = null;
+
+function toggleChartIndicatorManager(event) {
+    const pop = document.getElementById('chart-indicator-manager');
+    if (!pop) return;
+    if (pop.style.display === 'block') { closeChartIndicatorManager(); return; }
+    pop.style.display = 'block';
+    renderChartIndicatorManager();
+    const rect = event.currentTarget.getBoundingClientRect();
+    pop.style.top = `${rect.bottom + 6}px`;
+    pop.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - pop.offsetWidth - 8))}px`;
+}
+
+function closeChartIndicatorManager() {
+    const pop = document.getElementById('chart-indicator-manager');
+    if (pop) pop.style.display = 'none';
+    chartIndManagerEditingUid = null;
+}
+
+function chartTimeOfDayLabel(tod) {
+    return `${String(Math.floor(tod / 3600)).padStart(2, '0')}:${String(Math.floor((tod % 3600) / 60)).padStart(2, '0')}`;
+}
+
+function renderChartIndicatorManager() {
+    const pop = document.getElementById('chart-indicator-manager');
+    const body = document.getElementById('chart-indicator-manager-body');
+    if (!pop || !body || pop.style.display === 'none') return;
+
+    const list = getGlobalIndicators();
+    const shared = list.filter(ind => !ind.chartKey);
+    const single = list.filter(ind => ind.chartKey);
+
+    const rowHtml = ind => `
+        <div class="chart-tools-row ct-ind-row${ind.hidden ? ' is-hidden' : ''}" data-mgr-uid="${ind.uid}">
+            <span class="chart-tools-row-dot" style="background:${chartIndicatorColor(ind)}"></span>
+            <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}${ind.chartKey ? ` <span class="ct-ind-badge">${chartKeyLabel(ind.chartKey)}</span>` : ''}</span>
+            <button type="button" class="ct-ind-btn" data-act="toggle" title="${ind.hidden ? 'Show' : 'Hide'}"><i class="fa-solid ${ind.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i></button>
+            <button type="button" class="ct-ind-btn" data-act="edit" title="Edit settings"><i class="fa-solid fa-gear"></i></button>
+            <button type="button" class="ct-ind-btn" data-act="remove" title="${ind.chartKey ? 'Remove' : 'Remove from all charts'}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        ${chartIndManagerEditingUid !== ind.uid ? '' : chartIndicatorEditorHtml(ind, ind.chartKey
+            ? { checked: false, hint: `Tick to show it on every chart instead of only ${chartKeyLabel(ind.chartKey)}.` }
+            : null)}`;
+
+    const presetsHtml = Object.keys(CHART_INDICATOR_PRESETS).map(id => {
+        const preset = CHART_INDICATOR_PRESETS[id];
+        return `<div class="chart-tools-row" data-mgr-add="${id}">
+                <span class="chart-tools-row-dot" style="background:${preset.color}"></span>
+                <span class="chart-tools-row-label">${chartIndicatorLabel(preset)}</span>
+                <i class="fa-solid fa-plus"></i>
+            </div>`;
+    }).join('');
+
+    const lines = getGlobalVlines().slice().sort((a, b) => a.tod - b.tod);
+    const linesHtml = lines.length === 0
+        ? '<div class="chart-tools-empty">None - select a vertical line on any chart and click "All charts"</div>'
+        : lines.map(g => `
+            <div class="chart-tools-row" data-mgr-vline="${g.id}">
+                <i class="fa-solid fa-grip-lines-vertical chart-tools-row-icon" style="color:${drawingColor({ type: 'vline', color: g.color })}"></i>
+                <span class="chart-tools-row-label">Vertical line @ ${chartTimeOfDayLabel(g.tod)}</span>
+                <button type="button" class="ct-ind-btn" data-act="remove" title="Remove from all charts"><i class="fa-solid fa-trash"></i></button>
+            </div>`).join('');
+
+    body.innerHTML = `
+        <div class="chart-tools-section">On all charts</div>
+        ${shared.length > 0 ? shared.map(rowHtml).join('') : '<div class="chart-tools-empty">None yet - add one below</div>'}
+        ${single.length > 0 ? `<div class="chart-tools-section">On a single chart</div>${single.map(rowHtml).join('')}` : ''}
+        <div class="chart-tools-section">Add to all charts</div>
+        ${presetsHtml}
+        <div class="chart-tools-section">Vertical lines on all charts</div>
+        ${linesHtml}`;
+
+    body.querySelectorAll('[data-mgr-add]').forEach(row => {
+        row.addEventListener('click', e => {
+            e.stopPropagation();
+            addGlobalIndicator(row.dataset.mgrAdd);
+        });
+    });
+
+    body.querySelectorAll('[data-mgr-uid] .ct-ind-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const uid = btn.closest('[data-mgr-uid]').dataset.mgrUid;
+            const act = btn.dataset.act;
+            if (act === 'remove') {
+                if (chartIndManagerEditingUid === uid) chartIndManagerEditingUid = null;
+                removeGlobalIndicator(uid);
+            } else if (act === 'toggle') {
+                const ind = getGlobalIndicators().find(i => i.uid === uid);
+                if (ind) updateGlobalIndicator(uid, { hidden: !ind.hidden });
+            } else if (act === 'edit') {
+                chartIndManagerEditingUid = chartIndManagerEditingUid === uid ? null : uid;
+                renderChartIndicatorManager();
+            }
+        });
+    });
+
+    body.querySelectorAll('[data-mgr-vline] .ct-ind-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const id = btn.closest('[data-mgr-vline]').dataset.mgrVline;
+            const lineList = getGlobalVlines();
+            const idx = lineList.findIndex(g => g.id === id);
+            if (idx >= 0) lineList.splice(idx, 1);
+            saveChartToolsStore();
+            rerenderAllChartDrawings();
+        });
+    });
+
+    const editor = body.querySelector('[data-ind-editor]');
+    if (editor) {
+        editor.addEventListener('click', e => e.stopPropagation());
+        editor.addEventListener('keydown', e => e.stopPropagation());
+        editor.querySelector('.ct-ind-save').addEventListener('click', e => {
+            e.stopPropagation();
+            const uid = editor.dataset.indEditor;
+            const ind = getGlobalIndicators().find(i => i.uid === uid);
+            // Single-chart ones keep their chart unless the box is ticked
+            const changes = readChartIndicatorEditor(editor, ind ? ind.chartKey || null : null);
+            chartIndManagerEditingUid = null;
+            updateGlobalIndicator(uid, changes);
+        });
+        editor.querySelector('.ct-ind-cancel').addEventListener('click', e => {
+            e.stopPropagation();
+            chartIndManagerEditingUid = null;
+            renderChartIndicatorManager();
         });
     }
 }
@@ -1673,7 +1959,7 @@ function buildChartToolsTreePanel(tools) {
 
 function chartDrawingLabel(d) {
     if (d.type === 'hline') return `Horizontal line @ ${d.price.toFixed(2)}`;
-    if (d.type === 'vline') return `Vertical line @ ${new Date(d.t * 1000).toISOString().slice(11, 16)}`;
+    if (d.type === 'vline') return `Vertical line @ ${new Date(d.t * 1000).toISOString().slice(11, 16)}${d.global ? ' (all charts)' : ''}`;
     if (d.type === 'trend') return `Trend line ${d.p1.price.toFixed(2)} → ${d.p2.price.toFixed(2)}`;
     if (d.type === 'rect') return `Rectangle ${Math.min(d.p1.price, d.p2.price).toFixed(2)} - ${Math.max(d.p1.price, d.p2.price).toFixed(2)}`;
     if (d.type === 'fib') return `Fib ${d.p1.price.toFixed(2)} → ${d.p2.price.toFixed(2)}`;
@@ -1694,30 +1980,31 @@ function renderChartObjectTree(tools) {
     if (!tools.treePanel || tools.treePanel.style.display === 'none') return;
     const rec = getChartToolsRecord(tools.chartKey, false);
 
-    const drawingsHtml = rec.drawings.length === 0
+    const allDrawings = chartDrawingsFor(tools);
+    const drawingsHtml = allDrawings.length === 0
         ? '<div class="chart-tools-empty">No drawings yet</div>'
-        : rec.drawings.map(d => `
+        : allDrawings.map(d => `
             <div class="chart-tools-row" data-drawing="${d.id}">
                 <i class="fa-solid ${CHART_DRAWING_ICONS[d.type] || 'fa-pen'} chart-tools-row-icon"></i>
                 <span class="chart-tools-row-label">${chartDrawingLabel(d)}</span>
-                <button type="button" class="chart-tools-row-del" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                <button type="button" class="chart-tools-row-del" title="${d.global ? 'Remove from all charts' : 'Remove'}"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
 
-    const indList = getGlobalIndicators();
+    const indList = chartIndicatorsFor(tools);
     const indicatorsHtml = indList.length === 0
         ? '<div class="chart-tools-empty">No indicators yet</div>'
         : indList.map(ind => `
             <div class="chart-tools-row" data-ind-tree="${ind.uid}">
                 <span class="chart-tools-row-dot" style="background:${chartIndicatorColor(ind)}"></span>
-                <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}${ind.hidden ? ' (hidden)' : ''}</span>
-                <button type="button" class="chart-tools-row-del" title="Remove from all charts"><i class="fa-solid fa-trash"></i></button>
+                <span class="chart-tools-row-label">${chartIndicatorLabel(ind)}${ind.chartKey ? ' (this chart)' : ' (all charts)'}${ind.hidden ? ' (hidden)' : ''}</span>
+                <button type="button" class="chart-tools-row-del" title="${ind.chartKey ? 'Remove' : 'Remove from all charts'}"><i class="fa-solid fa-trash"></i></button>
             </div>`).join('');
 
     tools.treePanel.innerHTML = `
         <div class="chart-tools-panel-title">OBJECT TREE</div>
-        <div class="chart-tools-section">Drawings (this chart)</div>
+        <div class="chart-tools-section">Drawings</div>
         ${drawingsHtml}
-        <div class="chart-tools-section">Indicators (all charts)</div>
+        <div class="chart-tools-section">Indicators</div>
         ${indicatorsHtml}
         ${rec.drawings.length > 0
             ? '<button type="button" class="chart-tools-clear-all"><i class="fa-solid fa-trash"></i> Clear all drawings</button>'
@@ -1745,6 +2032,16 @@ function renderChartObjectTree(tools) {
 }
 
 function deleteChartDrawing(tools, drawingId) {
+    // An all-charts vertical line is removed from every chart
+    const globalLines = getGlobalVlines();
+    const globalIdx = globalLines.findIndex(g => g.id === drawingId);
+    if (globalIdx >= 0) {
+        globalLines.splice(globalIdx, 1);
+        saveChartToolsStore();
+        rerenderAllChartDrawings();
+        return;
+    }
+
     const rec = getChartToolsRecord(tools.chartKey, true);
     const drawing = rec.drawings.find(d => d.id === drawingId);
     rec.drawings = rec.drawings.filter(d => d.id !== drawingId);

@@ -6000,6 +6000,38 @@ body.privacy-mode .equity-crosshair-label.price {
     background: none;
     cursor: pointer;
 }
+.ct-ind-editor label.ct-ind-scope-opt {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    font-size: 0.74rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+.ct-ind-scope-opt input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--accent-blue);
+    cursor: pointer;
+}
+.ct-ind-scope-hint {
+    width: 100%;
+    margin-top: -4px;
+    font-size: 0.64rem;
+    color: var(--text-muted);
+}
+.ct-ind-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+    background: rgba(var(--accent-gold-rgb), 0.14);
+    vertical-align: middle;
+}
 .ct-ind-editor-actions { display: flex; gap: 6px; width: 100%; }
 .ct-ind-editor-actions button {
     flex: 1;
@@ -8425,6 +8457,40 @@ html[data-theme="blossom"] {
 .ct-edit-btn:hover { background: rgba(255, 255, 255, 0.1); }
 .ct-edit-btn.active { color: #dfb15b; }
 .ct-edit-del:hover { color: #f6465d; background: rgba(246, 70, 93, 0.15); }
+
+/* Vertical line "All charts" toggle - only for vertical lines; gold when the
+   line is on every chart */
+.ct-allcharts-btn { display: none; gap: 5px; padding: 0 8px; font-size: 0.72rem; white-space: nowrap; }
+.ct-edit-bar.vline-mode .ct-allcharts-btn { display: flex; }
+.ct-allcharts-btn.active {
+    color: var(--accent-gold);
+    background: rgba(var(--accent-gold-rgb), 0.16);
+}
+
+/* News toolbar "Indicators" manager popover */
+.chart-ind-manager {
+    width: 340px;
+    max-width: calc(100vw - 16px);
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.chart-ind-manager-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.chart-ind-manager-title { color: var(--text-light); font-weight: 600; font-size: 0.88rem; }
+.chart-ind-manager-title i { color: var(--accent-gold); margin-right: 4px; }
+.chart-ind-manager-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.chart-ind-manager-close:hover { color: var(--text-light); }
+.chart-ind-manager-body .chart-tools-row:not(.ct-ind-row) { cursor: pointer; }
 
 .ct-style-preview {
     display: inline-block;

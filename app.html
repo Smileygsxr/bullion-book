@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=128">
+    <link rel="stylesheet" href="styles.css?v=130">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -729,6 +729,9 @@
                         <button class="news-tab" id="chart-selected-filter-btn" onclick="toggleShowSelectedChartsOnly()" title="Show only the charts you've selected">
                             <i class="fa-solid fa-check-double"></i> Selected
                             <span class="chart-selected-count-badge" id="chart-selected-count-badge" style="display: none;">0</span>
+                        </button>
+                        <button class="news-tab" id="chart-indicators-manager-btn" onclick="toggleChartIndicatorManager(event)" title="Manage the indicators (and all-charts vertical lines) on every chart">
+                            <i class="fa-solid fa-chart-line"></i> Indicators
                         </button>
                         <button class="news-tab" id="chart-notes-toggle-btn" onclick="toggleChartNotesPanel()" title="Show or hide your notes for this chart symbol">
                             <i class="fa-solid fa-note-sticky"></i> Notes
@@ -1865,6 +1868,11 @@
                         <p>Every chart has a <strong>Select</strong> button next to its date - star any day worth coming back to. It's remembered per symbol, so starring a XAUUSD day doesn't also star that date under EURUSD. Click <strong>Selected</strong> in the toolbar to show only your starred charts; the badge shows how many you have. When two or more selected charts share the same news event, that event is <strong>highlighted in gold</strong> on each of them.</p>
                     </div>
                     <div class="help-tile">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h3>Indicators Manager</h3>
+                        <p>The <strong>Indicators</strong> button in the toolbar manages every chart's indicators in one place: add, edit, hide or remove the ones on all charts, see (and edit or remove) single-chart ones labelled with their chart, and remove any all-charts vertical lines.</p>
+                    </div>
+                    <div class="help-tile">
                         <i class="fa-solid fa-note-sticky"></i>
                         <h3>Chart Notes</h3>
                         <p>The <strong>Notes</strong> toolbar button opens a notepad above the charts - one per symbol, so your XAUUSD notes stay separate from EURUSD. It autosaves as you type, and whether the panel is open or closed is remembered.</p>
@@ -1908,7 +1916,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-slash"></i>
                         <h3>Drawing Tools</h3>
-                        <p>Trend line (2 clicks), horizontal line (1 click, shows its price on the axis), rectangle zone (2 corners) and Fibonacci retracement (click the swing high, then the low). Press <strong>Esc</strong> to cancel a half-placed drawing.</p>
+                        <p>Trend line (2 clicks), horizontal line (1 click, shows its price on the axis), rectangle zone (2 corners) and Fibonacci retracement (click the swing high, then the low). Press <strong>Esc</strong> to cancel a half-placed drawing. Select a vertical line and click <strong>All charts</strong> in the bar at the top to draw it at that same time of day on every chart (e.g. 14:30 on every day) - move or restyle it on any chart and they all follow; click it again to keep it on just that chart.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-arrow-trend-up"></i>
@@ -1918,7 +1926,7 @@
                     <div class="help-tile">
                         <i class="fa-solid fa-chart-line"></i>
                         <h3>Indicators</h3>
-                        <p>Add EMA, SMA, Bollinger Bands, VWAP or RSI (own pane, 70/30 guides) from the chart-line icon. Indicators apply to <strong>every chart at once</strong> - add or change one anywhere and all charts follow. Click the gear on an indicator to edit its period, Bollinger std dev or color; the eye hides it without deleting; add the same type twice for e.g. EMA 9 + EMA 21. EMA/SMA/RSI/Bollinger are computed with the previous trading day's bars too, so they're already "warm" at the day's open (VWAP resets each session by design).</p>
+                        <p>Add EMA, SMA, Bollinger Bands, VWAP or RSI (own pane, 70/30 guides) from the chart-line icon. New indicators apply to <strong>every chart at once</strong> - add or change one anywhere and all charts follow. Click the gear on an indicator to edit its period, Bollinger std dev or color, and untick <strong>Apply to all charts</strong> to keep it on just that chart (marked "this chart"); the eye hides it without deleting; add the same type twice for e.g. EMA 9 + EMA 21. EMA/SMA/RSI/Bollinger are computed with the previous trading day's bars too, so they're already "warm" at the day's open (VWAP resets each session by design).</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-layer-group"></i>
@@ -2383,6 +2391,17 @@
         </div>
     </div>
 
+    <!-- Chart indicator manager (News toolbar "Indicators" button) - every
+         chart's indicators and all-charts vertical lines in one place;
+         filled by renderChartIndicatorManager in chart-tools.js -->
+    <div id="chart-indicator-manager" class="custom-date-popover chart-ind-manager" style="display: none;">
+        <div class="chart-ind-manager-head">
+            <span class="chart-ind-manager-title"><i class="fa-solid fa-chart-line"></i> Chart Indicators</span>
+            <button type="button" class="chart-ind-manager-close" onclick="closeChartIndicatorManager()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="chart-indicator-manager-body" class="chart-ind-manager-body"></div>
+    </div>
+
     <!-- Chart news time-of-day popover (News page - only show news within a
          time window; one time, or both equal, means that exact minute) -->
     <div id="chart-time-popover" class="custom-date-popover" style="display: none;">
@@ -2726,11 +2745,11 @@
     <script>requireAuth(); renderSidebarProfile(); initAccounts(); loadCustomAvatar(); loadAppSettings();</script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@5.0.7/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="chart-tools.js?v=10"></script>
+    <script src="chart-tools.js?v=12"></script>
     <script src="community.js?v=3"></script>
     <script src="coach.js?v=5"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=55"></script>
+    <script src="app.js?v=56"></script>
 
 </body>
 </html>

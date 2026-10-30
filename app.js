@@ -658,6 +658,8 @@ function showPage(pageId, clickedElement) {
     if (pageId !== 'page-dashboard' && typeof tradeSelectMode !== 'undefined' && tradeSelectMode) {
         exitTradeSelectMode();
     }
+    // The fixed-position indicator manager shouldn't float over other pages
+    if (typeof closeChartIndicatorManager === 'function') closeChartIndicatorManager();
     const views = document.querySelectorAll('.view-section');
     views.forEach(view => { view.style.display = 'none'; });
     const targetView = document.getElementById(pageId);
