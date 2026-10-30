@@ -4,8 +4,11 @@
 //| Exports economic calendar events for the 8 major currencies      |
 //| (USD, JPY, EUR, GBP, CHF, AUD, CAD, NZD) from MT5's built-in      |
 //| Calendar into the exact CSV format bullion-book's News page reads|
-//|   date,time,name,currency,actual,forecast,previous,importance     |
-//| (header row, ISO date, "8:30am"-style time, one row per event)   |
+//|   date,time,name,currency,actual,forecast,previous,importance,    |
+//|   country                                                        |
+//| (header row, ISO date, "8:30am"-style time, one row per event).  |
+//| country (e.g. "Germany", "European Union") lets the app's "?"    |
+//| event explanations say which euro economy a release is about.    |
 //|                                                                    |
 //| HOW TO RUN:                                                       |
 //|   1. Open this file in MetaEditor (F4 in MT5, or double-click it  |
@@ -166,7 +169,7 @@ void OnStart()
         return;
     }
 
-    FileWrite(handle, "date", "time", "name", "currency", "actual", "forecast", "previous", "importance");
+    FileWrite(handle, "date", "time", "name", "currency", "actual", "forecast", "previous", "importance", "country");
 
     int written = 0;
     int countriesWithData = 0;
@@ -199,7 +202,8 @@ void OnStart()
             string previous = FormatCalendarNumber(values[i].prev_value, event.digits);
             string importance = FormatImportance(event.importance);
 
-            FileWrite(handle, date_str, time_str, SanitizeCsvField(event.name), countries[c].currency, actual, forecast, previous, importance);
+            FileWrite(handle, date_str, time_str, SanitizeCsvField(event.name), countries[c].currency, actual, forecast, previous, importance,
+                      SanitizeCsvField(countries[c].name));
             written++;
         }
     }

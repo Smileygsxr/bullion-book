@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "node scripts/build.js",
   "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/programs/", "destination": "/api/programs" },
+    { "source": "/programs/:path*", "destination": "/api/programs?path=:path*" },
+    { "source": "/programs", "destination": "/api/programs?bare=1" }
+  ],
+  "functions": {
+    "api/programs.js": { "includeFiles": "programs/**" }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -18,19 +26,19 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "source": "/(.*).html",
+      "source": "/((?!programs/).*).html",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "source": "/(.*).js",
+      "source": "/((?!programs/).*).js",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "source": "/(.*).css",
+      "source": "/((?!programs/).*).css",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "source": "/(.*).json",
+      "source": "/((?!programs/).*).json",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
@@ -42,8 +50,15 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     },
     {
-      "source": "/(.*).(png|svg|ico|webp|jpg|jpeg)",
+      "source": "/((?!programs/).*).(png|svg|ico|webp|jpg|jpeg)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "source": "/programs/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
     }
   ]
 }

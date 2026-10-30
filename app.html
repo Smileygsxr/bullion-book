@@ -10,7 +10,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
     <link rel="icon" type="image/png" sizes="96x96" href="favicon-96.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="stylesheet" href="styles.css?v=131">
+    <link rel="stylesheet" href="styles.css?v=132">
     <!-- Apply the saved theme before first paint so there's no color flash;
          the authoritative copy in the user's settings re-syncs after login. -->
     <script>
@@ -851,6 +851,10 @@
                     <button class="settings-subnav-item" id="settings-tab-security" onclick="switchSettingsPanel('security')">
                         <span><i class="fa-solid fa-shield-halved"></i> Password & Security</span>
                         <i class="fa-solid fa-chevron-right settings-subnav-arrow"></i>
+                    </button>
+                    <button class="settings-subnav-item" id="settings-tab-programs" onclick="openProgramsModal()" title="Password-protected">
+                        <span><i class="fa-solid fa-folder-open"></i> Programs</span>
+                        <i class="fa-solid fa-lock settings-subnav-arrow"></i>
                     </button>
                     <button class="settings-subnav-item danger" id="settings-tab-danger" onclick="switchSettingsPanel('danger')">
                         <span><i class="fa-solid fa-triangle-exclamation"></i> Danger</span>
@@ -1899,8 +1903,8 @@
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-circle-question"></i>
-                        <h3>Beat / Miss Hint</h3>
-                        <p>The <strong>?</strong> next to an event's name: hover it to see whether the Actual came in higher or lower than Forecast, what that suggests for the currency, and the likely direction for the chart you're viewing (e.g. strong USD data &rarr; XAUUSD likely down). The arrow beside it shows that direction. A rough rule of thumb, not a prediction.</p>
+                        <h3>What Is This Event? (the ?)</h3>
+                        <p>Click the <strong>?</strong> next to an event's name for a plain-English explanation: what the release measures, why it matters, and whether a higher-than-forecast reading usually helps or hurts its currency - plus this release's Actual/Forecast/Previous and the likely direction for the chart you're viewing (e.g. strong USD data &rarr; XAUUSD likely down). Hover it for the quick beat/miss summary; the arrow beside it shows that direction. Releases with no consistent direction - speeches, oil inventories, holidays - say so instead of guessing. A general guide, not a prediction.</p>
                     </div>
                     <div class="help-tile">
                         <i class="fa-solid fa-filter"></i>
@@ -2277,6 +2281,21 @@
             <div class="confirm-modal-actions">
                 <button class="btn-action btn-danger" onclick="closeQuickPlaybookModal()">Cancel</button>
                 <button class="btn-action btn-blue" onclick="confirmQuickAddPlaybook()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Programs password (Settings > Programs) - checked by the server (api/programs.js) -->
+    <div id="programs-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card confirm-modal-card">
+            <div class="confirm-modal-icon"><i class="fa-solid fa-lock"></i></div>
+            <h3 class="confirm-modal-title">Programs</h3>
+            <p class="confirm-modal-body">Enter the Programs password to continue.</p>
+            <input type="password" id="programs-password-input" class="modal-input" style="text-align: left;" placeholder="Password" autocomplete="current-password" aria-label="Programs password" onkeydown="if (event.key === 'Enter') submitProgramsPassword(); if (event.key === 'Escape') closeProgramsModal();">
+            <div id="programs-modal-status" class="settings-status"></div>
+            <div class="confirm-modal-actions">
+                <button class="btn-action btn-danger" onclick="closeProgramsModal()">Cancel</button>
+                <button class="btn-action btn-blue" onclick="submitProgramsPassword()">Open</button>
             </div>
         </div>
     </div>
@@ -2820,7 +2839,8 @@
     <script src="community.js?v=4"></script>
     <script src="coach.js?v=5"></script>
     <script src="tutorial.js?v=1"></script>
-    <script src="app.js?v=57"></script>
+    <script src="event-info.js"></script>
+    <script src="app.js?v=58"></script>
 
 </body>
 </html>

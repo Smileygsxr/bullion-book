@@ -105,5 +105,33 @@ module.exports = ({ test, assert, assertEqual, makeSandbox, run, readSource, mak
         assertEqual(run(env.sb, 'appSettings.theme'), 'midnight', 'settings applied');
         assertEqual(db.raw('users/u1').bullionStorage.version, 2, 'upgraded to split storage on first load');
         assert(run(env.sb, '!journalSync.error && !journalSync.loadError'), 'no save/load error');
+
+        // Charts page "?": the explanation popover renders (and escapes) an event
+        run(env.sb, `newsEventInfoStore.set('2026-10-29#0', { date: '2026-10-29', time: '9:00am', name: 'Goods Trade Balance <b>', currency: 'GBP',
+            actual: '-19.6B', forecast: '-20.1B', previous: '-21.5B', importance: 'moderate', country: '' })`);
+        run(env.sb, `openNewsEventInfo({ dataset: { infoId: '2026-10-29#0' }, getBoundingClientRect: () => ({ top: 100, bottom: 116, left: 50, right: 60 }) })`);
+        const pop = run(env.sb, "document.getElementById('news-event-popover').innerHTML");
+        assert(/United Kingdom/.test(pop) && /good for GBP/.test(pop), 'popover explains the event');
+        assert(pop.indexOf('<b>') < 0 && pop.indexOf('&lt;b&gt;') >= 0, 'event name escaped');
+        assert(/-19\.6B/.test(pop) && /cpi-value-up/.test(pop), 'numbers shown, beat coloured');
+
+        // Settings > Programs: the password goes to the server; only its "ok" opens the page
+        const sent = [];
+        let reply = { status: 401, body: { ok: false, error: 'Wrong password.' } };
+        env.sb.location.hostname = 'bullion-book.vercel.app';
+        env.sb.fetch = (url, opts) => {
+            sent.push({ url, opts });
+            return Promise.resolve({ status: reply.status, json: () => Promise.resolve(reply.body) });
+        };
+        run(env.sb, "openProgramsModal(); document.getElementById('programs-password-input').value = 'guess'; submitProgramsPassword()");
+        await settle(clock);
+        assert(sent.length === 1 && sent[0].url === '/programs/' && sent[0].opts.method === 'POST', 'password posted to the server');
+        assert(/password=guess/.test(sent[0].opts.body), 'as a form field');
+        assertEqual(run(env.sb, "document.getElementById('programs-modal-status').textContent"), 'Wrong password - try again.', 'wrong password message');
+        assert(env.sb.location.href.indexOf('/programs/') < 0, 'not opened on a wrong password');
+        reply = { status: 200, body: { ok: true } };
+        run(env.sb, "document.getElementById('programs-password-input').value = 'right'; submitProgramsPassword()");
+        await settle(clock);
+        assertEqual(env.sb.location.href, '/programs/', 'opened after the server said ok');
     });
 };

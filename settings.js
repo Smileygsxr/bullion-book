@@ -909,6 +909,62 @@ function savePassword() {
         });
 }
 
+// ---- Programs (Settings > Programs) ----
+// A password-protected area for your own tools: the repository's /programs
+// folder. The password is checked by the server (api/programs.js) - never in
+// this page's code, which anyone can read - and a correct one unlocks
+// /programs/ in this browser for 12 hours.
+function openProgramsModal() {
+    const overlay = document.getElementById('programs-modal-overlay');
+    const input = document.getElementById('programs-password-input');
+    if (!overlay || !input) return;
+    input.value = '';
+    showSettingsStatus('programs-modal-status', '');
+    overlay.style.display = 'flex';
+    setTimeout(() => input.focus(), 0);
+}
+
+function closeProgramsModal() {
+    const overlay = document.getElementById('programs-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function submitProgramsPassword() {
+    const input = document.getElementById('programs-password-input');
+    const password = input ? input.value : '';
+    if (!password) {
+        if (input) input.focus();
+        return;
+    }
+    // A copy running on this computer (python -m http.server) has no server
+    // to check the password with - the files are on your disk anyway
+    if (/^(localhost|127\.0\.0\.1|\[::1\])?$/.test(window.location.hostname)) {
+        window.location.href = 'programs/';
+        return;
+    }
+    showSettingsStatus('programs-modal-status', 'Checking...', '');
+    fetch('/programs/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+        body: new URLSearchParams({ password }).toString(),
+        credentials: 'same-origin'
+    })
+        .then(res => res.json().catch(() => ({})).then(body => ({ status: res.status, body })))
+        .then(({ status, body }) => {
+            if (status === 200 && body.ok) {
+                window.location.href = '/programs/';
+                return;
+            }
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            showSettingsStatus('programs-modal-status',
+                status === 401 ? 'Wrong password - try again.' : (body.error || 'Couldn\'t check the password right now - try again.'), 'error');
+        })
+        .catch(() => showSettingsStatus('programs-modal-status', 'Couldn\'t reach the server - check your connection.', 'error'));
+}
+
 // ---- Danger ----
 // Our accounts have always stored trades inside an account object, so the
 // "orphaned trades" scenario this is meant to fix shouldn't occur here - this is a

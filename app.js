@@ -100,10 +100,12 @@ function toggleShowSelectedChartsOnly() {
 // renderCurrencyFilterChips) rather than being pre-filtered at export time.
 const ECONOMIC_EVENTS_CSV_PATH = './data/EconomicEvents.csv';
 
-// Header row: date,time,name,currency,actual,forecast,previous,importance -
-// one row per event, date already ISO ("2026-07-03"), time already
-// "8:30am"-style, importance one of high/moderate/low/none (matches MT5's
-// own Calendar tab), currency a 3-letter ISO code ("USD", "EUR", ...).
+// Header row: date,time,name,currency,actual,forecast,previous,importance
+// (+ country, in exports from the updated MT5 script) - one row per event,
+// date already ISO ("2026-07-03"), time already "8:30am"-style, importance
+// one of high/moderate/low/none (matches MT5's own Calendar tab), currency a
+// 3-letter ISO code ("USD", "EUR", ...), country MT5's name for it
+// ("Germany", "European Union"...) so euro events say which economy.
 const IMPORTANCE_RANK = { high: 3, moderate: 2, low: 1, none: 0 };
 
 // "8:30am"-style (lowercase, no space - see the CSV parsing below) to minutes
@@ -142,7 +144,8 @@ function loadEconomicEvents() {
                     actual: (row.actual || '').trim(),
                     forecast: (row.forecast || '').trim(),
                     previous: (row.previous || '').trim(),
-                    importance: IMPORTANCE_RANK.hasOwnProperty(importance) ? importance : 'none'
+                    importance: IMPORTANCE_RANK.hasOwnProperty(importance) ? importance : 'none',
+                    country: (row.country || '').trim()
                 });
             });
 
@@ -1583,14 +1586,19 @@ function renderEventsForDate(block, date, eventsByDate) {
 
     if (!miniData || !eventsList || !events || events.length === 0) return;
 
-    eventsList.innerHTML = events.map(({ time, name, currency, actual, forecast, previous, importance }) => {
+    eventsList.innerHTML = events.map((ev, index) => {
+        const { time, name, currency, actual, forecast, previous, importance } = ev;
         const actualColorClass = getActualColorClass(name, actual, forecast);
         const hasForecast = !!(forecast && String(forecast).trim() !== '');
         const timeMin = parseEventTimeToMinutes(time);
         const hidden = !newsEventPasses(importance, currency, hasForecast, timeMin);
         const hint = newsDirectionHint(name, currency, actual, forecast, (typeof activeChartSymbol !== 'undefined' && activeChartSymbol) ? activeChartSymbol.symbol : '');
         const hintArrow = hint.dir > 0 ? '<i class="fa-solid fa-caret-up cpi-hint-up"></i>' : hint.dir < 0 ? '<i class="fa-solid fa-caret-down cpi-hint-down"></i>' : '';
-        const hintHtml = `<span class="cpi-news-hint" title="${hint.text.replace(/"/g, '&quot;')}"><i class="fa-solid fa-circle-question"></i>${hintArrow}</span>`;
+        // Click: what the event is and how it usually moves the currency
+        // (openNewsEventInfo); hover still shows the quick beat/miss hint
+        const infoId = `${date}#${index}`;
+        newsEventInfoStore.set(infoId, Object.assign({ date }, ev));
+        const hintHtml = `<button type="button" class="cpi-news-hint" data-info-id="${escapeHtml(infoId)}" onclick="toggleNewsEventInfo(event, this)" title="${escapeHtml(`${hint.text} Click for what this event means.`)}" aria-label="${escapeHtml(`What is ${name}?`)}"><i class="fa-solid fa-circle-question"></i>${hintArrow}</button>`;
         return `
         <div class="cpi-mini-event" data-event-key="${encodeURIComponent(`${name}|${currency || ''}`)}" data-importance="${importance || 'none'}" data-currency="${currency || ''}" data-has-forecast="${hasForecast ? '1' : '0'}" data-time-min="${timeMin >= Number.MAX_SAFE_INTEGER ? '' : timeMin}" style="${hidden ? 'display:none;' : ''}">
             <span class="cpi-mini-event-name">${name} ${hintHtml}</span>
@@ -1621,18 +1629,30 @@ function parseEventNumber(value) {
     return num;
 }
 
-// Indicators where a higher Actual than Forecast is bad news (red), not good (green)
-const INVERTED_EVENT_KEYWORDS = ['unemployment claims', 'unemployment rate', 'jobless claims'];
+// Indicators where a higher Actual than Forecast is bad news (red), not good
+// (green). event-info.js knows most events itself; this list covers any it
+// doesn't, and matches its "higher is bad" families (a test checks that).
+const INVERTED_EVENT_KEYWORDS = ['unemployment', 'jobless', 'claimant count', 'job cuts', 'jobseekers', 'net borrowing', 'net cash requirement', 'vote cut'];
+
+// What a higher-than-forecast reading means for the event's currency: 'up',
+// 'down', or null for releases with no consistent direction (speeches,
+// holidays, oil inventories...). Shared by the colours, the hint and the "?"
+// explanation, so they never contradict each other.
+function eventPolarity(name) {
+    const known = typeof economicEventPolarity === 'function' ? economicEventPolarity(name) : undefined;
+    if (known !== undefined) return known;
+    const lower = String(name || '').toLowerCase();
+    return INVERTED_EVENT_KEYWORDS.some(keyword => lower.includes(keyword)) ? 'down' : 'up';
+}
 
 // Green if Actual beat Forecast, red if it missed, otherwise left neutral/white
 function getActualColorClass(name, actual, forecast) {
     const actualNum = parseEventNumber(actual);
     const forecastNum = parseEventNumber(forecast);
-    if (actualNum === null || forecastNum === null) return '';
-
-    const isInverted = INVERTED_EVENT_KEYWORDS.some(keyword => name.toLowerCase().includes(keyword));
-    if (actualNum === forecastNum) return '';
-    const beatForecast = isInverted ? actualNum < forecastNum : actualNum > forecastNum;
+    if (actualNum === null || forecastNum === null || actualNum === forecastNum) return '';
+    const polarity = eventPolarity(name);
+    if (!polarity) return '';
+    const beatForecast = polarity === 'down' ? actualNum < forecastNum : actualNum > forecastNum;
     return beatForecast ? 'cpi-value-up' : 'cpi-value-down';
 }
 
@@ -1647,10 +1667,11 @@ function newsDirectionHint(name, currency, actual, forecast, chartSymbol) {
     if (a === null || f === null) return { dir: 0, text: 'No forecast to compare against.' };
     if (a === f) return { dir: 0, text: `Actual ${actual} came in in line with forecast ${forecast}.` };
 
-    const isInverted = INVERTED_EVENT_KEYWORDS.some(k => name.toLowerCase().includes(k));
+    const polarity = eventPolarity(name);
     const higher = a > f;
-    const strength = (isInverted ? !higher : higher) ? 1 : -1; // +1 = currency likely stronger
     const cmp = higher ? 'higher than' : 'lower than';
+    if (!polarity) return { dir: 0, text: `Actual ${actual} is ${cmp} forecast ${forecast}, but this kind of release doesn't move ${currency} one consistent way.` };
+    const strength = (polarity === 'down' ? !higher : higher) ? 1 : -1; // +1 = currency likely stronger
 
     let base, quote;
     if (/^[A-Z]{6}$/.test(chartSymbol)) { base = chartSymbol.slice(0, 3); quote = chartSymbol.slice(3); }
@@ -1664,6 +1685,117 @@ function newsDirectionHint(name, currency, actual, forecast, chartSymbol) {
     text += dir > 0 ? `${chartSymbol} likely UP.` : dir < 0 ? `${chartSymbol} likely DOWN.` : `No clear ${chartSymbol} direction from ${currency} news.`;
     return { dir, text };
 }
+
+// ---- "?" next to a news event: what it measures, how it usually moves the
+// currency, and this release's numbers. Text from event-info.js. ----
+const newsEventInfoStore = new Map(); // "date#index" -> event, filled by renderEventsForDate
+let newsEventInfoAnchor = null;
+
+function toggleNewsEventInfo(event, btn) {
+    if (event) event.stopPropagation(); // the document click below would close it again
+    const pop = document.getElementById('news-event-popover');
+    if (pop && pop.style.display !== 'none' && newsEventInfoAnchor === btn) {
+        closeNewsEventInfo();
+        return;
+    }
+    openNewsEventInfo(btn);
+}
+
+function closeNewsEventInfo() {
+    const pop = document.getElementById('news-event-popover');
+    if (pop) pop.style.display = 'none';
+    newsEventInfoAnchor = null;
+}
+
+function newsEventInfoHtml(ev) {
+    const chartSymbol = (typeof activeChartSymbol !== 'undefined' && activeChartSymbol) ? activeChartSymbol.symbol : '';
+    const info = typeof describeEconomicEvent === 'function' ? describeEconomicEvent(ev.name, ev.currency, ev.country) : null;
+    const hint = newsDirectionHint(ev.name, ev.currency, ev.actual, ev.forecast, chartSymbol);
+    const importance = IMPORTANCE_RANK.hasOwnProperty(ev.importance) ? ev.importance : 'none';
+    const impact = { high: 'High impact', moderate: 'Medium impact', low: 'Low impact' }[importance] || 'No impact';
+    const place = ev.country || (info ? info.place.region.replace(/^the /, '').replace(/^./, c => c.toUpperCase()) : '');
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(ev.date || '')
+        ? new Date(`${ev.date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+        : '';
+    const arrow = hint.dir > 0 ? '<i class="fa-solid fa-caret-up cpi-hint-up"></i>' : hint.dir < 0 ? '<i class="fa-solid fa-caret-down cpi-hint-down"></i>' : '<i class="fa-solid fa-minus"></i>';
+    const hasNumbers = !!(ev.actual || ev.forecast || ev.previous);
+    return `
+        <div class="news-info-head">
+            <div>
+                <div class="news-info-title">${escapeHtml(ev.name)}</div>
+                <div class="news-info-meta">
+                    ${ev.currency ? `<span class="news-info-cur">${escapeHtml(ev.currency)}</span>` : ''}
+                    ${place ? `<span>${escapeHtml(place)}</span>` : ''}
+                    <span><span class="cpi-mini-event-importance-dot importance-${importance}"></span> ${impact}</span>
+                    ${day || ev.time ? `<span>${escapeHtml([day, ev.time].filter(Boolean).join(', '))}</span>` : ''}
+                </div>
+            </div>
+            <button type="button" class="news-info-close" onclick="closeNewsEventInfo()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        ${info && info.summary ? `<p class="news-info-summary">${escapeHtml(info.summary)}</p>` : ''}
+        ${info ? `<p class="news-info-effect"><i class="fa-solid fa-scale-balanced"></i><span>${escapeHtml(info.effect)}</span></p>` : ''}
+        ${hasNumbers ? `
+        <div class="news-info-values">
+            <div><span>Actual</span><strong class="${getActualColorClass(ev.name, ev.actual, ev.forecast)}">${escapeHtml(ev.actual || '-')}</strong></div>
+            <div><span>Forecast</span><strong>${escapeHtml(ev.forecast || '-')}</strong></div>
+            <div><span>Previous</span><strong>${escapeHtml(ev.previous || '-')}</strong></div>
+        </div>
+        <p class="news-info-hint">${arrow}<span>${escapeHtml(hint.text)}</span></p>` : ''}
+        ${info && info.periodNote ? `<p class="news-info-note">${escapeHtml(info.periodNote)}</p>` : ''}
+        <p class="news-info-note">A general guide, not a prediction - markets react to the surprise against expectations, and to everything else going on.</p>`;
+}
+
+function openNewsEventInfo(btn) {
+    const ev = newsEventInfoStore.get(btn.dataset.infoId);
+    if (!ev) return;
+    let pop = document.getElementById('news-event-popover');
+    if (!pop) {
+        pop = document.createElement('div');
+        pop.id = 'news-event-popover';
+        pop.className = 'news-event-popover';
+        pop.setAttribute('role', 'dialog');
+        pop.addEventListener('click', e => e.stopPropagation());
+        document.body.appendChild(pop);
+    }
+    pop.setAttribute('aria-label', ev.name);
+    pop.innerHTML = newsEventInfoHtml(ev);
+    pop.style.display = 'block';
+    newsEventInfoAnchor = btn;
+    positionNewsEventInfo(pop, btn);
+}
+
+// Next to the "?" on wide screens (below it, or above if there's no room);
+// a bottom sheet on phones
+function positionNewsEventInfo(pop, btn) {
+    const margin = 8;
+    const sheet = window.innerWidth <= 600;
+    pop.classList.toggle('sheet', sheet);
+    if (sheet) {
+        pop.style.left = '';
+        pop.style.top = '';
+        return;
+    }
+    const r = btn.getBoundingClientRect();
+    const left = Math.min(Math.max(margin, r.left - 12), window.innerWidth - pop.offsetWidth - margin);
+    let top = r.bottom + 8;
+    if (top + pop.offsetHeight > window.innerHeight - margin) top = Math.max(margin, r.top - pop.offsetHeight - 8);
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+}
+
+document.addEventListener('click', () => {
+    if (newsEventInfoAnchor) closeNewsEventInfo();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && newsEventInfoAnchor) closeNewsEventInfo();
+});
+document.addEventListener('scroll', e => {
+    const pop = document.getElementById('news-event-popover');
+    if (newsEventInfoAnchor && !(pop && pop.contains(e.target))) closeNewsEventInfo();
+}, true);
+window.addEventListener('resize', () => {
+    if (newsEventInfoAnchor) closeNewsEventInfo();
+});
 
 // 4. THE CSV READING AND RENDER ENGINE
 function createOneDayChart(dateString, filesByInterval, chartContainer, events, defaultInterval, tradeSymbol) {
